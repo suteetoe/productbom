@@ -1,0 +1,131 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BomApp.UI.ViewModels.Shell"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="BomApp.UI.Views.Shell.SidebarView"
+             x:DataType="vm:SidebarViewModel"
+             Background="{StaticResource SurfaceSecondaryBrush}">
+
+    <!--
+        Sidebar navigation styles.
+
+        Active state is signalled by adding the "active" pseudo-class
+        to each nav item Button via the Classes binding syntax:
+            Classes.active="{Binding IsSelected}"
+
+        Style selectors respond to :is(.active) to change colour/weight.
+    -->
+    <UserControl.Styles>
+
+        <!-- Base nav Button: transparent background, stretch width, no default chrome -->
+        <Style Selector="Button.nav-item">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,2,0,2"/>
+            <Setter Property="CornerRadius" Value="{StaticResource RadiusMD}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <!-- Hover: light gray background -->
+        <Style Selector="Button.nav-item:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#F1F5F9"/>
+        </Style>
+
+        <!-- Active: blue-tinted row background -->
+        <Style Selector="Button.nav-item.active /template/ ContentPresenter">
+            <Setter Property="Background" Value="#EFF6FF"/>
+        </Style>
+
+        <!-- Left accent bar — hidden by default -->
+        <Style Selector="Button.nav-item Border.accent-bar">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <!-- Left accent bar — visible when active -->
+        <Style Selector="Button.nav-item.active Border.accent-bar">
+            <Setter Property="Background" Value="{StaticResource AccentBlueBrush}"/>
+        </Style>
+
+        <!-- Nav label — default color -->
+        <Style Selector="Button.nav-item TextBlock.nav-label">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+        </Style>
+        <!-- Nav label — active color + weight -->
+        <Style Selector="Button.nav-item.active TextBlock.nav-label">
+            <Setter Property="Foreground" Value="{StaticResource AccentBlueBrush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- ============================================================ -->
+        <!-- App branding header                                           -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="0"
+                Padding="{StaticResource CardPadding}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <StackPanel Spacing="2">
+                <TextBlock Text="BOM"
+                           FontSize="{StaticResource FontSizeH2}"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource AccentBlueBrush}"/>
+                <TextBlock Text="Production Calculator"
+                           FontSize="{StaticResource FontSizeXS}"
+                           Foreground="{StaticResource TextMutedBrush}"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Navigation items                                              -->
+        <!--                                                               -->
+        <!-- Binding notes:                                                -->
+        <!--   Classes.active  — toggles "active" class via IsSelected    -->
+        <!--   Command          — NavigateCommand lives on SidebarViewModel -->
+        <!--   CommandParameter — the NavItemViewModel for this row        -->
+        <!-- ============================================================ -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding NavItems}"
+                          Margin="{StaticResource SpaceSM}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:NavItemViewModel">
+
+                        <Button Classes="nav-item"
+                                Classes.active="{Binding IsSelected}"
+                                Command="{Binding $parent[ItemsControl].((vm:SidebarViewModel)DataContext).NavigateCommand}"
+                                CommandParameter="{Binding}">
+
+                            <!-- Row layout: [3px bar] [spacer] [label text] -->
+                            <Grid ColumnDefinitions="3,10,*"
+                                  Height="40">
+
+                                <!-- Left accent bar -->
+                                <Border Grid.Column="0"
+                                        Classes="accent-bar"
+                                        CornerRadius="2"
+                                        VerticalAlignment="Stretch"/>
+
+                                <!-- Label -->
+                                <TextBlock Grid.Column="2"
+                                           Classes="nav-label"
+                                           Text="{Binding Label}"
+                                           FontSize="{StaticResource FontSizeBase}"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Button>
+
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+    </Grid>
+</UserControl>

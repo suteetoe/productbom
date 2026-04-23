@@ -1,0 +1,395 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BomApp.UI.ViewModels.Bom"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="BomApp.UI.Views.Bom.BomEditorView"
+             x:DataType="vm:BomEditorViewModel">
+
+    <!--
+        Layout:
+          Row 0 — Toolbar (title + Version badge)         [Auto]
+          Row 1 — Error banner                             [Auto]
+          Row 2 — Header form card                         [Auto]
+          Row 3 — BOM Lines card (fills remaining space)   [*]
+          Row 4 — Footer action bar (Save / Cancel)        [Auto]
+
+        Bindings summary:
+          IsEditing  → View title switches between "สร้างสูตรการผลิต" and "แก้ไขสูตรการผลิต"
+          Code       → TextBox (required, unique)
+          Name       → TextBox (required)
+          Description → TextBox (optional)
+          ItemCode   → TextBox lookup (required)
+          ItemName   → TextBlock (auto-filled after lookup, read-only)
+          YieldQuantity → NumericUpDown / TextBox
+          YieldUnit  → TextBox (Sprint 3: ComboBox populated from ERP units)
+          Version    → TextBlock badge (read-only, auto-incremented by backend)
+          Status     → TextBlock badge (read-only)
+          Lines      → DataGrid ItemsSource — inline editable BomLineEditModel rows
+          IsLoading  → ProgressBar + footer button disabled
+          HasError   → error border IsVisible
+          ErrorMessage → error TextBlock.Text
+          AddLineCommand    → "+ เพิ่มวัตถุดิบ" button
+          RemoveLineCommand → "ลบ" button per BOM line row
+          SaveCommand       → "บันทึก" footer button
+    -->
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+
+        <!-- ============================================================ -->
+        <!-- Row 0 — Toolbar                                               -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="0"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="{StaticResource PanelPadding}"
+                Height="{StaticResource ToolbarHeight}">
+
+            <Grid ColumnDefinitions="*,Auto">
+
+                <!-- Title toggles based on IsEditing -->
+                <StackPanel Grid.Column="0"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            VerticalAlignment="Center">
+
+                    <TextBlock Text="สร้างสูตรการผลิต"
+                               FontSize="{StaticResource FontSizeH2}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               IsVisible="{Binding IsEditing, Converter={x:Static BoolConverters.Not}}"/>
+
+                    <TextBlock Text="แก้ไขสูตรการผลิต"
+                               FontSize="{StaticResource FontSizeH2}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               IsVisible="{Binding IsEditing}"/>
+                </StackPanel>
+
+                <!-- Version + Status badges on the right -->
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            VerticalAlignment="Center">
+
+                    <Border Background="{StaticResource SurfaceSecondaryBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusSM}"
+                            Padding="8,2">
+                        <TextBlock FontSize="{StaticResource FontSizeSM}"
+                                   Foreground="{StaticResource TextSecondaryBrush}">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="v{0}">
+                                    <Binding Path="Version"/>
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </Border>
+
+                    <Border Background="{StaticResource SurfaceSecondaryBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusSM}"
+                            Padding="8,2">
+                        <TextBlock Text="{Binding Status}"
+                                   FontSize="{StaticResource FontSizeSM}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Row 1 — Error banner                                          -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="1"
+                Margin="{StaticResource PanelPadding}"
+                Background="#FEF2F2"
+                BorderBrush="{StaticResource DangerBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusSM}"
+                Padding="{StaticResource SpaceSM}"
+                IsVisible="{Binding HasError}">
+            <TextBlock Text="{Binding ErrorMessage}"
+                       FontSize="{StaticResource FontSizeSM}"
+                       Foreground="{StaticResource DangerBrush}"
+                       TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Row 2 — Header form card                                      -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="2"
+                Margin="{StaticResource PanelPadding}"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusLG}"
+                Padding="{StaticResource CardPadding}">
+
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+                  ColumnDefinitions="*,*"
+                  RowSpacing="12"
+                  ColumnSpacing="16">
+
+                <!-- Row 0: Section label -->
+                <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
+                           Text="ข้อมูลสูตรการผลิต"
+                           FontSize="{StaticResource FontSizeLG}"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                <!-- Row 1 Col 0: รหัสสูตร (required) -->
+                <StackPanel Grid.Row="1" Grid.Column="0" Spacing="4">
+                    <TextBlock Text="รหัสสูตร *"
+                               FontSize="{StaticResource FontSizeSM}"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBox Text="{Binding Code, Mode=TwoWay}"
+                             Watermark="เช่น BOM-001"
+                             FontSize="{StaticResource FontSizeBase}"
+                             CornerRadius="{StaticResource RadiusMD}"/>
+                </StackPanel>
+
+                <!-- Row 1 Col 1: ชื่อสูตร (required) -->
+                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
+                    <TextBlock Text="ชื่อสูตร *"
+                               FontSize="{StaticResource FontSizeSM}"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBox Text="{Binding Name, Mode=TwoWay}"
+                             Watermark="ชื่อสูตรการผลิต"
+                             FontSize="{StaticResource FontSizeBase}"
+                             CornerRadius="{StaticResource RadiusMD}"/>
+                </StackPanel>
+
+                <!-- Row 2 Col 0: สินค้าที่ผลิต (lookup, required) -->
+                <StackPanel Grid.Row="2" Grid.Column="0" Spacing="4">
+                    <TextBlock Text="สินค้าที่ผลิต *"
+                               FontSize="{StaticResource FontSizeSM}"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <!-- Sprint 2: TextBox; Sprint 3: searchable lookup ComboBox -->
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding ItemCode, Mode=TwoWay}"
+                                 Watermark="รหัสสินค้า"
+                                 FontSize="{StaticResource FontSizeBase}"
+                                 CornerRadius="{StaticResource RadiusMD}"/>
+                        <!-- ItemName auto-filled label -->
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding ItemName}"
+                                   FontSize="{StaticResource FontSizeSM}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="{StaticResource SpaceSM}"/>
+                    </Grid>
+                </StackPanel>
+
+                <!-- Row 2 Col 1: คำอธิบาย (optional) -->
+                <StackPanel Grid.Row="2" Grid.Column="1" Spacing="4">
+                    <TextBlock Text="คำอธิบาย"
+                               FontSize="{StaticResource FontSizeSM}"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBox Text="{Binding Description, Mode=TwoWay}"
+                             Watermark="คำอธิบายสูตร (ไม่บังคับ)"
+                             FontSize="{StaticResource FontSizeBase}"
+                             CornerRadius="{StaticResource RadiusMD}"/>
+                </StackPanel>
+
+                <!-- Row 3: จำนวนที่ผลิตได้ + หน่วยนับ -->
+                <StackPanel Grid.Row="3" Grid.Column="0" Spacing="4" Orientation="Horizontal">
+                    <!-- YieldQuantity -->
+                    <StackPanel Spacing="4" Width="160">
+                        <TextBlock Text="จำนวนที่ผลิตได้ต่อรอบ *"
+                                   FontSize="{StaticResource FontSizeSM}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <NumericUpDown Value="{Binding YieldQuantity, Mode=TwoWay}"
+                                       Minimum="0.000001"
+                                       Increment="1"
+                                       FormatString="0.######"
+                                       FontSize="{StaticResource FontSizeBase}"
+                                       CornerRadius="{StaticResource RadiusMD}"/>
+                    </StackPanel>
+
+                    <!-- YieldUnit -->
+                    <StackPanel Spacing="4" Width="140" Margin="16,0,0,0">
+                        <TextBlock Text="หน่วยนับ *"
+                                   FontSize="{StaticResource FontSizeSM}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <!-- Sprint 2: TextBox; Sprint 3: ComboBox from ERP ic_unit_use -->
+                        <TextBox Text="{Binding YieldUnit, Mode=TwoWay}"
+                                 Watermark="เช่น PCS, KG"
+                                 FontSize="{StaticResource FontSizeBase}"
+                                 CornerRadius="{StaticResource RadiusMD}"/>
+                    </StackPanel>
+                </StackPanel>
+
+            </Grid>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Row 3 — BOM Lines card                                        -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="3"
+                Margin="{StaticResource PanelPadding}"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusLG}"
+                Padding="{StaticResource CardPadding}">
+
+            <Grid RowDefinitions="Auto,*">
+
+                <!-- Section header: "รายการวัตถุดิบ" + Add button -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                    <TextBlock Grid.Column="0"
+                               Text="รายการวัตถุดิบ"
+                               FontSize="{StaticResource FontSizeLG}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+
+                    <Button Grid.Column="1"
+                            Content="+ เพิ่มวัตถุดิบ"
+                            Command="{Binding AddLineCommand}"
+                            Background="{StaticResource AccentBlueBrush}"
+                            Foreground="White"
+                            FontSize="{StaticResource FontSizeSM}"
+                            CornerRadius="{StaticResource RadiusMD}"
+                            Padding="{StaticResource SpaceSM}"/>
+                </Grid>
+
+                <!--
+                    BOM Lines DataGrid — inline editable
+                    IsReadOnly=False to allow cell editing.
+                    Bindings in CellEditingTemplate reach parent VM via
+                    $parent[UserControl].((vm:BomEditorViewModel)DataContext).
+
+                    Columns:
+                      #              — row number (SortOrder)
+                      รหัสวัตถุดิบ  — MaterialCode (lookup; Sprint 2: plain TextBox)
+                      ชื่อวัตถุดิบ  — MaterialName (auto-fill; read-only in Sprint 2)
+                      จำนวน         — Quantity (NumericUpDown)
+                      หน่วย         — Unit (TextBox; Sprint 3: ComboBox)
+                      หมายเหตุ       — Notes (optional TextBox)
+                      ลบ            — RemoveLineCommand button
+                -->
+                <DataGrid Grid.Row="1"
+                          ItemsSource="{Binding Lines}"
+                          AutoGenerateColumns="False"
+                          CanUserSortColumns="False"
+                          IsReadOnly="False"
+                          RowHeight="{StaticResource DataGridRowHeight}"
+                          GridLinesVisibility="Horizontal"
+                          BorderBrush="{StaticResource BorderBrush}"
+                          BorderThickness="1"
+                          CornerRadius="{StaticResource RadiusSM}"
+                          FontSize="{StaticResource FontSizeBase}"
+                          Background="{StaticResource SurfaceBrush}">
+
+                    <DataGrid.Columns>
+
+                        <!-- # — SortOrder -->
+                        <DataGridTextColumn Header="#"
+                                            Binding="{Binding SortOrder}"
+                                            Width="45"
+                                            IsReadOnly="True"/>
+
+                        <!-- รหัสวัตถุดิบ — MaterialCode -->
+                        <DataGridTextColumn Header="รหัสวัตถุดิบ *"
+                                            Binding="{Binding MaterialCode}"
+                                            Width="140"/>
+
+                        <!-- ชื่อวัตถุดิบ — MaterialName (auto-filled, read-only) -->
+                        <DataGridTextColumn Header="ชื่อวัตถุดิบ"
+                                            Binding="{Binding MaterialName}"
+                                            Width="*"
+                                            IsReadOnly="True"/>
+
+                        <!-- จำนวน — Quantity -->
+                        <DataGridTextColumn Header="จำนวน *"
+                                            Binding="{Binding Quantity, StringFormat='{}{0:0.######}'}"
+                                            Width="100"/>
+
+                        <!-- หน่วย — Unit -->
+                        <DataGridTextColumn Header="หน่วย *"
+                                            Binding="{Binding Unit}"
+                                            Width="80"/>
+
+                        <!-- หมายเหตุ — Notes -->
+                        <DataGridTextColumn Header="หมายเหตุ"
+                                            Binding="{Binding Notes}"
+                                            Width="160"/>
+
+                        <!-- ลบ — RemoveLineCommand -->
+                        <DataGridTemplateColumn Header="" Width="60">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="ลบ"
+                                            FontSize="{StaticResource FontSizeSM}"
+                                            Padding="4,2"
+                                            Foreground="{StaticResource DangerBrush}"
+                                            CornerRadius="{StaticResource RadiusSM}"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Command="{Binding $parent[UserControl].((vm:BomEditorViewModel)DataContext).RemoveLineCommand}"
+                                            CommandParameter="{Binding}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                    </DataGrid.Columns>
+                </DataGrid>
+
+            </Grid>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Row 4 — Footer action bar (sticky)                            -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="4"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="{StaticResource PanelPadding}">
+
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+
+                <!-- ยกเลิก — left side (no NavigateBack wired in Sprint 2; Sprint 3 adds INavigationService) -->
+                <Button Grid.Column="0"
+                        Content="ยกเลิก"
+                        FontSize="{StaticResource FontSizeBase}"
+                        CornerRadius="{StaticResource RadiusMD}"
+                        Padding="{StaticResource SpaceSM}"
+                        Background="{StaticResource SurfaceSecondaryBrush}"
+                        Foreground="{StaticResource TextSecondaryBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"/>
+
+                <!-- Loading indicator while saving -->
+                <ProgressBar Grid.Column="1"
+                             IsIndeterminate="True"
+                             Width="120"
+                             Height="4"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center"
+                             Foreground="{StaticResource AccentBlueBrush}"
+                             IsVisible="{Binding IsLoading}"/>
+
+                <!-- บันทึก — right side -->
+                <Button Grid.Column="3"
+                        Content="บันทึก"
+                        Command="{Binding SaveCommand}"
+                        IsEnabled="{Binding IsLoading, Converter={x:Static BoolConverters.Not}}"
+                        Background="{StaticResource AccentBlueBrush}"
+                        Foreground="White"
+                        FontSize="{StaticResource FontSizeBase}"
+                        CornerRadius="{StaticResource RadiusMD}"
+                        Padding="{StaticResource SpaceSM}"
+                        Margin="{StaticResource SpaceSM}"/>
+
+            </Grid>
+        </Border>
+
+    </Grid>
+</UserControl>

@@ -1,0 +1,7 @@
+/Users/toe/DEV/productbom/src/BomApp.UI/obj/Release/net10.0/BomApp.UI.csproj.AssemblyReference.cache
+/Users/toe/DEV/productbom/src/BomApp.UI/obj/Release/net10.0/Avalonia/Resources.Inputs.cache
+/Users/toe/DEV/productbom/src/BomApp.UI/obj/Release/net10.0/Avalonia/resources
+/Users/toe/DEV/productbom/src/BomApp.UI/obj/Release/net10.0/BomApp.UI.GeneratedMSBuildEditorConfig.editorconfig
+/Users/toe/DEV/productbom/src/BomApp.UI/obj/Release/net10.0/BomApp.UI.AssemblyInfoInputs.cache
+/Users/toe/DEV/productbom/src/BomApp.UI/obj/Release/net10.0/BomApp.UI.AssemblyInfo.cs
+/Users/toe/DEV/productbom/src/BomApp.UI/obj/Release/net10.0/BomApp.UI.csproj.CoreCompileInputs.cache

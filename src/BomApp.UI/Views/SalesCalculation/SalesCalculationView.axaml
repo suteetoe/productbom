@@ -1,0 +1,344 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BomApp.UI.ViewModels.SalesCalculation"
+             xmlns:contracts="using:BomApp.Shared.Contracts"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="BomApp.UI.Views.SalesCalculation.SalesCalculationView"
+             x:DataType="vm:SalesCalculationViewModel">
+
+    <!--
+        Layout:
+          Row 0 — Toolbar "คำนวณจากการขาย"                          [Auto]
+          Row 1 — Section 1: date pickers + options + Load button    [Auto]
+          Row 2 — Section 2: sales DataGrid                          [*]
+          Row 3 — Section 3: material result + save mode + actions   [Auto]
+          Loading overlay spans all 4 rows.
+
+        Key bindings:
+          DateFrom               → Section 1 DatePicker (TwoWay)
+          DateTo                 → Section 1 DatePicker (TwoWay)
+          ShowOnlyWithBom        → CheckBox.IsChecked (TwoWay)
+          LoadSalesCommand       → "โหลดรายการขาย" button
+          HasWarning             → warning badge IsVisible
+          ItemsWithoutBomCount   → warning badge text
+          IsDaily                → RadioButton.IsChecked (TwoWay)
+          SalesTransactions      → Section 2 DataGrid ItemsSource
+          CalculateCommand       → "คำนวณ" button
+          MaterialRequirements   → Section 3 DataGrid ItemsSource
+          HasCalculationResult   → Save button IsEnabled
+          SaveDocumentsCommand   → "บันทึกเอกสาร" button
+          ExportCsvCommand       → "Export CSV" button
+    -->
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+        <!-- ============================================================ -->
+        <!-- Row 0 — Toolbar                                               -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="0"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="{StaticResource PanelPadding}"
+                Height="{StaticResource ToolbarHeight}">
+            <TextBlock Text="คำนวณจากการขาย"
+                       FontSize="{StaticResource FontSizeH2}"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Row 1 — Section 1: Date filter + options + Load              -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="1"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="{StaticResource PanelPadding}">
+
+            <WrapPanel Orientation="Horizontal">
+
+                <!-- วันที่เริ่มต้น -->
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="{StaticResource SpaceSM}">
+                    <TextBlock Text="จาก"
+                               FontSize="{StaticResource FontSizeBase}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <DatePicker SelectedDate="{Binding DateFrom, Mode=TwoWay}"/>
+                </StackPanel>
+
+                <!-- ถึงวันที่ -->
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="{StaticResource SpaceSM}">
+                    <TextBlock Text="ถึง"
+                               FontSize="{StaticResource FontSizeBase}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <DatePicker SelectedDate="{Binding DateTo, Mode=TwoWay}"/>
+                </StackPanel>
+
+                <!-- แสดงเฉพาะสินค้าที่มี BOM -->
+                <CheckBox Content="แสดงเฉพาะสินค้าที่มี BOM"
+                          IsChecked="{Binding ShowOnlyWithBom, Mode=TwoWay}"
+                          FontSize="{StaticResource FontSizeBase}"
+                          Foreground="{StaticResource TextSecondaryBrush}"
+                          VerticalAlignment="Center"
+                          Margin="{StaticResource SpaceSM}"/>
+
+                <!-- โหลดรายการขาย -->
+                <Button Content="โหลดรายการขาย"
+                        Command="{Binding LoadSalesCommand}"
+                        Background="{StaticResource AccentBlueBrush}"
+                        Foreground="White"
+                        FontSize="{StaticResource FontSizeBase}"
+                        CornerRadius="{StaticResource RadiusMD}"
+                        Padding="{StaticResource SpaceSM}"
+                        Margin="{StaticResource SpaceSM}"
+                        VerticalAlignment="Center"/>
+
+                <!--
+                    Warning pill: shown when ItemsWithoutBomCount > 0 (HasWarning=true).
+                    Binding: ItemsWithoutBomCount → Run text
+                -->
+                <Border Background="#FEF3C7"
+                        CornerRadius="{StaticResource RadiusMD}"
+                        Padding="8,4,8,4"
+                        Margin="{StaticResource SpaceSM}"
+                        VerticalAlignment="Center"
+                        IsVisible="{Binding HasWarning}">
+                    <TextBlock FontSize="{StaticResource FontSizeSM}"
+                               Foreground="{StaticResource WarningBrush}">
+                        <Run Text="{Binding ItemsWithoutBomCount}"/>
+                        <Run Text=" รายการไม่มีสูตรการผลิต"/>
+                    </TextBlock>
+                </Border>
+
+            </WrapPanel>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Row 2 — Section 2: Sales transactions DataGrid                -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="2"
+                Margin="{StaticResource SpaceLG}"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusMD}"
+                Padding="{StaticResource SpaceSM}">
+
+            <Grid RowDefinitions="Auto,*">
+
+                <TextBlock Grid.Row="0"
+                           Text="รายการขาย"
+                           FontSize="{StaticResource FontSizeLG}"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           Margin="{StaticResource SpaceSM}"/>
+
+                <!--
+                    Sales DataGrid.
+                    ItemsSource → SalesTransactions (ObservableCollection<ErpSalesTransactionDto>)
+                    Columns: DocNo, DocDate, ItemCode, Qty, UnitCode
+                    (ErpSalesTransactionDto has no ItemName; UnitCode used for unit column)
+                -->
+                <DataGrid Grid.Row="1"
+                          ItemsSource="{Binding SalesTransactions}"
+                          AutoGenerateColumns="False"
+                          CanUserSortColumns="True"
+                          IsReadOnly="True"
+                          RowHeight="{StaticResource DataGridRowHeight}"
+                          GridLinesVisibility="Horizontal"
+                          BorderBrush="{StaticResource BorderBrush}"
+                          BorderThickness="0"
+                          FontSize="{StaticResource FontSizeBase}"
+                          Background="{StaticResource SurfaceBrush}">
+
+                    <DataGrid.Columns>
+
+                        <DataGridTextColumn Header="เลขที่เอกสาร"
+                                           Binding="{Binding DocNo}"
+                                           Width="140"/>
+
+                        <DataGridTextColumn Header="วันที่"
+                                           Binding="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}"
+                                           Width="100"/>
+
+                        <DataGridTextColumn Header="รหัสสินค้า"
+                                           Binding="{Binding ItemCode}"
+                                           Width="120"/>
+
+                        <DataGridTextColumn Header="จำนวน"
+                                           Binding="{Binding Qty, StringFormat='{}{0:N2}'}"
+                                           Width="90"/>
+
+                        <DataGridTextColumn Header="หน่วย"
+                                           Binding="{Binding UnitCode}"
+                                           Width="80"/>
+
+                        <DataGridTextColumn Header="จำนวนหน่วยหลัก"
+                                           Binding="{Binding QtyInBaseUnit, StringFormat='{}{0:N4}'}"
+                                           Width="120"/>
+
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Row 3 — Section 3: Material requirements + save options       -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="3"
+                Margin="{StaticResource SpaceLG}"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusMD}"
+                Padding="{StaticResource SpaceSM}">
+
+            <Grid ColumnDefinitions="*,Auto">
+
+                <!-- Left: material requirements DataGrid -->
+                <Grid Grid.Column="0" RowDefinitions="Auto,*">
+
+                    <TextBlock Grid.Row="0"
+                               Text="วัตถุดิบที่ต้องตัดเบิก"
+                               FontSize="{StaticResource FontSizeLG}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Margin="{StaticResource SpaceSM}"/>
+
+                    <!--
+                        Material requirements DataGrid.
+                        ItemsSource → MaterialRequirements (ObservableCollection<MaterialRequirementDto>)
+                        Populated after CalculateAsync succeeds.
+                        Columns: MaterialCode, MaterialName, RequiredQty, Unit
+                    -->
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding MaterialRequirements}"
+                              AutoGenerateColumns="False"
+                              CanUserSortColumns="True"
+                              IsReadOnly="True"
+                              RowHeight="{StaticResource DataGridRowHeight}"
+                              GridLinesVisibility="Horizontal"
+                              BorderBrush="{StaticResource BorderBrush}"
+                              BorderThickness="0"
+                              FontSize="{StaticResource FontSizeBase}"
+                              Background="{StaticResource SurfaceBrush}"
+                              Height="180">
+
+                        <DataGrid.Columns>
+
+                            <DataGridTextColumn Header="รหัสวัตถุดิบ"
+                                               Binding="{Binding MaterialCode}"
+                                               Width="130"/>
+
+                            <DataGridTextColumn Header="ชื่อวัตถุดิบ"
+                                               Binding="{Binding MaterialName}"
+                                               Width="*"/>
+
+                            <DataGridTextColumn Header="จำนวนที่ต้องการ"
+                                               Binding="{Binding RequiredQty, StringFormat='{}{0:N2}'}"
+                                               Width="120"/>
+
+                            <DataGridTextColumn Header="หน่วย"
+                                               Binding="{Binding Unit}"
+                                               Width="80"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+
+                <!-- Right: save mode radio + action buttons -->
+                <StackPanel Grid.Column="1"
+                            Width="220"
+                            Margin="{StaticResource SpaceLG}"
+                            Spacing="12"
+                            VerticalAlignment="Top">
+
+                    <TextBlock Text="รูปแบบบันทึกเอกสาร"
+                               FontSize="{StaticResource FontSizeBase}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                    <!--
+                        Radio buttons for SaveMode.
+                        IsDaily=true  → SaveMode.Daily (รวมเป็น 1 เอกสารต่อ 1 วัน)
+                        IsDaily=false → SaveMode.PerDocument (แยกตามเลขที่เอกสารขาย)
+                    -->
+                    <RadioButton Content="รวมเป็น 1 เอกสารต่อ 1 วัน"
+                                 IsChecked="{Binding IsDaily, Mode=TwoWay}"
+                                 FontSize="{StaticResource FontSizeBase}"
+                                 Foreground="{StaticResource TextSecondaryBrush}"/>
+
+                    <RadioButton Content="แยกตามเลขที่เอกสารขาย"
+                                 IsChecked="{Binding !IsDaily, Mode=TwoWay}"
+                                 FontSize="{StaticResource FontSizeBase}"
+                                 Foreground="{StaticResource TextSecondaryBrush}"/>
+
+                    <!-- คำนวณ -->
+                    <Button Content="คำนวณ"
+                            Command="{Binding CalculateCommand}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Background="{StaticResource AccentBlueBrush}"
+                            Foreground="White"
+                            FontSize="{StaticResource FontSizeBase}"
+                            CornerRadius="{StaticResource RadiusMD}"
+                            Padding="{StaticResource SpaceSM}"/>
+
+                    <!--
+                        บันทึกเอกสาร — enabled only when HasCalculationResult=true.
+                        IsEnabled binds to HasCalculationResult; CanExecute also guards via [RelayCommand].
+                    -->
+                    <Button Content="บันทึกเอกสาร"
+                            Command="{Binding SaveDocumentsCommand}"
+                            IsEnabled="{Binding HasCalculationResult}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Background="{StaticResource SuccessBrush}"
+                            Foreground="White"
+                            FontSize="{StaticResource FontSizeBase}"
+                            CornerRadius="{StaticResource RadiusMD}"
+                            Padding="{StaticResource SpaceSM}"/>
+
+                    <!-- Export CSV -->
+                    <Button Content="Export CSV"
+                            Command="{Binding ExportCsvCommand}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            Background="Transparent"
+                            Foreground="{StaticResource AccentBlueBrush}"
+                            BorderBrush="{StaticResource AccentBlueBrush}"
+                            BorderThickness="1"
+                            FontSize="{StaticResource FontSizeBase}"
+                            CornerRadius="{StaticResource RadiusMD}"
+                            Padding="{StaticResource SpaceSM}"/>
+
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Loading overlay — spans all 4 rows                            -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="0" Grid.RowSpan="4"
+                IsVisible="{Binding IsLoading}"
+                Background="#B3FFFFFF">
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="8">
+                <ProgressBar IsIndeterminate="True"
+                             Width="160"
+                             Height="4"
+                             Foreground="{StaticResource AccentBlueBrush}"/>
+                <TextBlock Text="กำลังโหลด..."
+                           FontSize="{StaticResource FontSizeSM}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+    </Grid>
+</UserControl>

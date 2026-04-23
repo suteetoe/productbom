@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BomApp.Application/BomApp.Application.csproj" />
+    <Project Path="src/BomApp.Cli/BomApp.Cli.csproj" />
+    <Project Path="src/BomApp.Domain/BomApp.Domain.csproj" />
+    <Project Path="src/BomApp.Infrastructure/BomApp.Infrastructure.csproj" />
+    <Project Path="src/BomApp.Shared/BomApp.Shared.csproj" />
+    <Project Path="src/BomApp.UI/BomApp.UI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BomApp.Tests.Fakes/BomApp.Tests.Fakes.csproj" />
+    <Project Path="tests/BomApp.Tests.Integration/BomApp.Tests.Integration.csproj" />
+    <Project Path="tests/BomApp.Tests.Unit/BomApp.Tests.Unit.csproj" />
+  </Folder>
+</Solution>

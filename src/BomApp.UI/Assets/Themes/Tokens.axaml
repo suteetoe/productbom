@@ -1,0 +1,89 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ============================================================ -->
+  <!--  Color Palette                                               -->
+  <!-- ============================================================ -->
+
+  <!-- Primary -->
+  <Color x:Key="AccentBlue">#3B82F6</Color>
+  <Color x:Key="AccentBlueDark">#1D4ED8</Color>
+
+  <!-- Brush versions of primary -->
+  <SolidColorBrush x:Key="AccentBlueBrush" Color="{StaticResource AccentBlue}"/>
+  <SolidColorBrush x:Key="AccentBlueDarkBrush" Color="{StaticResource AccentBlueDark}"/>
+
+  <!-- Neutral -->
+  <Color x:Key="Surface">#FFFFFF</Color>
+  <Color x:Key="SurfaceSecondary">#F8FAFC</Color>
+  <Color x:Key="Border">#E2E8F0</Color>
+  <Color x:Key="TextPrimary">#0F172A</Color>
+  <Color x:Key="TextSecondary">#64748B</Color>
+  <Color x:Key="TextMuted">#94A3B8</Color>
+
+  <!-- Brush versions of neutral -->
+  <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource Surface}"/>
+  <SolidColorBrush x:Key="SurfaceSecondaryBrush" Color="{StaticResource SurfaceSecondary}"/>
+  <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource Border}"/>
+  <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimary}"/>
+  <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondary}"/>
+  <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMuted}"/>
+
+  <!-- Status -->
+  <Color x:Key="Success">#22C55E</Color>
+  <Color x:Key="Warning">#F59E0B</Color>
+  <Color x:Key="Danger">#EF4444</Color>
+  <Color x:Key="Info">#3B82F6</Color>
+
+  <!-- Brush versions of status -->
+  <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource Success}"/>
+  <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource Warning}"/>
+  <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource Danger}"/>
+  <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource Info}"/>
+
+  <!-- ============================================================ -->
+  <!--  Typography — Font Sizes                                     -->
+  <!-- ============================================================ -->
+
+  <x:Double x:Key="FontSizeXS">11</x:Double>
+  <x:Double x:Key="FontSizeSM">12</x:Double>
+  <x:Double x:Key="FontSizeBase">14</x:Double>
+  <x:Double x:Key="FontSizeLG">16</x:Double>
+  <x:Double x:Key="FontSizeXL">18</x:Double>
+  <x:Double x:Key="FontSizeH2">20</x:Double>
+  <x:Double x:Key="FontSizeH1">24</x:Double>
+
+  <!-- ============================================================ -->
+  <!--  Spacing Scale                                               -->
+  <!-- ============================================================ -->
+
+  <Thickness x:Key="SpaceXS">4</Thickness>
+  <Thickness x:Key="SpaceSM">8</Thickness>
+  <Thickness x:Key="SpaceMD">12</Thickness>
+  <Thickness x:Key="SpaceLG">16</Thickness>
+  <Thickness x:Key="SpaceXL">24</Thickness>
+  <Thickness x:Key="Space2XL">32</Thickness>
+
+  <!-- Card / Panel padding -->
+  <Thickness x:Key="PanelPadding">16,12,16,12</Thickness>
+  <Thickness x:Key="CardPadding">20,16,20,16</Thickness>
+
+  <!-- ============================================================ -->
+  <!--  Layout Constants                                            -->
+  <!-- ============================================================ -->
+
+  <!-- Sidebar -->
+  <x:Double x:Key="SidebarWidth">220</x:Double>
+
+  <!-- Toolbar -->
+  <x:Double x:Key="ToolbarHeight">44</x:Double>
+
+  <!-- DataGrid row -->
+  <x:Double x:Key="DataGridRowHeight">36</x:Double>
+
+  <!-- Border radius -->
+  <CornerRadius x:Key="RadiusSM">4</CornerRadius>
+  <CornerRadius x:Key="RadiusMD">6</CornerRadius>
+  <CornerRadius x:Key="RadiusLG">8</CornerRadius>
+
+</ResourceDictionary>

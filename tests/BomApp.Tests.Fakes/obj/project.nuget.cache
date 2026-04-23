@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "BV2eteM6scI=",
+  "success": true,
+  "projectFilePath": "/Users/toe/DEV/productbom/tests/BomApp.Tests.Fakes/BomApp.Tests.Fakes.csproj",
+  "expectedPackageFiles": [
+    "/Users/toe/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/10.0.7/microsoft.extensions.dependencyinjection.abstractions.10.0.7.nupkg.sha512"
+  ],
+  "logs": []
+}

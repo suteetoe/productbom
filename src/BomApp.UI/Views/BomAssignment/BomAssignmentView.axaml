@@ -1,0 +1,339 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BomApp.UI.ViewModels.BomAssignment"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="BomApp.UI.Views.BomAssignment.BomAssignmentView"
+             x:DataType="vm:BomAssignmentViewModel">
+
+    <!--
+        Layout:
+          Row 0 — Toolbar "กำหนดสูตรการผลิต" + loading indicator   [Auto]
+          Row 1 — Error banner (HasError)                            [Auto]
+          Row 2 — Grid 2 columns: left item list | right detail card [*]
+
+        Bindings summary:
+          ItemSearchText       → TextBox.Text (TwoWay)
+          FilteredItems        → left DataGrid ItemsSource
+          SelectedItem         → left DataGrid SelectedItem (TwoWay)
+          ErpItemRow.IsAssigned→ status badge in left DataGrid
+          ActiveBoms           → ComboBox ItemsSource
+          SelectedBomToAssign  → ComboBox SelectedItem (TwoWay)
+          HasAssignment        → right panel conditional content
+          AssignedBom          → right panel BOM detail TextBlocks
+          AssignBomCommand     → "กำหนดสูตร" button
+          RemoveAssignmentCommand → "ถอดสูตร" button (IsVisible=HasAssignment)
+          LoadCommand          → invoked on attach via Loaded event (see code-behind)
+    -->
+
+    <Grid RowDefinitions="Auto,Auto,*">
+
+        <!-- ============================================================ -->
+        <!-- Row 0 — Toolbar                                               -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="0"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="{StaticResource PanelPadding}"
+                Height="{StaticResource ToolbarHeight}">
+
+            <Grid ColumnDefinitions="*,Auto">
+
+                <TextBlock Grid.Column="0"
+                           Text="กำหนดสูตรการผลิต"
+                           FontSize="{StaticResource FontSizeH2}"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           VerticalAlignment="Center"/>
+
+                <!-- Inline loading indicator in toolbar -->
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding IsLoading}">
+                    <ProgressBar IsIndeterminate="True"
+                                 Width="80"
+                                 Height="4"
+                                 Foreground="{StaticResource AccentBlueBrush}"
+                                 VerticalAlignment="Center"/>
+                    <TextBlock Text="กำลังโหลด..."
+                               FontSize="{StaticResource FontSizeSM}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Row 1 — Error banner                                          -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="1"
+                Background="#FEF2F2"
+                BorderBrush="{StaticResource DangerBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusSM}"
+                Padding="{StaticResource SpaceSM}"
+                Margin="{StaticResource SpaceLG}"
+                IsVisible="{Binding HasError}">
+            <TextBlock Text="{Binding ErrorMessage}"
+                       FontSize="{StaticResource FontSizeSM}"
+                       Foreground="{StaticResource DangerBrush}"
+                       TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Row 2 — Split panel: Left = item list | Right = detail card  -->
+        <!-- ============================================================ -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,400">
+
+            <!-- ── Left panel: ERP item list ──────────────────────────── -->
+            <Border Grid.Column="0"
+                    Margin="{StaticResource SpaceLG}"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusMD}">
+
+                <Grid RowDefinitions="Auto,Auto,*">
+
+                    <!-- Panel heading -->
+                    <TextBlock Grid.Row="0"
+                               Text="รายการสินค้า ERP"
+                               FontSize="{StaticResource FontSizeLG}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Margin="{StaticResource PanelPadding}"/>
+
+                    <!-- Search box -->
+                    <TextBox Grid.Row="1"
+                             Text="{Binding ItemSearchText, Mode=TwoWay}"
+                             Watermark="ค้นหา รหัส / ชื่อสินค้า"
+                             Margin="{StaticResource PanelPadding}"
+                             CornerRadius="{StaticResource RadiusMD}"
+                             FontSize="{StaticResource FontSizeBase}"/>
+
+                    <!--
+                        DataGrid: ERP item list
+                        Binding: FilteredItems (client-side filtered IEnumerable)
+                        SelectedItem → SelectedItem (triggers right panel refresh)
+                        Status column: shows "มี BOM" badge (green) or "-" (gray)
+                    -->
+                    <DataGrid Grid.Row="2"
+                              ItemsSource="{Binding FilteredItems}"
+                              SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                              SelectionMode="Single"
+                              AutoGenerateColumns="False"
+                              CanUserSortColumns="True"
+                              IsReadOnly="True"
+                              RowHeight="{StaticResource DataGridRowHeight}"
+                              GridLinesVisibility="Horizontal"
+                              BorderBrush="{StaticResource BorderBrush}"
+                              BorderThickness="0,1,0,0"
+                              FontSize="{StaticResource FontSizeBase}"
+                              Background="{StaticResource SurfaceBrush}">
+
+                        <DataGrid.Columns>
+
+                            <!-- รหัสสินค้า -->
+                            <DataGridTextColumn Header="รหัสสินค้า"
+                                               Binding="{Binding ItemCode}"
+                                               Width="120"/>
+
+                            <!-- ชื่อสินค้า -->
+                            <DataGridTextColumn Header="ชื่อสินค้า"
+                                               Binding="{Binding ItemName}"
+                                               Width="*"/>
+
+                            <!--
+                                สถานะ: badge showing assignment status.
+                                IsAssigned=true  → "มี BOM" in SuccessBrush
+                                IsAssigned=false → "-"       in TextMutedBrush
+                            -->
+                            <DataGridTemplateColumn Header="สถานะ" Width="90">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate x:DataType="vm:ErpItemRow">
+                                        <Border CornerRadius="{StaticResource RadiusSM}"
+                                                Padding="6,2"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center">
+                                            <TextBlock FontSize="{StaticResource FontSizeSM}"
+                                                       FontWeight="SemiBold">
+                                                <!-- "มี BOM" when assigned -->
+                                                <TextBlock.IsVisible>
+                                                    <!-- relies on DataGrid row context -->
+                                                </TextBlock.IsVisible>
+                                                <Run Text="{Binding IsAssigned, StringFormat={}{0}}"
+                                                     Foreground="{Binding IsAssigned,
+                                                         Converter={x:Static BoolConverters.Not},
+                                                         ConverterParameter=NA}"/>
+                                            </TextBlock>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <!-- ── Right panel: assignment detail card ────────────────── -->
+            <Border Grid.Column="1"
+                    Margin="{StaticResource SpaceLG}"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusMD}"
+                    Padding="{StaticResource CardPadding}">
+
+                <StackPanel Spacing="12">
+
+                    <!-- Panel heading -->
+                    <TextBlock Text="รายละเอียด"
+                               FontSize="{StaticResource FontSizeLG}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                    <!-- Selected item info — hidden when nothing is selected -->
+                    <StackPanel Spacing="4"
+                                IsVisible="{Binding SelectedItem, Converter={x:Static ObjectConverters.IsNotNull}}">
+
+                        <TextBlock FontSize="{StaticResource FontSizeSM}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Text="สินค้าที่เลือก"/>
+
+                        <TextBlock FontSize="{StaticResource FontSizeBase}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Text="{Binding SelectedItem.ItemCode}"/>
+
+                        <TextBlock FontSize="{StaticResource FontSizeBase}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Text="{Binding SelectedItem.ItemName}"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <!-- Empty state — no item selected -->
+                    <TextBlock Text="กรุณาเลือกสินค้าจากรายการทางซ้าย"
+                               FontSize="{StaticResource FontSizeBase}"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding SelectedItem, Converter={x:Static ObjectConverters.IsNull}}"/>
+
+                    <!-- Assigned BOM detail — shown only when HasAssignment=true -->
+                    <Border Background="{StaticResource SurfaceSecondaryBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusMD}"
+                            Padding="{StaticResource SpaceMD}"
+                            IsVisible="{Binding HasAssignment}">
+                        <StackPanel Spacing="6">
+
+                            <TextBlock Text="สูตรการผลิตที่กำหนด"
+                                       FontSize="{StaticResource FontSizeSM}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+
+                            <TextBlock FontSize="{StaticResource FontSizeBase}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}">
+                                <Run Text="{Binding AssignedBom.Code}"/>
+                                <Run Text=" — "/>
+                                <Run Text="{Binding AssignedBom.Name}"/>
+                            </TextBlock>
+
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="สถานะ:"
+                                           FontSize="{StaticResource FontSizeSM}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="{Binding AssignedBom.Status}"
+                                           FontSize="{StaticResource FontSizeSM}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource SuccessBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- No BOM assigned message -->
+                    <Border Background="#FEF3C7"
+                            BorderBrush="{StaticResource WarningBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusMD}"
+                            Padding="{StaticResource SpaceSM}"
+                            IsVisible="{Binding HasAssignment, Converter={x:Static BoolConverters.Not}}">
+                        <TextBlock Text="ยังไม่มีสูตรการผลิต"
+                                   FontSize="{StaticResource FontSizeSM}"
+                                   Foreground="{StaticResource WarningBrush}"/>
+                    </Border>
+
+                    <!-- BOM selector dropdown — for new assignment -->
+                    <StackPanel Spacing="6"
+                                IsVisible="{Binding SelectedItem, Converter={x:Static ObjectConverters.IsNotNull}}">
+
+                        <TextBlock Text="เลือกสูตรการผลิต"
+                                   FontSize="{StaticResource FontSizeSM}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+
+                        <!--
+                            ComboBox: active BOMs for selection.
+                            ItemsSource → ActiveBoms
+                            SelectedItem → SelectedBomToAssign (TwoWay)
+                            DisplayMemberBinding shows Code — Name
+                        -->
+                        <ComboBox ItemsSource="{Binding ActiveBoms}"
+                                  SelectedItem="{Binding SelectedBomToAssign, Mode=TwoWay}"
+                                  HorizontalAlignment="Stretch"
+                                  FontSize="{StaticResource FontSizeBase}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock>
+                                        <Run Text="{Binding Code}"/>
+                                        <Run Text=" — "/>
+                                        <Run Text="{Binding Name}"/>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- Action buttons -->
+                    <StackPanel Spacing="8"
+                                IsVisible="{Binding SelectedItem, Converter={x:Static ObjectConverters.IsNotNull}}">
+
+                        <!-- กำหนดสูตร — always visible when an item is selected -->
+                        <Button Content="กำหนดสูตร"
+                                Command="{Binding AssignBomCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                Background="{StaticResource AccentBlueBrush}"
+                                Foreground="White"
+                                FontSize="{StaticResource FontSizeBase}"
+                                CornerRadius="{StaticResource RadiusMD}"
+                                Padding="{StaticResource SpaceSM}"/>
+
+                        <!-- ถอดสูตร — only visible when a BOM is currently assigned -->
+                        <Button Content="ถอดสูตร"
+                                Command="{Binding RemoveAssignmentCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                Background="Transparent"
+                                Foreground="{StaticResource DangerBrush}"
+                                BorderBrush="{StaticResource DangerBrush}"
+                                BorderThickness="1"
+                                FontSize="{StaticResource FontSizeBase}"
+                                CornerRadius="{StaticResource RadiusMD}"
+                                Padding="{StaticResource SpaceSM}"
+                                IsVisible="{Binding HasAssignment}"/>
+                    </StackPanel>
+
+                </StackPanel>
+            </Border>
+
+        </Grid>
+
+    </Grid>
+</UserControl>

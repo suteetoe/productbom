@@ -1,0 +1,15 @@
+/Users/toe/DEV/productbom/src/BomApp.Domain/bin/Release/net10.0/BomApp.Domain.deps.json
+/Users/toe/DEV/productbom/src/BomApp.Domain/bin/Release/net10.0/BomApp.Domain.dll
+/Users/toe/DEV/productbom/src/BomApp.Domain/bin/Release/net10.0/BomApp.Domain.pdb
+/Users/toe/DEV/productbom/src/BomApp.Domain/bin/Release/net10.0/BomApp.Shared.dll
+/Users/toe/DEV/productbom/src/BomApp.Domain/bin/Release/net10.0/BomApp.Shared.pdb
+/Users/toe/DEV/productbom/src/BomApp.Domain/obj/Release/net10.0/BomApp.Domain.csproj.AssemblyReference.cache
+/Users/toe/DEV/productbom/src/BomApp.Domain/obj/Release/net10.0/BomApp.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/Users/toe/DEV/productbom/src/BomApp.Domain/obj/Release/net10.0/BomApp.Domain.AssemblyInfoInputs.cache
+/Users/toe/DEV/productbom/src/BomApp.Domain/obj/Release/net10.0/BomApp.Domain.AssemblyInfo.cs
+/Users/toe/DEV/productbom/src/BomApp.Domain/obj/Release/net10.0/BomApp.Domain.csproj.CoreCompileInputs.cache
+/Users/toe/DEV/productbom/src/BomApp.Domain/obj/Release/net10.0/BomApp.D.89ED7275.Up2Date
+/Users/toe/DEV/productbom/src/BomApp.Domain/obj/Release/net10.0/BomApp.Domain.dll
+/Users/toe/DEV/productbom/src/BomApp.Domain/obj/Release/net10.0/refint/BomApp.Domain.dll
+/Users/toe/DEV/productbom/src/BomApp.Domain/obj/Release/net10.0/BomApp.Domain.pdb
+/Users/toe/DEV/productbom/src/BomApp.Domain/obj/Release/net10.0/ref/BomApp.Domain.dll

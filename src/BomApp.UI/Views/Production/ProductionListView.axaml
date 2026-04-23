@@ -1,0 +1,406 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BomApp.UI.ViewModels.Production"
+             xmlns:contracts="using:BomApp.Shared.Contracts"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="BomApp.UI.Views.Production.ProductionListView"
+             x:DataType="vm:ProductionListViewModel">
+
+    <!--
+        Layout:
+          Row 0 — Toolbar "รายการผลิต"                              [Auto]
+          Row 1 — Filter bar (date pickers + ComboBoxes + TextBoxes) [Auto]
+          Row 2 — Error banner (HasError)                            [Auto]
+          Row 3 — Upper DataGrid: Orders                             [*]
+          Row 4 — Lower DataGrid: SelectedOrderLines (max 200)       [Auto]
+          Loading overlay spans Rows 0-4.
+
+        Key bindings:
+          DateFrom / DateTo         → DatePicker.SelectedDate (TwoWay)
+          StatusFilter              → ComboBox.SelectedItem (TwoWay)
+          ItemSearch                → TextBox.Text (TwoWay)
+          CreatedViaFilter          → ComboBox.SelectedItem (TwoWay)
+          SourceDocNoSearch         → TextBox.Text (TwoWay)
+          SearchCommand             → "ค้นหา" button
+          Orders                   → upper DataGrid ItemsSource
+          SelectedOrder             → upper DataGrid SelectedItem (TwoWay)
+          CancelOrderCommand        → "ยกเลิก" button (CommandParameter=row)
+          ExportCsvCommand          → "Export" button (CommandParameter=row)
+          SelectedOrderLines        → lower DataGrid ItemsSource
+    -->
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+
+        <!-- ============================================================ -->
+        <!-- Row 0 — Toolbar                                               -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="0"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="{StaticResource PanelPadding}"
+                Height="{StaticResource ToolbarHeight}">
+
+            <TextBlock Text="รายการผลิต"
+                       FontSize="{StaticResource FontSizeH2}"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Row 1 — Filter bar                                            -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="1"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="{StaticResource PanelPadding}">
+
+            <WrapPanel Orientation="Horizontal">
+
+                <!-- จากวันที่ -->
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="{StaticResource SpaceSM}">
+                    <TextBlock Text="จาก"
+                               FontSize="{StaticResource FontSizeBase}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <DatePicker SelectedDate="{Binding DateFrom, Mode=TwoWay}"/>
+                </StackPanel>
+
+                <!-- ถึงวันที่ -->
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="{StaticResource SpaceSM}">
+                    <TextBlock Text="ถึง"
+                               FontSize="{StaticResource FontSizeBase}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <DatePicker SelectedDate="{Binding DateTo, Mode=TwoWay}"/>
+                </StackPanel>
+
+                <!--
+                    Status filter ComboBox.
+                    Binding: SelectedItem → StatusFilter (TwoWay via Tag trick — use plain ComboBox with strings).
+                    "" = ทั้งหมด, "Pending", "Processing", "Done", "Cancelled"
+                -->
+                <ComboBox SelectedValue="{Binding StatusFilter, Mode=TwoWay}"
+                          Width="140"
+                          Margin="{StaticResource SpaceSM}"
+                          FontSize="{StaticResource FontSizeBase}">
+                    <ComboBoxItem Content="ทั้งหมด (สถานะ)" Tag=""/>
+                    <ComboBoxItem Content="Pending"         Tag="Pending"/>
+                    <ComboBoxItem Content="Processing"      Tag="Processing"/>
+                    <ComboBoxItem Content="Done"            Tag="Done"/>
+                    <ComboBoxItem Content="Cancelled"       Tag="Cancelled"/>
+                </ComboBox>
+
+                <!-- รหัสสินค้า -->
+                <TextBox Text="{Binding ItemSearch, Mode=TwoWay}"
+                         Watermark="รหัสสินค้า"
+                         Width="130"
+                         Margin="{StaticResource SpaceSM}"
+                         CornerRadius="{StaticResource RadiusMD}"
+                         FontSize="{StaticResource FontSizeBase}"/>
+
+                <!--
+                    CreatedVia filter ComboBox.
+                    "" = ทั้งหมด, "UI", "CLI"
+                -->
+                <ComboBox SelectedValue="{Binding CreatedViaFilter, Mode=TwoWay}"
+                          Width="120"
+                          Margin="{StaticResource SpaceSM}"
+                          FontSize="{StaticResource FontSizeBase}">
+                    <ComboBoxItem Content="ทั้งหมด (ต้นทาง)" Tag=""/>
+                    <ComboBoxItem Content="UI"               Tag="UI"/>
+                    <ComboBoxItem Content="CLI"              Tag="CLI"/>
+                </ComboBox>
+
+                <!-- เลขเอกสารขาย -->
+                <TextBox Text="{Binding SourceDocNoSearch, Mode=TwoWay}"
+                         Watermark="เลขเอกสารขาย"
+                         Width="160"
+                         Margin="{StaticResource SpaceSM}"
+                         CornerRadius="{StaticResource RadiusMD}"
+                         FontSize="{StaticResource FontSizeBase}"/>
+
+                <!-- ค้นหา -->
+                <Button Content="ค้นหา"
+                        Command="{Binding SearchCommand}"
+                        Background="{StaticResource AccentBlueBrush}"
+                        Foreground="White"
+                        FontSize="{StaticResource FontSizeBase}"
+                        CornerRadius="{StaticResource RadiusMD}"
+                        Padding="{StaticResource SpaceSM}"
+                        Margin="{StaticResource SpaceSM}"
+                        VerticalAlignment="Center"/>
+            </WrapPanel>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Row 2 — Error banner                                          -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="2"
+                Background="#FEF2F2"
+                BorderBrush="{StaticResource DangerBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusSM}"
+                Padding="{StaticResource SpaceSM}"
+                Margin="{StaticResource SpaceLG}"
+                IsVisible="{Binding HasError}">
+            <TextBlock Text="{Binding ErrorMessage}"
+                       FontSize="{StaticResource FontSizeSM}"
+                       Foreground="{StaticResource DangerBrush}"
+                       TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Row 3 — Orders DataGrid + empty state                         -->
+        <!-- ============================================================ -->
+        <Grid Grid.Row="3" Margin="{StaticResource SpaceLG}">
+
+            <!-- Empty state placeholder -->
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="8"
+                        IsVisible="{Binding !HasOrders}">
+                <TextBlock Text="ยังไม่มีรายการผลิต"
+                           FontSize="{StaticResource FontSizeXL}"
+                           Foreground="{StaticResource TextMutedBrush}"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="ใช้ตัวกรองด้านบนแล้วกด ค้นหา"
+                           FontSize="{StaticResource FontSizeBase}"
+                           Foreground="{StaticResource TextMutedBrush}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!--
+                Upper DataGrid: Production Orders
+                Columns: OrderNo, ItemCode, BomCode, Quantity, Status badge,
+                         SourceDocCount, SourceDateRange, CreatedAt, Via badge, Actions
+                SelectedItem → SelectedOrder (triggers lower DataGrid to populate)
+            -->
+            <DataGrid ItemsSource="{Binding Orders}"
+                      SelectedItem="{Binding SelectedOrder, Mode=TwoWay}"
+                      AutoGenerateColumns="False"
+                      CanUserSortColumns="True"
+                      IsReadOnly="True"
+                      SelectionMode="Single"
+                      RowHeight="{StaticResource DataGridRowHeight}"
+                      GridLinesVisibility="Horizontal"
+                      BorderBrush="{StaticResource BorderBrush}"
+                      BorderThickness="1"
+                      CornerRadius="{StaticResource RadiusSM}"
+                      FontSize="{StaticResource FontSizeBase}"
+                      Background="{StaticResource SurfaceBrush}"
+                      IsVisible="{Binding HasOrders}">
+
+                <DataGrid.Columns>
+
+                    <!-- เลขที่ใบผลิต -->
+                    <DataGridTextColumn Header="เลขที่ใบผลิต"
+                                       Binding="{Binding OrderNo}"
+                                       Width="150"/>
+
+                    <!-- รหัสสินค้า -->
+                    <DataGridTextColumn Header="รหัสสินค้า"
+                                       Binding="{Binding ItemCode}"
+                                       Width="110"/>
+
+                    <!-- ชื่อสินค้า -->
+                    <DataGridTextColumn Header="ชื่อสินค้า"
+                                       Binding="{Binding ItemName}"
+                                       Width="*"/>
+
+                    <!-- รหัสสูตร -->
+                    <DataGridTextColumn Header="รหัสสูตร"
+                                       Binding="{Binding BomCode}"
+                                       Width="110"/>
+
+                    <!-- จำนวน -->
+                    <DataGridTextColumn Header="จำนวน"
+                                       Binding="{Binding Quantity, StringFormat='{}{0:N2}'}"
+                                       Width="80"/>
+
+                    <!--
+                        สถานะ badge:
+                        Pending    → WarningBrush  (#F59E0B)
+                        Processing → InfoBrush     (#3B82F6)
+                        Done       → SuccessBrush  (#22C55E)
+                        Cancelled  → DangerBrush   (#EF4444)
+                        The simple approach: display text only; color handled via tag.
+                    -->
+                    <DataGridTemplateColumn Header="สถานะ" Width="100">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="contracts:ProductionOrderDto">
+                                <Border CornerRadius="{StaticResource RadiusSM}"
+                                        Padding="6,2"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Status}"
+                                               FontSize="{StaticResource FontSizeSM}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- เอกสารขาย (count) -->
+                    <DataGridTemplateColumn Header="จำนวน SO" Width="80">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="contracts:ProductionOrderDto">
+                                <TextBlock Text="{Binding SourceSoNumbers.Length}"
+                                           FontSize="{StaticResource FontSizeBase}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- ช่วงวันที่เอกสารขาย -->
+                    <DataGridTextColumn Header="ช่วงวันที่เอกสาร"
+                                       Binding="{Binding SourceDocDateFrom, StringFormat='{}{0:dd/MM/yyyy}'}"
+                                       Width="120"/>
+
+                    <!-- วันที่สร้าง -->
+                    <DataGridTextColumn Header="วันที่สร้าง"
+                                       Binding="{Binding CreatedAt, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}"
+                                       Width="140"/>
+
+                    <!--
+                        Via badge: UI → AccentBlueBrush, CLI → TextSecondaryBrush
+                    -->
+                    <DataGridTemplateColumn Header="ต้นทาง" Width="70">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="contracts:ProductionOrderDto">
+                                <Border CornerRadius="{StaticResource RadiusSM}"
+                                        Padding="4,2"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding CreatedVia}"
+                                               FontSize="{StaticResource FontSizeSM}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource AccentBlueBrush}"/>
+                                </Border>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Actions: ยกเลิก + Export CSV -->
+                    <DataGridTemplateColumn Header="" Width="170">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="4"
+                                            VerticalAlignment="Center"
+                                            Margin="{StaticResource SpaceXS}">
+
+                                    <!--
+                                        ยกเลิก — enabled only when Status == Pending.
+                                        CommandParameter passes the row DTO.
+                                    -->
+                                    <Button Content="ยกเลิก"
+                                            FontSize="{StaticResource FontSizeSM}"
+                                            Padding="6,2"
+                                            CornerRadius="{StaticResource RadiusSM}"
+                                            Foreground="{StaticResource DangerBrush}"
+                                            Command="{Binding $parent[UserControl].((vm:ProductionListViewModel)DataContext).CancelOrderCommand}"
+                                            CommandParameter="{Binding}"/>
+
+                                    <!-- Export CSV -->
+                                    <Button Content="Export"
+                                            FontSize="{StaticResource FontSizeSM}"
+                                            Padding="6,2"
+                                            CornerRadius="{StaticResource RadiusSM}"
+                                            Foreground="{StaticResource AccentBlueBrush}"
+                                            Command="{Binding $parent[UserControl].((vm:ProductionListViewModel)DataContext).ExportCsvCommand}"
+                                            CommandParameter="{Binding}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <!-- ============================================================ -->
+        <!-- Row 4 — SelectedOrderLines DataGrid (max 200 height)          -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="4"
+                Margin="{StaticResource SpaceLG}"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusMD}"
+                MaxHeight="200"
+                IsVisible="{Binding SelectedOrder, Converter={x:Static ObjectConverters.IsNotNull}}">
+
+            <Grid RowDefinitions="Auto,*">
+
+                <TextBlock Grid.Row="0"
+                           Text="วัตถุดิบของใบผลิตที่เลือก"
+                           FontSize="{StaticResource FontSizeSM}"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="{StaticResource SpaceSM}"/>
+
+                <!--
+                    Lower DataGrid: BOM lines for the selected order.
+                    ItemsSource → SelectedOrderLines (populated on selection change)
+                -->
+                <DataGrid Grid.Row="1"
+                          ItemsSource="{Binding SelectedOrderLines}"
+                          AutoGenerateColumns="False"
+                          CanUserSortColumns="True"
+                          IsReadOnly="True"
+                          RowHeight="{StaticResource DataGridRowHeight}"
+                          GridLinesVisibility="Horizontal"
+                          FontSize="{StaticResource FontSizeBase}"
+                          Background="{StaticResource SurfaceBrush}">
+
+                    <DataGrid.Columns>
+
+                        <DataGridTextColumn Header="รหัสวัตถุดิบ"
+                                           Binding="{Binding MaterialCode}"
+                                           Width="130"/>
+
+                        <DataGridTextColumn Header="ชื่อวัตถุดิบ"
+                                           Binding="{Binding MaterialName}"
+                                           Width="*"/>
+
+                        <DataGridTextColumn Header="จำนวนที่ต้องการ"
+                                           Binding="{Binding RequiredQuantity, StringFormat='{}{0:N2}'}"
+                                           Width="120"/>
+
+                        <DataGridTextColumn Header="หน่วย"
+                                           Binding="{Binding Unit}"
+                                           Width="80"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <!-- ============================================================ -->
+        <!-- Loading overlay — spans all rows                              -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="0" Grid.RowSpan="5"
+                IsVisible="{Binding IsLoading}"
+                Background="#B3FFFFFF">
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="8">
+                <ProgressBar IsIndeterminate="True"
+                             Width="160"
+                             Height="4"
+                             Foreground="{StaticResource AccentBlueBrush}"/>
+                <TextBlock Text="กำลังโหลด..."
+                           FontSize="{StaticResource FontSizeSM}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+    </Grid>
+</UserControl>

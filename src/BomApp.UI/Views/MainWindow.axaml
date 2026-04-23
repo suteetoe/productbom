@@ -1,0 +1,41 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BomApp.UI.ViewModels"
+        xmlns:shell="using:BomApp.UI.Views.Shell"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        x:Class="BomApp.UI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="BOM Production Calculator"
+        Width="1200"
+        Height="750"
+        MinWidth="900"
+        MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource SurfaceBrush}">
+
+    <!--
+        DataContext is assigned in code-behind at runtime (App.axaml.cs).
+        We omit a Design.DataContext here because MainWindowViewModel
+        requires constructor parameters that are not available at design time.
+    -->
+
+    <!-- Two-column layout: Sidebar (fixed 220 px) | Content (star-sized) -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Left sidebar — DataContext bound to Sidebar child ViewModel -->
+        <shell:SidebarView Grid.Column="0"
+                           DataContext="{Binding Sidebar}"/>
+
+        <!-- Right content area — ViewLocator resolves ViewModel → View automatically -->
+        <ContentControl Grid.Column="1"
+                        Content="{Binding CurrentView}"
+                        Background="{StaticResource SurfaceSecondaryBrush}"/>
+    </Grid>
+</Window>
