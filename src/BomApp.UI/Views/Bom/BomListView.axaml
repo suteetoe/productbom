@@ -49,7 +49,7 @@
                         FontSize="{StaticResource FontSizeBase}"
                         CornerRadius="{StaticResource RadiusMD}"
                         Padding="{StaticResource SpaceSM}"
-                        VerticalAlignment="Center"/>
+                        VerticalAlignment="Center"></Button>
             </Grid>
         </Border>
 

@@ -71,7 +71,7 @@
 <x:Double x:Key="SidebarWidth">220</x:Double>
 
 <!-- Toolbar -->
-<x:Double x:Key="ToolbarHeight">44</x:Double>
+<x:Double x:Key="ToolbarHeight">60</x:Double>
 
 <!-- DataGrid row -->
 <x:Double x:Key="DataGridRowHeight">36</x:Double>
