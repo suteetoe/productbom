@@ -147,7 +147,7 @@
                                FontSize="{StaticResource FontSizeSM}"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
                     <TextBox Text="{Binding Code, Mode=TwoWay}"
-                             Watermark="เช่น BOM-001"
+                             PlaceholderText="เช่น BOM-001"
                              FontSize="{StaticResource FontSizeBase}"
                              CornerRadius="{StaticResource RadiusMD}"/>
                 </StackPanel>
@@ -158,7 +158,7 @@
                                FontSize="{StaticResource FontSizeSM}"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
                     <TextBox Text="{Binding Name, Mode=TwoWay}"
-                             Watermark="ชื่อสูตรการผลิต"
+                             PlaceholderText="ชื่อสูตรการผลิต"
                              FontSize="{StaticResource FontSizeBase}"
                              CornerRadius="{StaticResource RadiusMD}"/>
                 </StackPanel>
@@ -173,7 +173,7 @@
                                Foreground="{StaticResource TextSecondaryBrush}"/>
                     <TextBox x:Name="ItemCodeBox"
                              Text="{Binding ItemSearchText, Mode=TwoWay}"
-                             Watermark="รหัสสินค้า หรือกดค้นหา"
+                             PlaceholderText="รหัสสินค้า หรือกดค้นหา"
                              FontSize="{StaticResource FontSizeBase}"
                              CornerRadius="{StaticResource RadiusMD}">
                         <TextBox.InnerRightContent>
@@ -198,7 +198,7 @@
                                FontSize="{StaticResource FontSizeSM}"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
                     <TextBox Text="{Binding Description, Mode=TwoWay}"
-                             Watermark="คำอธิบายสูตร (ไม่บังคับ)"
+                             PlaceholderText="คำอธิบายสูตร (ไม่บังคับ)"
                              FontSize="{StaticResource FontSizeBase}"
                              CornerRadius="{StaticResource RadiusMD}"/>
                 </StackPanel>

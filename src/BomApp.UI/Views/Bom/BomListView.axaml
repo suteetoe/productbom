@@ -62,7 +62,7 @@
 
             <!-- Search box -->
             <TextBox Text="{Binding SearchText, Mode=TwoWay}"
-                     Watermark="ค้นหา รหัส / ชื่อสูตร"
+                     PlaceholderText="ค้นหา รหัส / ชื่อสูตร"
                      FontSize="{StaticResource FontSizeBase}"
                      CornerRadius="{StaticResource RadiusMD}"/>
 

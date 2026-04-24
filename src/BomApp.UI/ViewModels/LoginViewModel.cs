@@ -69,6 +69,10 @@ public partial class LoginViewModel : ViewModelBase
             }
             _navigation.NavigateTo<BomListViewModel>();
         }
+        catch (Exception)
+        {
+            ErrorMessage = "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อเครือข่าย";
+        }
         finally
         {
             IsLoading = false;

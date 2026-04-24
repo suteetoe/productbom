@@ -97,7 +97,7 @@
 
                 <!-- รหัสสินค้า -->
                 <TextBox Text="{Binding ItemSearch, Mode=TwoWay}"
-                         Watermark="รหัสสินค้า"
+                         PlaceholderText="รหัสสินค้า"
                          Width="130"
                          Margin="{StaticResource SpaceSM}"
                          CornerRadius="{StaticResource RadiusMD}"
@@ -118,7 +118,7 @@
 
                 <!-- เลขเอกสารขาย -->
                 <TextBox Text="{Binding SourceDocNoSearch, Mode=TwoWay}"
-                         Watermark="เลขเอกสารขาย"
+                         PlaceholderText="เลขเอกสารขาย"
                          Width="160"
                          Margin="{StaticResource SpaceSM}"
                          CornerRadius="{StaticResource RadiusMD}"

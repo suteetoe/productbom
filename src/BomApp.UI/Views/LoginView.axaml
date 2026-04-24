@@ -78,7 +78,7 @@
                                    FontSize="{StaticResource FontSizeBase}"
                                    Foreground="{StaticResource TextPrimaryBrush}"/>
                         <TextBox Text="{Binding Username, Mode=TwoWay}"
-                                 Watermark="กรอกชื่อผู้ใช้"
+                                 PlaceholderText="กรอกชื่อผู้ใช้"
                                  CornerRadius="{StaticResource RadiusMD}"
                                  FontSize="{StaticResource FontSizeBase}"/>
                     </StackPanel>
@@ -89,7 +89,7 @@
                                    FontSize="{StaticResource FontSizeBase}"
                                    Foreground="{StaticResource TextPrimaryBrush}"/>
                         <TextBox Text="{Binding Password, Mode=TwoWay}"
-                                 Watermark="กรอกรหัสผ่าน"
+                                 PlaceholderText="กรอกรหัสผ่าน"
                                  PasswordChar="•"
                                  CornerRadius="{StaticResource RadiusMD}"
                                  FontSize="{StaticResource FontSizeBase}"/>

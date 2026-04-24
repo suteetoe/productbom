@@ -154,9 +154,9 @@ public partial class BomEditorViewModel : ViewModelBase
             Name        = bom.Name;
             Description = bom.Description ?? string.Empty;
             ItemCode    = bom.ItemCode;
-            ItemName    = bom.ItemName;
             var erpItem = await _erpRepo.GetItemByCodeAsync(bom.ItemCode);
-            UnitCost = erpItem?.UnitCost ?? string.Empty;
+            ItemName    = erpItem?.Name ?? bom.ItemName;
+            UnitCost    = erpItem?.UnitCost ?? string.Empty;
             var units = await _erpRepo.GetUnitsByItemCodeAsync(bom.ItemCode);
             AvailableUnits.Clear();
             foreach (var u in units) AvailableUnits.Add(u);

@@ -16,7 +16,7 @@
         <!-- Search box -->
         <TextBox Grid.Row="0"
                  Text="{Binding SearchText, Mode=TwoWay}"
-                 Watermark="ค้นหา รหัส / ชื่อสินค้า"
+                 PlaceholderText="ค้นหา รหัส / ชื่อสินค้า"
                  FontSize="{StaticResource FontSizeBase}"
                  CornerRadius="{StaticResource RadiusMD}"
                  Margin="0,0,0,8"/>
