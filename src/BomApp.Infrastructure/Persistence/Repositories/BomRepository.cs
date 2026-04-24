@@ -90,54 +90,79 @@ public class BomRepository(BomDbContext context) : IBomRepository
         return MapToDto(bom);
     }
 
-    /// <summary>แก้ไข BOM — replace lines และเพิ่ม version</summary>
+    /// <summary>แก้ไข BOM — replace lines และเพิ่ม version
+    /// ใช้ ExecuteUpdateAsync + ExecuteDeleteAsync ทั้งหมด เพื่อหลีกเลี่ยง change-tracker
+    /// conflict (DbUpdateConcurrencyException) เมื่อ DbContext มีอายุยาวใน Avalonia root scope
+    /// </summary>
     public async Task<BomDto> UpdateAsync(Guid id, UpdateBomCommand cmd, CancellationToken ct = default)
     {
-        var bom = await context.Boms
-            .Include(b => b.Lines)
+        // Load current values without entering the change tracker
+        var current = await context.Boms
+            .AsNoTracking()
             .FirstOrDefaultAsync(b => b.Id == id, ct)
             ?? throw new InvalidOperationException($"BOM {id} not found");
 
-        if (cmd.Name is not null) bom.Name = cmd.Name;
-        if (cmd.Description is not null) bom.Description = cmd.Description;
-        if (cmd.ItemCode is not null) bom.ItemCode = cmd.ItemCode;
-        if (cmd.YieldQuantity.HasValue) bom.YieldQuantity = cmd.YieldQuantity.Value;
-        if (cmd.YieldUnit is not null) bom.YieldUnit = cmd.YieldUnit;
+        // Update header fields directly in DB — no change tracker involved
+        await context.Boms
+            .Where(b => b.Id == id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(b => b.Name,          cmd.Name          ?? current.Name)
+                .SetProperty(b => b.Description,   cmd.Description   ?? current.Description)
+                .SetProperty(b => b.ItemCode,      cmd.ItemCode      ?? current.ItemCode)
+                .SetProperty(b => b.YieldQuantity, cmd.YieldQuantity ?? current.YieldQuantity)
+                .SetProperty(b => b.YieldUnit,     cmd.YieldUnit     ?? current.YieldUnit)
+                .SetProperty(b => b.Version,       current.Version + 1)
+                .SetProperty(b => b.UpdatedAt,     DateTime.UtcNow), ct);
+
+        // Replace lines if provided — ExecuteDeleteAsync issues a single DELETE statement
+        // that bypasses the change tracker, so no second DELETE is triggered by SaveChanges
         if (cmd.Lines is not null)
         {
-            bom.Lines.Clear();
-            foreach (var l in cmd.Lines)
+            await context.BomLines
+                .Where(l => l.BomId == id)
+                .ExecuteDeleteAsync(ct);
+
+            if (cmd.Lines.Count > 0)
             {
-                bom.Lines.Add(new BomLine
+                var newLines = cmd.Lines.Select(l => new BomLine
                 {
-                    Id = Guid.NewGuid(),
-                    BomId = bom.Id,
+                    Id           = Guid.NewGuid(),
+                    BomId        = id,
                     MaterialCode = l.MaterialCode,
                     MaterialName = string.Empty,
-                    Quantity = l.Quantity,
-                    Unit = l.Unit,
-                    SubBomId = l.SubBomId,
-                    SortOrder = l.SortOrder,
-                    Notes = l.Notes
-                });
+                    Quantity     = l.Quantity,
+                    Unit         = l.Unit,
+                    SubBomId     = l.SubBomId,
+                    SortOrder    = l.SortOrder,
+                    Notes        = l.Notes
+                }).ToList();
+
+                context.BomLines.AddRange(newLines);
+                await context.SaveChangesAsync(ct);
             }
         }
 
-        bom.Version++;
-        bom.UpdatedAt = DateTime.UtcNow;
-
-        await context.SaveChangesAsync(ct);
-        return MapToDto(bom);
+        // Return a fresh DTO read via AsNoTracking — change tracker is untouched throughout
+        return (await GetByIdAsync(id, ct))!;
     }
 
-    /// <summary>ลบ BOM</summary>
+    /// <summary>ลบ BOM และ lines ทั้งหมด — ใช้ ExecuteDeleteAsync เพื่อหลีกเลี่ยง change-tracker
+    /// conflict เมื่อ DbContext มีอายุยาว (resolved จาก root scope)</summary>
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        var bom = await context.Boms.FindAsync([id], ct)
-            ?? throw new InvalidOperationException($"BOM {id} not found");
+        // Verify existence first so callers get a meaningful exception on missing BOM.
+        var exists = await context.Boms.AsNoTracking().AnyAsync(b => b.Id == id, ct);
+        if (!exists)
+            throw new InvalidOperationException($"BOM {id} not found");
 
-        context.Boms.Remove(bom);
-        await context.SaveChangesAsync(ct);
+        // ExecuteDeleteAsync issues a single DELETE statement and bypasses the
+        // change tracker entirely.  Lines are removed by the ON DELETE CASCADE
+        // constraint configured in BomConfiguration, so no separate line delete
+        // is needed.  This avoids DbUpdateConcurrencyException when a previously
+        // tracked Bom or its Lines are still held in the change tracker.
+        await context.Boms
+            .Where(b => b.Id == id)
+            .ExecuteDeleteAsync(ct);
     }
 
     /// <summary>เปลี่ยน status ของ BOM</summary>

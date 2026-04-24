@@ -270,21 +270,15 @@
                                    Foreground="{StaticResource WarningBrush}"/>
                     </Border>
 
-                    <!-- BOM selector dropdown — for new assignment -->
+                    <!-- BOM selector dropdown — only shown when no BOM is assigned yet -->
                     <StackPanel Spacing="6"
-                                IsVisible="{Binding SelectedItem, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                IsVisible="{Binding CanAssignNew}">
 
                         <TextBlock Text="เลือกสูตรการผลิต"
                                    FontSize="{StaticResource FontSizeSM}"
                                    Foreground="{StaticResource TextSecondaryBrush}"/>
 
-                        <!--
-                            ComboBox: active BOMs for selection.
-                            ItemsSource → ActiveBoms
-                            SelectedItem → SelectedBomToAssign (TwoWay)
-                            DisplayMemberBinding shows Code — Name
-                        -->
-                        <ComboBox ItemsSource="{Binding ActiveBoms}"
+                        <ComboBox ItemsSource="{Binding FilteredBoms}"
                                   SelectedItem="{Binding SelectedBomToAssign, Mode=TwoWay}"
                                   HorizontalAlignment="Stretch"
                                   FontSize="{StaticResource FontSizeBase}">
@@ -304,7 +298,7 @@
                     <StackPanel Spacing="8"
                                 IsVisible="{Binding SelectedItem, Converter={x:Static ObjectConverters.IsNotNull}}">
 
-                        <!-- กำหนดสูตร — always visible when an item is selected -->
+                        <!-- กำหนดสูตร — only shown when no BOM is assigned yet -->
                         <Button Content="กำหนดสูตร"
                                 Command="{Binding AssignBomCommand}"
                                 HorizontalAlignment="Stretch"
@@ -313,9 +307,10 @@
                                 Foreground="White"
                                 FontSize="{StaticResource FontSizeBase}"
                                 CornerRadius="{StaticResource RadiusMD}"
-                                Padding="{StaticResource SpaceSM}"/>
+                                Padding="{StaticResource SpaceSM}"
+                                IsVisible="{Binding CanAssignNew}"/>
 
-                        <!-- ถอดสูตร — only visible when a BOM is currently assigned -->
+                        <!-- ถอดสูตร — only shown when a BOM is currently assigned -->
                         <Button Content="ถอดสูตร"
                                 Command="{Binding RemoveAssignmentCommand}"
                                 HorizontalAlignment="Stretch"

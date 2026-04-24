@@ -75,13 +75,32 @@ public partial class BomAssignmentViewModel : ViewModelBase
     /// <summary>BOM the user has chosen in the assignment ComboBox.</summary>
     [ObservableProperty] private BomDto? _selectedBomToAssign;
 
-    /// <summary>Active BOMs available for assignment — drives the ComboBox.</summary>
+    /// <summary>Active BOMs available for assignment — full list loaded once.</summary>
     public ObservableCollection<BomDto> ActiveBoms { get; } = new();
 
-    /// <summary>Computed — controls visibility of the "ถอดสูตร" button.</summary>
+    /// <summary>BOMs filtered to the selected product's ItemCode — drives the ComboBox.</summary>
+    public IEnumerable<BomDto> FilteredBoms => SelectedItem is null
+        ? Enumerable.Empty<BomDto>()
+        : ActiveBoms.Where(b => b.ItemCode == SelectedItem.ItemCode);
+
+    /// <summary>Computed — controls visibility of the assigned BOM detail and "ถอดสูตร" button.</summary>
     public bool HasAssignment => AssignedBom is not null;
 
-    partial void OnAssignedBomChanged(BomDto? value) => OnPropertyChanged(nameof(HasAssignment));
+    /// <summary>Computed — controls visibility of the BOM selector and "กำหนดสูตร" button.</summary>
+    public bool CanAssignNew => SelectedItem is not null && !HasAssignment;
+
+    partial void OnAssignedBomChanged(BomDto? value)
+    {
+        OnPropertyChanged(nameof(HasAssignment));
+        OnPropertyChanged(nameof(CanAssignNew));
+    }
+
+    partial void OnSelectedItemChanged(ErpItemRow? value)
+    {
+        OnPropertyChanged(nameof(CanAssignNew));
+        OnPropertyChanged(nameof(FilteredBoms));
+        _ = RefreshRightPanelAsync(value);
+    }
 
     // ── Constructor ─────────────────────────────────────────────────────────
 
@@ -93,8 +112,6 @@ public partial class BomAssignmentViewModel : ViewModelBase
 
     // ── Reactive handlers ────────────────────────────────────────────────────
 
-    partial void OnSelectedItemChanged(ErpItemRow? value) => _ = RefreshRightPanelAsync(value);
-
     private async Task RefreshRightPanelAsync(ErpItemRow? row)
     {
         if (row is null)
@@ -105,6 +122,10 @@ public partial class BomAssignmentViewModel : ViewModelBase
 
         var result = await _assignmentService.GetAssignedBomAsync(row.ItemCode);
         AssignedBom = result.IsSuccess ? result.Value : null;
+
+        SelectedBomToAssign = AssignedBom is not null
+            ? ActiveBoms.FirstOrDefault(b => b.Id == AssignedBom.Id)
+            : null;
 
         // Mutate the row in-place — no collection Replace, so the DataGrid
         // never loses the selected item reference and focus stays put.

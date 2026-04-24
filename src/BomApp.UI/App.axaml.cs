@@ -77,27 +77,54 @@ public partial class App : Avalonia.Application
     private static void RegisterViewModels(NavigationService nav, IServiceProvider sp)
     {
         var dialogService = new DialogService();
+        var scopeFactory  = sp.GetRequiredService<IServiceScopeFactory>();
+
+        // Each factory lambda creates a NEW DI scope so every ViewModel
+        // instantiation gets its own BomDbContext (and sibling scoped services).
+        // This prevents the change-tracker from accumulating stale entity state
+        // across repeated navigations when DbContext is resolved from the root
+        // scope (which would make it effectively a singleton).
+        //
+        // NOTE: The scope is intentionally not disposed here — it lives as long
+        // as the ViewModel is alive.  In an Avalonia desktop app with a single
+        // active VM per page this is acceptable; memory is reclaimed when the
+        // next navigation replaces the VM reference.
 
         nav.Register<BomListViewModel>(() =>
-            new BomListViewModel(sp.GetRequiredService<IBomService>(), nav, dialogService));
+        {
+            var scope = scopeFactory.CreateScope();
+            return new BomListViewModel(scope.ServiceProvider.GetRequiredService<IBomService>(), nav, dialogService);
+        });
 
         nav.Register<BomEditorViewModel>(() =>
-            new BomEditorViewModel(
-                sp.GetRequiredService<IBomService>(),
+        {
+            var scope = scopeFactory.CreateScope();
+            return new BomEditorViewModel(
+                scope.ServiceProvider.GetRequiredService<IBomService>(),
                 nav,
-                sp.GetRequiredService<IErpItemRepository>()));
+                scope.ServiceProvider.GetRequiredService<IErpItemRepository>());
+        });
 
         nav.Register<BomAssignmentViewModel>(() =>
-            new BomAssignmentViewModel(
-                sp.GetRequiredService<IBomAssignmentService>(),
-                sp.GetRequiredService<IErpItemRepository>()));
+        {
+            var scope = scopeFactory.CreateScope();
+            return new BomAssignmentViewModel(
+                scope.ServiceProvider.GetRequiredService<IBomAssignmentService>(),
+                scope.ServiceProvider.GetRequiredService<IErpItemRepository>());
+        });
 
         nav.Register<ProductionListViewModel>(() =>
-            new ProductionListViewModel(sp.GetRequiredService<IProductionService>()));
+        {
+            var scope = scopeFactory.CreateScope();
+            return new ProductionListViewModel(scope.ServiceProvider.GetRequiredService<IProductionService>());
+        });
 
         nav.Register<SalesCalculationViewModel>(() =>
-            new SalesCalculationViewModel(
-                sp.GetRequiredService<ICalculateSalesProductionUseCase>(),
-                sp.GetRequiredService<IErpSalesOrderRepository>()));
+        {
+            var scope = scopeFactory.CreateScope();
+            return new SalesCalculationViewModel(
+                scope.ServiceProvider.GetRequiredService<ICalculateSalesProductionUseCase>(),
+                scope.ServiceProvider.GetRequiredService<IErpSalesOrderRepository>());
+        });
     }
 }
