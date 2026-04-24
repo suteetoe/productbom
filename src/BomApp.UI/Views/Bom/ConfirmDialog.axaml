@@ -1,0 +1,56 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="BomApp.UI.Views.Bom.ConfirmDialog"
+        Title="ยืนยัน"
+        Width="360" Height="180"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{StaticResource SurfaceBrush}">
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="24,20,24,20">
+
+        <!-- Title -->
+        <TextBlock x:Name="TitleText"
+                   Grid.Row="0"
+                   FontSize="{StaticResource FontSizeBase}"
+                   FontWeight="SemiBold"
+                   Foreground="{StaticResource TextPrimaryBrush}"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,10"/>
+
+        <!-- Message -->
+        <TextBlock x:Name="MessageText"
+                   Grid.Row="1"
+                   FontSize="{StaticResource FontSizeBase}"
+                   Foreground="{StaticResource TextSecondaryBrush}"
+                   TextWrapping="Wrap"
+                   VerticalAlignment="Top"/>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+
+            <Button Content="ยกเลิก"
+                    FontSize="{StaticResource FontSizeBase}"
+                    CornerRadius="{StaticResource RadiusMD}"
+                    Padding="16,6"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    Click="OnCancelClick"/>
+
+            <Button Content="ยืนยัน"
+                    FontSize="{StaticResource FontSizeBase}"
+                    CornerRadius="{StaticResource RadiusMD}"
+                    Padding="16,6"
+                    Background="{StaticResource DangerBrush}"
+                    Foreground="White"
+                    Click="OnConfirmClick"/>
+
+        </StackPanel>
+
+    </Grid>
+
+</Window>

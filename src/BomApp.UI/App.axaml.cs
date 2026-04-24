@@ -76,8 +76,10 @@ public partial class App : Avalonia.Application
 
     private static void RegisterViewModels(NavigationService nav, IServiceProvider sp)
     {
+        var dialogService = new DialogService();
+
         nav.Register<BomListViewModel>(() =>
-            new BomListViewModel(sp.GetRequiredService<IBomService>(), nav));
+            new BomListViewModel(sp.GetRequiredService<IBomService>(), nav, dialogService));
 
         nav.Register<BomEditorViewModel>(() =>
             new BomEditorViewModel(

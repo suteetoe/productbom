@@ -54,6 +54,6 @@ public class BomAssignmentConfiguration : IEntityTypeConfiguration<BomAssignment
         builder.HasOne(a => a.Bom)
             .WithMany()
             .HasForeignKey(a => a.BomId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

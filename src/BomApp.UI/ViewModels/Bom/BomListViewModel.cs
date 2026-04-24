@@ -27,6 +27,7 @@ public partial class BomListViewModel : ViewModelBase
 {
     private readonly IBomService _bomService;
     private readonly INavigationService _navigation;
+    private readonly IDialogService _dialogService;
 
     [ObservableProperty]
     private string _searchText = string.Empty;
@@ -51,10 +52,11 @@ public partial class BomListViewModel : ViewModelBase
             b.Code.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
             b.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
 
-    public BomListViewModel(IBomService bomService, INavigationService navigation)
+    public BomListViewModel(IBomService bomService, INavigationService navigation, IDialogService dialogService)
     {
         _bomService = bomService;
         _navigation = navigation;
+        _dialogService = dialogService;
     }
 
     /// <summary>Re-evaluate FilteredItems whenever SearchText changes.</summary>
@@ -107,12 +109,15 @@ public partial class BomListViewModel : ViewModelBase
         _navigation.NavigateTo<BomEditorViewModel>(vm => _ = vm.LoadForEditAsync(bom.Id));
     }
 
-    /// <summary>Delete the given BOM after confirmation (confirmation dialog handled in View/dialog service).</summary>
+    /// <summary>Delete the given BOM after showing a confirmation dialog.</summary>
     [RelayCommand]
     private async Task DeleteAsync(BomDto bom)
     {
-        // Confirmation dialog is the responsibility of the View layer via a dialog service.
-        // For Sprint 2, the command executes immediately. Sprint 3 will add IDialogService.
+        var confirmed = await _dialogService.ConfirmAsync(
+            "ยืนยันการลบ",
+            $"ต้องการลบสูตร '{bom.Name}' ใช่หรือไม่?");
+        if (!confirmed) return;
+
         var result = await _bomService.DeleteAsync(bom.Id);
         if (result.IsSuccess)
         {

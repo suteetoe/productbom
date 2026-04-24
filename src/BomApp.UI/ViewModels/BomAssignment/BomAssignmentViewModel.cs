@@ -7,11 +7,25 @@ using BomApp.Shared.Contracts;
 
 namespace BomApp.UI.ViewModels.BomAssignment;
 
-/// <summary>
-/// Local row model — ERP item augmented with assignment status.
-/// IsAssigned and AssignedBomId are refreshed lazily on row selection.
-/// </summary>
-public record ErpItemRow(string ItemCode, string ItemName, string? Category, bool IsAssigned, Guid? AssignedBomId);
+// Mutable class (not record) so IsAssigned can be updated in-place —
+// replacing the object in the collection would make the DataGrid lose selection.
+public partial class ErpItemRow : ObservableObject
+{
+    public string ItemCode { get; }
+    public string ItemName { get; }
+    public string? Category { get; }
+    [ObservableProperty] private bool _isAssigned;
+    [ObservableProperty] private Guid? _assignedBomId;
+
+    public ErpItemRow(string itemCode, string itemName, string? category, bool isAssigned, Guid? assignedBomId)
+    {
+        ItemCode = itemCode;
+        ItemName = itemName;
+        Category = category;
+        _isAssigned = isAssigned;
+        _assignedBomId = assignedBomId;
+    }
+}
 
 public partial class BomAssignmentViewModel : ViewModelBase
 {
@@ -81,10 +95,6 @@ public partial class BomAssignmentViewModel : ViewModelBase
 
     partial void OnSelectedItemChanged(ErpItemRow? value) => _ = RefreshRightPanelAsync(value);
 
-    /// <summary>
-    /// Loads the BOM assignment for the given row and updates the row's
-    /// IsAssigned indicator in ErpItems so the left DataGrid badge refreshes.
-    /// </summary>
     private async Task RefreshRightPanelAsync(ErpItemRow? row)
     {
         if (row is null)
@@ -96,14 +106,10 @@ public partial class BomAssignmentViewModel : ViewModelBase
         var result = await _assignmentService.GetAssignedBomAsync(row.ItemCode);
         AssignedBom = result.IsSuccess ? result.Value : null;
 
-        // Update the IsAssigned flag on the row in the ObservableCollection
-        // so the status badge in the DataGrid reflects the current state.
-        var idx = ErpItems.IndexOf(row);
-        if (idx >= 0)
-        {
-            ErpItems[idx] = row with { IsAssigned = AssignedBom is not null, AssignedBomId = AssignedBom?.Id };
-            OnPropertyChanged(nameof(FilteredItems));
-        }
+        // Mutate the row in-place — no collection Replace, so the DataGrid
+        // never loses the selected item reference and focus stays put.
+        row.IsAssigned = AssignedBom is not null;
+        row.AssignedBomId = AssignedBom?.Id;
     }
 
     // ── Commands ─────────────────────────────────────────────────────────────
