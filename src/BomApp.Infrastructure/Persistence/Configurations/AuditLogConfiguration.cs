@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace BomApp.Infrastructure.Persistence.Configurations;
 
 /// <summary>
-/// EF Core configuration สำหรับ AuditLog entity → bom.audit_logs table
+/// EF Core configuration สำหรับ AuditLog entity → public.bom_audit_logs table
 /// </summary>
 public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 {
     public void Configure(EntityTypeBuilder<AuditLog> builder)
     {
-        builder.ToTable("audit_logs");
+        builder.ToTable("bom_audit_logs");
 
         builder.HasKey(a => a.Id);
         builder.Property(a => a.Id)

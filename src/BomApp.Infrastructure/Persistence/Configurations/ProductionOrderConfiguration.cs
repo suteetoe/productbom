@@ -5,14 +5,14 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace BomApp.Infrastructure.Persistence.Configurations;
 
 /// <summary>
-/// EF Core configuration สำหรับ ProductionOrder entity → bom.production_orders table
+/// EF Core configuration สำหรับ ProductionOrder entity → public.bom_production_orders table
 /// สำคัญ: TEXT[] และ JSONB columns ต้อง map ถูกต้อง
 /// </summary>
 public class ProductionOrderConfiguration : IEntityTypeConfiguration<ProductionOrder>
 {
     public void Configure(EntityTypeBuilder<ProductionOrder> builder)
     {
-        builder.ToTable("production_orders");
+        builder.ToTable("bom_production_orders");
 
         builder.HasKey(p => p.Id);
         builder.Property(p => p.Id)

@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace BomApp.Infrastructure.Persistence.Configurations;
 
 /// <summary>
-/// EF Core configuration สำหรับ Bom entity → bom.boms table
+/// EF Core configuration สำหรับ Bom entity → public.bom_boms table
 /// </summary>
 public class BomConfiguration : IEntityTypeConfiguration<Bom>
 {
     public void Configure(EntityTypeBuilder<Bom> builder)
     {
-        builder.ToTable("boms");
+        builder.ToTable("bom_boms");
 
         builder.HasKey(b => b.Id);
         builder.Property(b => b.Id)

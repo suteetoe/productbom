@@ -13,7 +13,7 @@
 2. **เชื่อมสูตรกับสินค้า** — ผูก BOM เข้ากับ product item ที่มีอยู่ใน ERP
 3. **คำนวณจำนวนสินค้าที่ต้องเบิกผลิต จากรายการขาย** — เลือกเอกสารขายตามช่วงวันที่ รวบรวมสินค้าที่ขายได้ แล้วแตกสูตร BOM เพื่อคำนวณวัตถุดิบที่ต้องตัดเบิกสำหรับการผลิต
 
-ข้อมูลหลักเก็บใน **PostgreSQL schema `bom`** ซึ่งอยู่บนฐานข้อมูลเดียวกับ ERP
+ข้อมูลหลักเก็บใน **PostgreSQL schema `public`** ซึ่งอยู่บนฐานข้อมูลเดียวกับ ERP โดย BOM tables ทุกตารางขึ้นต้นด้วย `bom_`
 ข้อมูล Items และ Sales Orders ดึงมาจาก **ERP** ผ่าน adapter
 
 ### Database Connections (Backend)
@@ -21,12 +21,10 @@
 | Connection Name | ชี้ไปที่ | หมายเหตุ |
 |---|---|---|
 | `authentication-database` | ฐานข้อมูล Authentication แยกต่างหาก | ใช้ตรวจสอบ user — ดู `shared/auth-spec.md` |
-| `erp-database` | ฐานข้อมูล ERP (default schema) | อ่าน Items, Sales Orders — ดู `shared/erp-spec.md` |
-| `bom-database` | ฐานข้อมูลเดียวกับ `erp-database` แต่ใช้ **schema `bom`** | เก็บข้อมูล BOM domain — ดู section 3 |
+| `erp-database` | ฐานข้อมูล ERP (`public` schema) | อ่าน ERP Items, Sales Orders และเขียน BOM domain tables (`bom_*`) — ดู `shared/erp-spec.md` และ section 3 |
 
-> **หมายเหตุ**: `bom-database` และ `erp-database` ชี้ไปที่ server/instance เดียวกัน
-> แต่แยก schema เพื่อป้องกัน ERP schema ปนกับ BOM domain
-> Infrastructure layer ต้องตั้งค่า `search_path = bom` สำหรับ connection นี้
+> **หมายเหตุ**: `erp-database` connection เดียวรองรับทั้ง ERP read และ BOM write บน `public` schema
+> BOM tables ทุกตารางขึ้นต้นด้วย `bom_` เพื่อป้องกันชนกับ ERP tables
 
 ---
 
@@ -271,13 +269,13 @@ CLI (BomApp.Cli calculate)       ─┘        └─→ IErpSalesOrderRepositor
 
 ---
 
-## 3. Database Tables (PostgreSQL — schema `bom`)
+## 3. Database Tables (PostgreSQL — schema `public`)
 
-> ตาราง ERP (Items, SalesOrders) อยู่ใน ERP schema — ไม่ได้เก็บในนี้
-> ระบบนี้เก็บเฉพาะข้อมูล BOM domain ทั้งหมดอยู่ใน **schema `bom`** บนฐานข้อมูลเดียวกับ ERP
-> ทุก migration และ query ต้อง prefix ด้วย `bom.` หรือตั้งค่า `search_path = bom` ก่อนใช้งาน
+> ตาราง ERP (Items, SalesOrders) อยู่ใน `public` schema เช่นกัน — ไม่ได้เก็บในนี้
+> ระบบนี้เก็บเฉพาะข้อมูล BOM domain ทั้งหมดอยู่ใน **schema `public`** บนฐานข้อมูลเดียวกับ ERP
+> ทุก BOM table ขึ้นต้นด้วย `bom_` เพื่อแยกออกจาก ERP tables
 
-### 3.1 `boms` — หัว BOM
+### 3.1 `bom_boms` — หัว BOM
 
 | Column | Type | Constraint | หมายเหตุ |
 |---|---|---|---|
@@ -295,7 +293,7 @@ CLI (BomApp.Cli calculate)       ─┘        └─→ IErpSalesOrderRepositor
 | `updated_at` | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | |
 | `created_by` | VARCHAR(100) | NOT NULL | username |
 
-**Index**: `idx_boms_code` (code), `idx_boms_status` (status)
+**Index**: `idx_bom_boms_code` (code), `idx_bom_boms_status` (status)
 
 ---
 
@@ -304,12 +302,12 @@ CLI (BomApp.Cli calculate)       ─┘        └─→ IErpSalesOrderRepositor
 | Column | Type | Constraint | หมายเหตุ |
 |---|---|---|---|
 | `id` | UUID | PK | |
-| `bom_id` | UUID | FK → boms.id, NOT NULL | CASCADE DELETE |
+| `bom_id` | UUID | FK → bom_boms.id, NOT NULL | CASCADE DELETE |
 | `material_code` | VARCHAR(50) | NOT NULL | รหัสวัตถุดิบจาก ERP Items |
 | `material_name` | VARCHAR(200) | NOT NULL | ชื่อ (denormalized จาก ERP) |
 | `quantity` | DECIMAL(18,6) | NOT NULL CHECK (> 0) | |
 | `unit` | VARCHAR(20) | NOT NULL | kg, pcs, m, L, etc. |
-| `sub_bom_id` | UUID | FK → boms.id, NULL | ถ้าเป็น sub-assembly |
+| `sub_bom_id` | UUID | FK → bom_boms.id, NULL | ถ้าเป็น sub-assembly |
 | `sort_order` | INT | NOT NULL DEFAULT 0 | ลำดับแสดงผล |
 | `notes` | TEXT | NULL | |
 
@@ -325,7 +323,7 @@ CLI (BomApp.Cli calculate)       ─┘        └─→ IErpSalesOrderRepositor
 | `id` | UUID | PK | |
 | `item_code` | VARCHAR(50) | UNIQUE, NOT NULL | รหัส item จาก ERP |
 | `item_name` | VARCHAR(200) | NOT NULL | ชื่อ (denormalized) |
-| `bom_id` | UUID | FK → boms.id, NOT NULL | |
+| `bom_id` | UUID | FK → bom_boms.id, NOT NULL | |
 | `assigned_at` | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | |
 | `assigned_by` | VARCHAR(100) | NOT NULL | |
 
@@ -334,13 +332,13 @@ CLI (BomApp.Cli calculate)       ─┘        └─→ IErpSalesOrderRepositor
 
 ---
 
-### 3.4 `production_orders` — คำสั่งผลิต
+### 3.4 `bom_production_orders` — คำสั่งผลิต
 
 | Column | Type | Constraint | หมายเหตุ |
 |---|---|---|---|
 | `id` | UUID | PK | |
 | `order_no` | VARCHAR(30) | UNIQUE, NOT NULL | PO-YYYYMM-NNNNN |
-| `bom_id` | UUID | FK → boms.id, NOT NULL | |
+| `bom_id` | UUID | FK → bom_boms.id, NOT NULL | |
 | `bom_snapshot` | JSONB | NOT NULL | snapshot BOM ณ เวลาสร้าง |
 | `item_code` | VARCHAR(50) | NOT NULL | สินค้าที่ผลิต |
 | `quantity` | DECIMAL(18,6) | NOT NULL | จำนวนที่สั่งผลิต |
@@ -353,26 +351,26 @@ CLI (BomApp.Cli calculate)       ─┘        └─→ IErpSalesOrderRepositor
 | `created_at` | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | |
 | `notes` | TEXT | NULL | |
 
-**Index**: `idx_production_orders_status` (status), `idx_production_orders_created_at` (created_at DESC), `idx_production_orders_item_code` (item_code), `idx_production_orders_source_so` (source_so_numbers) USING GIN
+**Index**: `idx_bom_production_orders_status` (status), `idx_bom_production_orders_created_at` (created_at DESC), `idx_bom_production_orders_item_code` (item_code), `idx_bom_production_orders_source_so` (source_so_numbers) USING GIN
 
 ---
 
-### 3.5 `production_order_lines` — วัตถุดิบที่ต้องใช้จริง
+### 3.5 `bom_production_order_lines` — วัตถุดิบที่ต้องใช้จริง
 
 | Column | Type | Constraint | หมายเหตุ |
 |---|---|---|---|
 | `id` | UUID | PK | |
-| `production_order_id` | UUID | FK → production_orders.id, NOT NULL | CASCADE DELETE |
+| `production_order_id` | UUID | FK → bom_production_orders.id, NOT NULL | CASCADE DELETE |
 | `material_code` | VARCHAR(50) | NOT NULL | |
 | `material_name` | VARCHAR(200) | NOT NULL | |
 | `required_quantity` | DECIMAL(18,6) | NOT NULL | คำนวณแล้ว (qty × bom line qty) |
 | `unit` | VARCHAR(20) | NOT NULL | |
 
-**Index**: `idx_po_lines_production_order_id` (production_order_id)
+**Index**: `idx_bom_po_lines_production_order_id` (production_order_id)
 
 ---
 
-### 3.6 `audit_logs` — บันทึกการเปลี่ยนแปลง
+### 3.6 `bom_audit_logs` — บันทึกการเปลี่ยนแปลง
 
 | Column | Type | Constraint | หมายเหตุ |
 |---|---|---|---|
@@ -385,22 +383,22 @@ CLI (BomApp.Cli calculate)       ─┘        └─→ IErpSalesOrderRepositor
 | `old_values` | JSONB | NULL | ก่อนเปลี่ยน |
 | `new_values` | JSONB | NULL | หลังเปลี่ยน |
 
-**Index**: `idx_audit_entity` (entity_type, entity_id), `idx_audit_changed_at` (changed_at DESC)
+**Index**: `idx_bom_audit_entity` (entity_type, entity_id), `idx_bom_audit_changed_at` (changed_at DESC)
 
 ---
 
 ## 4. Entity Relationship (สรุป)
 
 ```
-boms (1) ──────────── (N) bom_lines
-  │                          │
-  │                    sub_bom_id (self-ref, optional)
+bom_boms (1) ──────────── (N) bom_lines
+  │                               │
+  │                         sub_bom_id (self-ref, optional)
   │
   └── (1) ── bom_assignments (N) ── item_code [ERP]
   │
-  └── (1) ──────────── (N) production_orders
-                                │
-                                └── (1) ── (N) production_order_lines
+  └── (1) ──────────── (N) bom_production_orders
+                                      │
+                                      └── (1) ── (N) bom_production_order_lines
 
 [ERP] ic_inventory ──── item_code ──────── bom_assignments
 [ERP] ic_trans_detail ─ doc_no ─────────── production_orders.source_so_numbers

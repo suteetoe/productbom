@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BomApp.Infrastructure.Persistence;
 
 /// <summary>
-/// EF Core DbContext สำหรับ BOM domain — ใช้ schema "bom" บน bom-database connection
+/// EF Core DbContext สำหรับ BOM domain — ใช้ schema "public" บน bom-database connection (shared with ERP)
 /// </summary>
 public class BomDbContext(DbContextOptions<BomDbContext> options) : DbContext(options)
 {
@@ -28,7 +28,7 @@ public class BomDbContext(DbContextOptions<BomDbContext> options) : DbContext(op
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema("bom");
+        modelBuilder.HasDefaultSchema("public");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(BomDbContext).Assembly);
     }
 }

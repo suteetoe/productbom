@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace BomApp.Infrastructure.Persistence.Configurations;
 
 /// <summary>
-/// EF Core configuration สำหรับ ProductionOrderLine entity → bom.production_order_lines table
+/// EF Core configuration สำหรับ ProductionOrderLine entity → public.bom_production_order_lines table
 /// </summary>
 public class ProductionOrderLineConfiguration : IEntityTypeConfiguration<ProductionOrderLine>
 {
     public void Configure(EntityTypeBuilder<ProductionOrderLine> builder)
     {
-        builder.ToTable("production_order_lines");
+        builder.ToTable("bom_production_order_lines");
 
         builder.HasKey(l => l.Id);
         builder.Property(l => l.Id)
