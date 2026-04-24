@@ -27,7 +27,7 @@ public class ErpDbContext(DbContextOptions<ErpDbContext> options) : DbContext(op
 
             entity.Property(e => e.Code).HasColumnName("code").HasMaxLength(25);
             entity.Property(e => e.Name1).HasColumnName("name_1").HasMaxLength(255);
-            entity.Property(e => e.UnitCost).HasColumnName("unit_cost").HasMaxLength(25);
+            entity.Property(e => e.UnitCost).HasColumnName("unit_cost");
         });
 
         modelBuilder.Entity<IcUnitUse>(entity =>

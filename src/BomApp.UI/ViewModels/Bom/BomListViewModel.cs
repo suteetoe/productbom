@@ -104,8 +104,7 @@ public partial class BomListViewModel : ViewModelBase
     [RelayCommand]
     private void Edit(BomDto bom)
     {
-        // TODO: pass bom.Id to BomEditorViewModel when NavigationService supports parameters (Sprint 3)
-        _navigation.NavigateTo<BomEditorViewModel>();
+        _navigation.NavigateTo<BomEditorViewModel>(vm => _ = vm.LoadForEditAsync(bom.Id));
     }
 
     /// <summary>Delete the given BOM after confirmation (confirmation dialog handled in View/dialog service).</summary>

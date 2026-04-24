@@ -1,0 +1,96 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BomApp.UI.ViewModels.Bom"
+        xmlns:contracts="using:BomApp.Shared.Contracts"
+        x:Class="BomApp.UI.Views.Bom.ProductSearchDialog"
+        x:DataType="vm:ProductSearchDialogViewModel"
+        Title="ค้นหาสินค้า"
+        Width="620" Height="460"
+        MinWidth="480" MinHeight="320"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True"
+        Background="{StaticResource SurfaceSecondaryBrush}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16,12,16,12">
+
+        <!-- Search box -->
+        <TextBox Grid.Row="0"
+                 Text="{Binding SearchText, Mode=TwoWay}"
+                 Watermark="ค้นหา รหัส / ชื่อสินค้า"
+                 FontSize="{StaticResource FontSizeBase}"
+                 CornerRadius="{StaticResource RadiusMD}"
+                 Margin="0,0,0,8"/>
+
+        <!-- Error banner -->
+        <Border Grid.Row="1"
+                Background="#FEF2F2"
+                BorderBrush="{StaticResource DangerBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusSM}"
+                Padding="{StaticResource SpaceSM}"
+                Margin="0,0,0,8"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding ErrorMessage}"
+                       FontSize="{StaticResource FontSizeSM}"
+                       Foreground="{StaticResource DangerBrush}"/>
+        </Border>
+
+        <!-- Results DataGrid -->
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding FilteredItems}"
+                  SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserSortColumns="True"
+                  RowHeight="{StaticResource DataGridRowHeight}"
+                  GridLinesVisibility="Horizontal"
+                  BorderBrush="{StaticResource BorderBrush}"
+                  BorderThickness="1"
+                  CornerRadius="{StaticResource RadiusSM}"
+                  FontSize="{StaticResource FontSizeBase}"
+                  Background="{StaticResource SurfaceBrush}"
+                  DoubleTapped="OnRowDoubleTapped">
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="รหัสสินค้า"
+                                    Binding="{Binding Code}"
+                                    Width="140"/>
+                <DataGridTextColumn Header="ชื่อสินค้า"
+                                    Binding="{Binding Name}"
+                                    Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Footer buttons -->
+        <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" Margin="0,10,0,0">
+
+            <TextBlock Grid.Column="0"
+                       FontSize="{StaticResource FontSizeSM}"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       VerticalAlignment="Center"
+                       Text="ดับเบิลคลิก หรือเลือกแล้วกด 'เลือก'"/>
+
+            <Button Grid.Column="1"
+                    Content="ยกเลิก"
+                    FontSize="{StaticResource FontSizeBase}"
+                    CornerRadius="{StaticResource RadiusMD}"
+                    Padding="{StaticResource SpaceSM}"
+                    Margin="0,0,8,0"
+                    Background="{StaticResource SurfaceSecondaryBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    Click="OnCancelClick"/>
+
+            <Button Grid.Column="2"
+                    Content="เลือก"
+                    FontSize="{StaticResource FontSizeBase}"
+                    CornerRadius="{StaticResource RadiusMD}"
+                    Padding="{StaticResource SpaceSM}"
+                    Background="{StaticResource AccentBlueBrush}"
+                    Foreground="White"
+                    IsEnabled="{Binding SelectedItem, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Click="OnOkClick"/>
+        </Grid>
+
+    </Grid>
+</Window>

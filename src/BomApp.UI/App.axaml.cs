@@ -80,7 +80,10 @@ public partial class App : Avalonia.Application
             new BomListViewModel(sp.GetRequiredService<IBomService>(), nav));
 
         nav.Register<BomEditorViewModel>(() =>
-            new BomEditorViewModel(sp.GetRequiredService<IBomService>()));
+            new BomEditorViewModel(
+                sp.GetRequiredService<IBomService>(),
+                nav,
+                sp.GetRequiredService<IErpItemRepository>()));
 
         nav.Register<BomAssignmentViewModel>(() =>
             new BomAssignmentViewModel(

@@ -20,4 +20,10 @@ public interface INavigationService
     /// The service resolves the instance from its internal factory registry.
     /// </summary>
     void NavigateTo<TViewModel>() where TViewModel : ViewModelBase;
+
+    /// <summary>
+    /// Same as NavigateTo but runs <paramref name="configure"/> on the fresh instance
+    /// before raising Navigated — lets callers pass parameters to the ViewModel.
+    /// </summary>
+    void NavigateTo<TViewModel>(Action<TViewModel> configure) where TViewModel : ViewModelBase;
 }

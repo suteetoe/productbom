@@ -13,12 +13,13 @@ public class ErpItemRepository(ErpDbContext context) : IErpItemRepository
     /// <summary>ดึงสินค้าทั้งหมดจาก ic_inventory</summary>
     public async Task<IReadOnlyList<ErpItemDto>> GetAllItemsAsync(CancellationToken ct = default)
     {
-        var items = await context.IcInventories
+        var rows = await context.IcInventories
             .AsNoTracking()
             .OrderBy(i => i.Code)
+            .Select(i => new { i.Code, i.Name1, i.UnitCost })
             .ToListAsync(ct);
 
-        return items.Select(i => new ErpItemDto(i.Code, i.Name1, i.UnitCost)).ToList();
+        return rows.Select(r => new ErpItemDto(r.Code, r.Name1, r.UnitCost)).ToList();
     }
 
     /// <summary>ค้นหาสินค้าตาม code หรือ name_1 (case-insensitive)</summary>
@@ -27,25 +28,28 @@ public class ErpItemRepository(ErpDbContext context) : IErpItemRepository
         CancellationToken ct = default)
     {
         var lower = keyword.ToLower();
-        var items = await context.IcInventories
+        var rows = await context.IcInventories
             .AsNoTracking()
             .Where(i =>
                 i.Code.ToLower().Contains(lower) ||
                 i.Name1.ToLower().Contains(lower))
             .OrderBy(i => i.Code)
+            .Select(i => new { i.Code, i.Name1, i.UnitCost })
             .ToListAsync(ct);
 
-        return items.Select(i => new ErpItemDto(i.Code, i.Name1, i.UnitCost)).ToList();
+        return rows.Select(r => new ErpItemDto(r.Code, r.Name1, r.UnitCost)).ToList();
     }
 
     /// <summary>ดึงสินค้าตาม code — คืน null ถ้าไม่พบ</summary>
     public async Task<ErpItemDto?> GetItemByCodeAsync(string code, CancellationToken ct = default)
     {
-        var item = await context.IcInventories
+        var row = await context.IcInventories
             .AsNoTracking()
-            .FirstOrDefaultAsync(i => i.Code == code, ct);
+            .Where(i => i.Code == code)
+            .Select(i => new { i.Code, i.Name1, i.UnitCost })
+            .FirstOrDefaultAsync(ct);
 
-        return item is null ? null : new ErpItemDto(item.Code, item.Name1, item.UnitCost);
+        return row is null ? null : new ErpItemDto(row.Code, row.Name1, row.UnitCost);
     }
 
     /// <summary>ดึงหน่วยนับทั้งหมดของสินค้าจาก ic_unit_use (ใช้ raw SQL เพื่อ JOIN ic_unit)</summary>

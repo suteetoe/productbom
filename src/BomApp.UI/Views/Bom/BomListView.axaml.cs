@@ -1,12 +1,17 @@
 using Avalonia.Controls;
+using BomApp.UI.ViewModels.Bom;
 
 namespace BomApp.UI.Views.Bom;
 
-/// <summary>BOM List view — code-behind is intentionally minimal.</summary>
 public partial class BomListView : UserControl
 {
     public BomListView()
     {
         InitializeComponent();
+        DataContextChanged += (_, _) =>
+        {
+            if (DataContext is BomListViewModel vm)
+                vm.LoadCommand.Execute(null);
+        };
     }
 }

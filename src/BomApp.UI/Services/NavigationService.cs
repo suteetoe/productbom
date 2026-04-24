@@ -43,6 +43,22 @@ public sealed class NavigationService : INavigationService
         Navigated?.Invoke(this, viewModel);
     }
 
+    /// <inheritdoc/>
+    public void NavigateTo<TViewModel>(Action<TViewModel> configure) where TViewModel : ViewModelBase
+    {
+        var key = typeof(TViewModel);
+
+        if (!_factories.TryGetValue(key, out var factory))
+            throw new InvalidOperationException(
+                $"No factory registered for ViewModel type '{key.FullName}'. " +
+                "Call NavigationService.Register before navigating.");
+
+        var viewModel = (TViewModel)factory();
+        configure(viewModel);
+        CurrentViewModel = viewModel;
+        Navigated?.Invoke(this, viewModel);
+    }
+
     // ------------------------------------------------------------------ //
     // Registration API (called from App startup / DI composition root)    //
     // ------------------------------------------------------------------ //

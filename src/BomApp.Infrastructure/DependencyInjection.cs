@@ -22,9 +22,11 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // BOM database — schema "bom"
+        // BOM database — schema "bom" (migrations history อยู่ใน public schema)
         services.AddDbContext<BomDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("bom-database")));
+            options.UseNpgsql(
+                configuration.GetConnectionString("bom-database"),
+                o => o.MigrationsHistoryTable("__EFMigrationsHistory", "public")));
 
         // Authentication database — read-only
         services.AddDbContext<AuthDbContext>(options =>

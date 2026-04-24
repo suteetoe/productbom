@@ -163,26 +163,33 @@
                              CornerRadius="{StaticResource RadiusMD}"/>
                 </StackPanel>
 
-                <!-- Row 2 Col 0: สินค้าที่ผลิต (lookup, required) -->
+                <!-- Row 2 Col 0: สินค้าที่ผลิต (lookup จาก ic_inventory) -->
+                <!-- Binding: ItemSearchText shows "CODE~Name" when a product is selected.
+                     GotFocus (code-behind): switches to code-only so user can edit.
+                     Enter key (code-behind): calls CommitItemSearchTextAsync → lookup → refresh "CODE~Name". -->
                 <StackPanel Grid.Row="2" Grid.Column="0" Spacing="4">
                     <TextBlock Text="สินค้าที่ผลิต *"
                                FontSize="{StaticResource FontSizeSM}"
                                Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <!-- Sprint 2: TextBox; Sprint 3: searchable lookup ComboBox -->
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBox Grid.Column="0"
-                                 Text="{Binding ItemCode, Mode=TwoWay}"
-                                 Watermark="รหัสสินค้า"
-                                 FontSize="{StaticResource FontSizeBase}"
-                                 CornerRadius="{StaticResource RadiusMD}"/>
-                        <!-- ItemName auto-filled label -->
-                        <TextBlock Grid.Column="1"
-                                   Text="{Binding ItemName}"
-                                   FontSize="{StaticResource FontSizeSM}"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center"
-                                   Margin="{StaticResource SpaceSM}"/>
-                    </Grid>
+                    <TextBox x:Name="ItemCodeBox"
+                             Text="{Binding ItemSearchText, Mode=TwoWay}"
+                             Watermark="รหัสสินค้า หรือกดค้นหา"
+                             FontSize="{StaticResource FontSizeBase}"
+                             CornerRadius="{StaticResource RadiusMD}">
+                        <TextBox.InnerRightContent>
+                            <Button Command="{Binding SearchProductCommand}"
+                                    ToolTip.Tip="ค้นหาสินค้า"
+                                    Padding="6,0"
+                                    Margin="0,0,2,0"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Cursor="Hand">
+                                <TextBlock Text="&#128269;"
+                                           FontSize="14"
+                                           VerticalAlignment="Center"/>
+                            </Button>
+                        </TextBox.InnerRightContent>
+                    </TextBox>
                 </StackPanel>
 
                 <!-- Row 2 Col 1: คำอธิบาย (optional) -->
@@ -216,11 +223,17 @@
                         <TextBlock Text="หน่วยนับ *"
                                    FontSize="{StaticResource FontSizeSM}"
                                    Foreground="{StaticResource TextSecondaryBrush}"/>
-                        <!-- Sprint 2: TextBox; Sprint 3: ComboBox from ERP ic_unit_use -->
-                        <TextBox Text="{Binding YieldUnit, Mode=TwoWay}"
-                                 Watermark="เช่น PCS, KG"
-                                 FontSize="{StaticResource FontSizeBase}"
-                                 CornerRadius="{StaticResource RadiusMD}"/>
+                        <ComboBox ItemsSource="{Binding AvailableUnits}"
+                                  SelectedItem="{Binding SelectedYieldUnit, Mode=TwoWay}"
+                                  FontSize="{StaticResource FontSizeBase}"
+                                  CornerRadius="{StaticResource RadiusMD}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Code}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
                     </StackPanel>
                 </StackPanel>
 
@@ -311,10 +324,22 @@
                                             Binding="{Binding Quantity, StringFormat='{}{0:0.######}'}"
                                             Width="100"/>
 
-                        <!-- หน่วย — Unit -->
-                        <DataGridTextColumn Header="หน่วย *"
-                                            Binding="{Binding Unit}"
-                                            Width="80"/>
+                        <!-- หน่วย — Unit (ComboBox always visible; no edit-mode required) -->
+                        <DataGridTemplateColumn Header="หน่วย *" Width="120">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ComboBox ItemsSource="{Binding AvailableUnits}"
+                                              SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
+                                              HorizontalAlignment="Stretch">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Code}"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
                         <!-- หมายเหตุ — Notes -->
                         <DataGridTextColumn Header="หมายเหตุ"
@@ -355,9 +380,10 @@
 
             <Grid ColumnDefinitions="Auto,*,Auto,Auto">
 
-                <!-- ยกเลิก — left side (no NavigateBack wired in Sprint 2; Sprint 3 adds INavigationService) -->
+                <!-- ยกเลิก -->
                 <Button Grid.Column="0"
                         Content="ยกเลิก"
+                        Command="{Binding CancelCommand}"
                         FontSize="{StaticResource FontSizeBase}"
                         CornerRadius="{StaticResource RadiusMD}"
                         Padding="{StaticResource SpaceSM}"
