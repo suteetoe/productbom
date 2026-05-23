@@ -168,7 +168,7 @@
                            FontSize="{StaticResource FontSizeXL}"
                            Foreground="{StaticResource TextMutedBrush}"
                            HorizontalAlignment="Center"/>
-                <TextBlock Text="ใช้ตัวกรองด้านบนแล้วกด ค้นหา"
+                <TextBlock Text="ยังไม่พบรายการตามตัวกรองปัจจุบัน"
                            FontSize="{StaticResource FontSizeBase}"
                            Foreground="{StaticResource TextMutedBrush}"
                            HorizontalAlignment="Center"/>

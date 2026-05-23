@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using BomApp.UI.ViewModels.Production;
 
 namespace BomApp.UI.Views.Production;
 
@@ -8,5 +9,10 @@ public partial class ProductionListView : UserControl
     public ProductionListView()
     {
         InitializeComponent();
+        DataContextChanged += (_, _) =>
+        {
+            if (DataContext is ProductionListViewModel vm)
+                vm.LoadInitialCommand.Execute(null);
+        };
     }
 }

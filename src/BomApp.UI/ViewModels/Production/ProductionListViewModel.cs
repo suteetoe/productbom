@@ -9,6 +9,7 @@ namespace BomApp.UI.ViewModels.Production;
 public partial class ProductionListViewModel : ViewModelBase
 {
     private readonly IProductionService _productionService;
+    private bool _hasLoadedInitialOrders;
 
     // ── State ────────────────────────────────────────────────────────────────
 
@@ -87,6 +88,16 @@ public partial class ProductionListViewModel : ViewModelBase
     }
 
     // ── Commands ─────────────────────────────────────────────────────────────
+
+    /// <summary>Loads the production list once when the screen is opened.</summary>
+    [RelayCommand]
+    private async Task LoadInitialAsync()
+    {
+        if (_hasLoadedInitialOrders) return;
+
+        _hasLoadedInitialOrders = true;
+        await SearchAsync();
+    }
 
     /// <summary>
     /// Queries IProductionService.GetOrdersAsync with the current filter values.
