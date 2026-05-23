@@ -103,10 +103,10 @@ public interface ICalculateSalesProductionUseCase
         CancellationToken ct = default);
 
     /// <summary>
-    /// บันทึก Production Orders จากผลการคำนวณ
+    /// บันทึกเอกสาร bom_production จากผลการคำนวณ
     /// ต้องเรียก CalculateAsync ก่อนเสมอ
     /// </summary>
-    Task<Result<IReadOnlyList<ProductionOrderDto>>> SaveAsync(
+    Task<Result<IReadOnlyList<BomProductionDto>>> SaveAsync(
         CalculateSalesProductionRequest request,
         CancellationToken ct = default);
 }
@@ -180,6 +180,19 @@ public interface IProductionOrderRepository
         CancellationToken ct = default);
 
     Task SetStatusAsync(Guid id, string status, CancellationToken ct = default);
+}
+```
+
+---
+
+### `IBomProductionRepository`
+
+```csharp
+public interface IBomProductionRepository
+{
+    Task<BomProductionDto> CreateAsync(
+        CreateBomProductionInternalCommand cmd,
+        CancellationToken ct = default);
 }
 ```
 

@@ -93,7 +93,7 @@ calculateCommand.SetAction(parseResult =>
 
     if (dryRun)
     {
-        Console.WriteLine("Dry-run mode — no orders written.");
+        Console.WriteLine("Dry-run mode — no production documents written.");
         return;
     }
 
@@ -106,7 +106,7 @@ calculateCommand.SetAction(parseResult =>
         return;
     }
 
-    Console.WriteLine($"Orders created: {saveResult.Value!.Count}");
+    Console.WriteLine($"Production documents created: {saveResult.Value!.Count}");
 });
 
 rootCommand.Add(calculateCommand);

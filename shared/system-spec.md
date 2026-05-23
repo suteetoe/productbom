@@ -200,11 +200,11 @@ WHERE user_code = @username
    └─ สำหรับแต่ละสินค้า: (qty_in_base_unit / bom.yield_quantity) × bom_line.quantity
    └─ รวมยอดวัตถุดิบเดียวกันจากทุกรายการ
 
-5. บันทึกเอกสาร (เลือกรูปแบบ)
-   ├─ รวม 1 เอกสารต่อวัน → สร้าง production_order 1 ใบต่อ doc_date
-   │    source_so_numbers = [doc_no ทั้งหมดของวันนั้น]
-   └─ แยกตามเอกสารขาย → สร้าง production_order 1 ใบต่อ doc_no
-        source_so_numbers = [doc_no นั้น]
+5. บันทึกเอกสารเบิกรายการสินค้าที่ผลิต (เลือกรูปแบบ)
+   ├─ รวม 1 เอกสารต่อวัน → สร้าง bom_production 1 ใบต่อ doc_date
+   │    bom_production_detail = สินค้าที่ต้องผลิตรวมของวันนั้น
+   └─ แยกตามเอกสารขาย → สร้าง bom_production 1 ใบต่อ doc_no
+        bom_production_detail = สินค้าที่ต้องผลิตของ doc_no นั้น
 ```
 
 #### Business Rules เพิ่มเติม
@@ -332,41 +332,30 @@ CLI (BomApp.Cli calculate)       ─┘        └─→ IErpSalesOrderRepositor
 
 ---
 
-### 3.4 `bom_production_orders` — คำสั่งผลิต
+### 3.4 `bom_production` — เอกสารเบิกรายการสินค้าที่ผลิต
 
 | Column | Type | Constraint | หมายเหตุ |
 |---|---|---|---|
 | `id` | UUID | PK | |
-| `order_no` | VARCHAR(30) | UNIQUE, NOT NULL | PO-YYYYMM-NNNNN |
-| `bom_id` | UUID | FK → bom_boms.id, NOT NULL | |
-| `bom_snapshot` | JSONB | NOT NULL | snapshot BOM ณ เวลาสร้าง |
-| `item_code` | VARCHAR(50) | NOT NULL | สินค้าที่ผลิต |
-| `quantity` | DECIMAL(18,6) | NOT NULL | จำนวนที่สั่งผลิต |
-| `status` | VARCHAR(20) | NOT NULL DEFAULT 'Pending' | Pending/Processing/Done/Cancelled |
-| `source_so_numbers` | TEXT[] | NULL | doc_no จาก `ic_trans_detail` ที่นำมาคำนวณ |
-| `source_doc_date_from` | DATE | NULL | วันที่เริ่มต้นของ source documents |
-| `source_doc_date_to` | DATE | NULL | วันที่สิ้นสุดของ source documents |
-| `created_by` | VARCHAR(100) | NOT NULL | username หรือ 'SYSTEM' (CLI) |
-| `created_via` | VARCHAR(10) | NOT NULL DEFAULT 'UI' | 'UI' หรือ 'CLI' |
-| `created_at` | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | |
-| `notes` | TEXT | NULL | |
+| `doc_date` | DATE | NOT NULL | วันที่เอกสาร |
+| `doc_no` | VARCHAR(30) | UNIQUE, NOT NULL | BP-YYYYMMDD-NNNNN |
+| `doc_time` | TIME | NOT NULL | เวลาเอกสาร |
 
-**Index**: `idx_bom_production_orders_status` (status), `idx_bom_production_orders_created_at` (created_at DESC), `idx_bom_production_orders_item_code` (item_code), `idx_bom_production_orders_source_so` (source_so_numbers) USING GIN
+**Index**: `idx_bom_production_doc_no` (doc_no), `idx_bom_production_doc_date` (doc_date)
 
 ---
 
-### 3.5 `bom_production_order_lines` — วัตถุดิบที่ต้องใช้จริง
+### 3.5 `bom_production_detail` — Detail สินค้าที่ต้องผลิต
 
 | Column | Type | Constraint | หมายเหตุ |
 |---|---|---|---|
 | `id` | UUID | PK | |
-| `production_order_id` | UUID | FK → bom_production_orders.id, NOT NULL | CASCADE DELETE |
-| `material_code` | VARCHAR(50) | NOT NULL | |
-| `material_name` | VARCHAR(200) | NOT NULL | |
-| `required_quantity` | DECIMAL(18,6) | NOT NULL | คำนวณแล้ว (qty × bom line qty) |
-| `unit` | VARCHAR(20) | NOT NULL | |
+| `doc_no` | VARCHAR(30) | FK → bom_production.doc_no, NOT NULL | CASCADE DELETE |
+| `item_code` | VARCHAR(50) | NOT NULL | รหัสสินค้าที่ผลิต |
+| `qty` | DECIMAL(18,6) | NOT NULL | จำนวนสินค้าที่ต้องผลิต หลังแปลงหน่วยแล้ว |
+| `unit_code` | VARCHAR(20) | NOT NULL | หน่วยนับของสินค้าที่ผลิต |
 
-**Index**: `idx_bom_po_lines_production_order_id` (production_order_id)
+**Index**: `idx_bom_production_detail_doc_no` (doc_no)
 
 ---
 
@@ -416,7 +405,7 @@ bom_boms (1) ──────────── (N) bom_lines
 | BOM ต้อง Active ก่อน assign | ห้าม assign BOM ที่ status = Draft หรือ Inactive |
 | Circular reference | ตรวจด้วย DFS ก่อน save bom_line ที่มี sub_bom_id |
 | 1 item = 1 BOM | UNIQUE constraint บน bom_assignments.item_code |
-| BOM snapshot | เมื่อสร้าง production_order ต้อง snapshot BOM ไว้ใน `bom_snapshot` (JSONB) เพื่อป้องกันผลกระทบเมื่อ BOM เปลี่ยน |
+| Production issue document | เมื่อบันทึกผลการประมวลผลการขาย ให้สร้าง `bom_production` header และ `bom_production_detail` เป็นรายการสินค้าที่ต้องผลิต |
 | Quantity > 0 | ทุก bom_line และ production_order ต้องมี quantity > 0 |
 
 ---
@@ -444,13 +433,13 @@ bom_boms (1) ──────────── (N) bom_lines
 [ProductionResultDto] → แสดงผลใน UI
         ↓ user เลือกรูปแบบบันทึก
         ├─ รวม 1 เอกสารต่อวัน
-        │       ↓ สร้าง production_order 1 ใบต่อ doc_date
-        │          source_so_numbers = [doc_no ทั้งหมดของวันนั้น]
+        │       ↓ สร้าง bom_production 1 ใบต่อ doc_date
+        │          bom_production_detail = สินค้าที่ต้องผลิตของวันนั้น
         └─ แยกตามเอกสารขาย
-                ↓ สร้าง production_order 1 ใบต่อ doc_no
-                   source_so_numbers = [doc_no นั้น]
+                ↓ สร้าง bom_production 1 ใบต่อ doc_no
+                   bom_production_detail = สินค้าที่ต้องผลิตของ doc_no นั้น
         ↓
-[production_orders + production_order_lines] ← บันทึกลง PostgreSQL (schema bom)
+[bom_production + bom_production_detail] ← บันทึกลง PostgreSQL schema public
 ```
 
 ---
@@ -463,4 +452,4 @@ bom_boms (1) ──────────── (N) bom_lines
 | BOM Editor | `boms`, `bom_lines` | `boms`, `bom_lines`, `audit_logs` |
 | BOM Assignment | `bom_assignments`, [ERP items] | `bom_assignments`, `audit_logs` |
 | Production List | `production_orders`, `production_order_lines`, `boms` (BomCode), [`ic_trans_detail`] (DocDate ใน row detail) | `production_orders` (cancel), `audit_logs` |
-| Sales Calculation | `boms`, `bom_lines`, `bom_assignments`, [`ic_trans_detail`, `ic_inventory`] | `production_orders`, `production_order_lines`, `audit_logs` |
+| Sales Calculation | `boms`, `bom_lines`, `bom_assignments`, [`ic_trans_detail`, `ic_inventory`] | `bom_production`, `bom_production_detail`, `audit_logs` |

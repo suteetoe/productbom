@@ -28,6 +28,24 @@ public record ProductionOrderLineDto(
     string   Unit
 );
 
+/// <summary>Production issue document header — เอกสารเบิกรายการสินค้าที่ผลิต</summary>
+public record BomProductionDto(
+    Guid     Id,
+    DateOnly DocDate,
+    string   DocNo,
+    TimeOnly DocTime,
+    IReadOnlyList<BomProductionDetailDto> Details
+);
+
+/// <summary>Production issue document detail — สินค้าที่ต้องผลิต</summary>
+public record BomProductionDetailDto(
+    Guid    Id,
+    string  DocNo,
+    string  ItemCode,
+    decimal Qty,
+    string  UnitCode
+);
+
 /// <summary>ผลลัพธ์การคำนวณ — แสดงใน 2.5 ก่อนบันทึก</summary>
 public record ProductionResultDto(
     IReadOnlyList<ProductionResultItemDto> Items,      // สรุปต่อสินค้า
@@ -82,4 +100,17 @@ public record CreateProductionOrderInternalCommand(
     string CreatedBy,
     string CreatedVia,
     string? Notes
+);
+
+/// <summary>Internal command สำหรับสร้างเอกสาร bom_production พร้อม details</summary>
+public record CreateBomProductionInternalCommand(
+    DateOnly DocDate,
+    TimeOnly DocTime,
+    IReadOnlyList<CreateBomProductionDetailInternalCommand> Details
+);
+
+public record CreateBomProductionDetailInternalCommand(
+    string ItemCode,
+    decimal Qty,
+    string UnitCode
 );

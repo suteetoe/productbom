@@ -23,7 +23,9 @@ public abstract class BomDbIntegrationTestBase : IAsyncLifetime
         await _postgres.StartAsync();
 
         var options = new DbContextOptionsBuilder<BomDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString() + ";SearchPath=bom")
+            .UseNpgsql(
+                _postgres.GetConnectionString(),
+                o => o.MigrationsHistoryTable("__EFMigrationsHistory", "public"))
             .Options;
 
         DbContext = new BomDbContext(options);

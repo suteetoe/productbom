@@ -17,7 +17,7 @@ public class CalculateSalesProductionUseCaseTests
     // Mocked BOM-domain repositories (implemented by team-a)
     private readonly Mock<IBomRepository> _bomRepoMock = new();
     private readonly Mock<IBomAssignmentRepository> _assignmentRepoMock = new();
-    private readonly Mock<IProductionOrderRepository> _productionOrderRepoMock = new();
+    private readonly Mock<IBomProductionRepository> _bomProductionRepoMock = new();
 
     [Fact]
     public async Task CalculateAsync_WhenItemsHaveActiveBom_ShouldReturnProductionResult()
@@ -172,7 +172,7 @@ public class CalculateSalesProductionUseCaseTests
         // Arrange
         // Day1 (2024-01-15): SO-2024-0001 + SO-2024-0002 + SO-2024-0001 (PROD-999)
         // Day2 (2024-01-16): SO-2024-0003
-        // Expected: 2 production orders (1 per day) when SaveMode.Daily
+        // Expected: 2 bom_production documents (1 per day) when SaveMode.Daily
 
         var bomId1 = Guid.NewGuid();
         var bomId2 = Guid.NewGuid();
@@ -193,29 +193,19 @@ public class CalculateSalesProductionUseCaseTests
             .Setup(r => r.GetByIdAsync(bomId2, It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildMinimalBom(bomId2, "PROD-002"));
 
-        _productionOrderRepoMock
-            .Setup(r => r.GetAlreadyProcessedDocNosAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<string>());
-
-        _productionOrderRepoMock
-            .Setup(r => r.CreateAsync(It.IsAny<CreateProductionOrderInternalCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CreateProductionOrderInternalCommand cmd, CancellationToken _) => new ProductionOrderDto(
+        _bomProductionRepoMock
+            .Setup(r => r.CreateAsync(It.IsAny<CreateBomProductionInternalCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CreateBomProductionInternalCommand cmd, CancellationToken _) => new BomProductionDto(
                 Id: Guid.NewGuid(),
-                OrderNo: $"PO-{cmd.SourceDocDateFrom:yyyyMM}-00001",
-                BomId: cmd.BomId,
-                BomCode: cmd.BomCode,
-                ItemCode: cmd.ItemCode,
-                ItemName: cmd.ItemName,
-                Quantity: cmd.Quantity,
-                Status: "Pending",
-                SourceSoNumbers: cmd.SourceSoNumbers,
-                SourceDocDateFrom: cmd.SourceDocDateFrom,
-                SourceDocDateTo: cmd.SourceDocDateTo,
-                CreatedBy: cmd.CreatedBy,
-                CreatedVia: cmd.CreatedVia,
-                CreatedAt: DateTime.UtcNow,
-                Notes: cmd.Notes
-            ));
+                DocDate: cmd.DocDate,
+                DocNo: $"BP-{cmd.DocDate:yyyyMMdd}-00001",
+                DocTime: cmd.DocTime,
+                Details: cmd.Details.Select(d => new BomProductionDetailDto(
+                    Id: Guid.NewGuid(),
+                    DocNo: $"BP-{cmd.DocDate:yyyyMMdd}-00001",
+                    ItemCode: d.ItemCode,
+                    Qty: d.Qty,
+                    UnitCode: d.UnitCode)).ToList()));
 
         var request = new CalculateSalesProductionRequest(
             DateFrom: new DateOnly(2024, 1, 15),
@@ -231,10 +221,10 @@ public class CalculateSalesProductionUseCaseTests
         // Act
         var result = await useCase.SaveAsync(request);
 
-        // Assert: 2 production orders — one per day
+        // Assert: 2 bom_production documents — one per day
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().HaveCount(2);
-        result.Value.Select(o => o.SourceDocDateFrom).Should()
+        result.Value.Select(o => o.DocDate).Should()
               .Contain(new DateOnly(2024, 1, 15))
               .And.Contain(new DateOnly(2024, 1, 16));
     }
@@ -244,7 +234,7 @@ public class CalculateSalesProductionUseCaseTests
     {
         // Arrange
         // Day1 has SO-2024-0001 (PROD-001) and SO-2024-0002 (PROD-001 in BOX)
-        // Expected: 2 production orders — one per unique doc_no that has items with BOM
+        // Expected: 2 bom_production documents — one per unique doc_no that has items with BOM
 
         var bomId = Guid.NewGuid();
 
@@ -256,29 +246,19 @@ public class CalculateSalesProductionUseCaseTests
             .Setup(r => r.GetByIdAsync(bomId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(BuildMinimalBom(bomId, "PROD-001"));
 
-        _productionOrderRepoMock
-            .Setup(r => r.GetAlreadyProcessedDocNosAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<string>());
-
-        _productionOrderRepoMock
-            .Setup(r => r.CreateAsync(It.IsAny<CreateProductionOrderInternalCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CreateProductionOrderInternalCommand cmd, CancellationToken _) => new ProductionOrderDto(
+        _bomProductionRepoMock
+            .Setup(r => r.CreateAsync(It.IsAny<CreateBomProductionInternalCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CreateBomProductionInternalCommand cmd, CancellationToken _) => new BomProductionDto(
                 Id: Guid.NewGuid(),
-                OrderNo: $"PO-{cmd.SourceDocDateFrom:yyyyMM}-00001",
-                BomId: cmd.BomId,
-                BomCode: cmd.BomCode,
-                ItemCode: cmd.ItemCode,
-                ItemName: cmd.ItemName,
-                Quantity: cmd.Quantity,
-                Status: "Pending",
-                SourceSoNumbers: cmd.SourceSoNumbers,
-                SourceDocDateFrom: cmd.SourceDocDateFrom,
-                SourceDocDateTo: cmd.SourceDocDateTo,
-                CreatedBy: cmd.CreatedBy,
-                CreatedVia: cmd.CreatedVia,
-                CreatedAt: DateTime.UtcNow,
-                Notes: cmd.Notes
-            ));
+                DocDate: cmd.DocDate,
+                DocNo: $"BP-{cmd.DocDate:yyyyMMdd}-{Guid.NewGuid():N}"[..30],
+                DocTime: cmd.DocTime,
+                Details: cmd.Details.Select(d => new BomProductionDetailDto(
+                    Id: Guid.NewGuid(),
+                    DocNo: $"BP-{cmd.DocDate:yyyyMMdd}-00001",
+                    ItemCode: d.ItemCode,
+                    Qty: d.Qty,
+                    UnitCode: d.UnitCode)).ToList()));
 
         var request = new CalculateSalesProductionRequest(
             DateFrom: new DateOnly(2024, 1, 15),
@@ -297,9 +277,10 @@ public class CalculateSalesProductionUseCaseTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().HaveCount(2);
-        result.Value.Select(o => o.SourceSoNumbers.Single()).Should()
-              .Contain("SO-2024-0001")
-              .And.Contain("SO-2024-0002");
+        result.Value.SelectMany(o => o.Details).Should().OnlyContain(d => d.ItemCode == "PROD-001");
+        result.Value.Select(o => o.Details.Single().Qty).Should()
+            .Contain(10m)
+            .And.Contain(60m);
     }
 
     [Fact]
@@ -330,12 +311,12 @@ public class CalculateSalesProductionUseCaseTests
         // Act
         var result = await useCase.CalculateAsync(request);
 
-        // Assert: DryRun must never persist production orders
+        // Assert: DryRun must never persist production documents
         result.IsSuccess.Should().BeTrue();
-        _productionOrderRepoMock.Verify(
-            r => r.CreateAsync(It.IsAny<CreateProductionOrderInternalCommand>(), It.IsAny<CancellationToken>()),
+        _bomProductionRepoMock.Verify(
+            r => r.CreateAsync(It.IsAny<CreateBomProductionInternalCommand>(), It.IsAny<CancellationToken>()),
             Times.Never,
-            "DryRun=true must not write to IProductionOrderRepository");
+            "DryRun=true must not write to IBomProductionRepository");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
@@ -349,7 +330,7 @@ public class CalculateSalesProductionUseCaseTests
             _fakeSalesRepo,
             _bomRepoMock.Object,
             _assignmentRepoMock.Object,
-            _productionOrderRepoMock.Object
+            _bomProductionRepoMock.Object
         );
     }
 

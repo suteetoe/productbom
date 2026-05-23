@@ -306,6 +306,25 @@ Sprint 4 scope: real DI wiring (replace stubs), Login wired จริง, Naviga
 
 ---
 
+### [CTO] — ปรับ Sales Calculation Save Flow — 2026-05-23
+**สถานะ**: Done
+
+**Output**:
+- เพิ่มเอกสาร `bom_production` header: `doc_date`, `doc_no`, `doc_time`
+- เพิ่ม `bom_production_detail`: `doc_no`, `item_code`, `qty`, `unit_code`
+- ปรับ `CalculateSalesProductionUseCase.SaveAsync` ให้บันทึกเอกสารเบิกรายการสินค้าที่ผลิตแทนการสร้าง production order ต่อสินค้า
+- เพิ่ม EF migration `20260523030943_AddBomProductionDocuments`
+- อัปเดต `shared/system-spec.md`, `shared/contracts.md`, `shared/interfaces.md`
+
+**Test coverage**:
+- `dotnet test` → Unit 11/11 pass, Integration 15/15 pass
+
+**ส่งให้ทีมอื่น**:
+- Team B: `SaveAsync` คืน `IReadOnlyList<BomProductionDto>` แล้ว ข้อความ UI ยังนับจำนวนเอกสารได้เหมือนเดิม
+- Team C: เพิ่มตารางใหม่ใน migration และปรับ integration test base ให้ใช้ schema `public`
+
+---
+
 ## Template สำหรับ Agent บันทึก Output
 
 ```

@@ -23,6 +23,12 @@ public class BomDbContext(DbContextOptions<BomDbContext> options) : DbContext(op
     /// <summary>Production order lines (วัตถุดิบจริงที่ต้องใช้)</summary>
     public DbSet<ProductionOrderLine> ProductionOrderLines { get; set; }
 
+    /// <summary>Production issue document headers</summary>
+    public DbSet<BomProduction> BomProductions { get; set; }
+
+    /// <summary>Production issue document details</summary>
+    public DbSet<BomProductionDetail> BomProductionDetails { get; set; }
+
     /// <summary>Audit logs</summary>
     public DbSet<AuditLog> AuditLogs { get; set; }
 

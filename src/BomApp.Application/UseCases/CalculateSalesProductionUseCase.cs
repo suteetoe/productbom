@@ -1,4 +1,3 @@
-using System.Text.Json;
 using BomApp.Application.Interfaces;
 using BomApp.Application.Interfaces.Repositories;
 using BomApp.Domain.Common;
@@ -14,7 +13,7 @@ public class CalculateSalesProductionUseCase(
     IErpSalesOrderRepository erpSalesOrderRepository,
     IBomRepository bomRepository,
     IBomAssignmentRepository bomAssignmentRepository,
-    IProductionOrderRepository productionOrderRepository)
+    IBomProductionRepository bomProductionRepository)
     : ICalculateSalesProductionUseCase
 {
     private const int MaxBomDepth = 10;
@@ -113,21 +112,19 @@ public class CalculateSalesProductionUseCase(
     }
 
     /// <summary>
-    /// บันทึก Production Orders จากผลการคำนวณ
-    /// เรียก CalculateAsync ภายในก่อน จากนั้นสร้าง orders ตาม SaveMode
+    /// บันทึกเอกสาร bom_production จากผลการคำนวณ
+    /// เรียก CalculateAsync ภายในก่อน จากนั้นสร้างเอกสารตาม SaveMode
     /// </summary>
-    public async Task<Result<IReadOnlyList<ProductionOrderDto>>> SaveAsync(
+    public async Task<Result<IReadOnlyList<BomProductionDto>>> SaveAsync(
         CalculateSalesProductionRequest request,
         CancellationToken ct = default)
     {
         // คำนวณก่อนเสมอ
         var calcResult = await CalculateAsync(request, ct);
         if (!calcResult.IsSuccess)
-            return Result<IReadOnlyList<ProductionOrderDto>>.Failure(calcResult.Error!);
+            return Result<IReadOnlyList<BomProductionDto>>.Failure(calcResult.Error!);
 
-        var productionResult = calcResult.Value!;
-
-        // ดึงรายการขายอีกครั้งเพื่อสร้าง orders (ต้องการ doc grouping)
+        // ดึงรายการขายอีกครั้งเพื่อสร้างเอกสาร (ต้องการ doc grouping)
         var transactions = await erpSalesOrderRepository
             .GetSalesTransactionsByDateRangeAsync(request.DateFrom, request.DateTo, ct);
 
@@ -138,11 +135,7 @@ public class CalculateSalesProductionUseCase(
             .Where(t => assignmentMap.ContainsKey(t.ItemCode))
             .ToList();
 
-        // ตรวจสอบ doc_no ที่ถูกบันทึกไปแล้ว
-        var allDocNos = eligibleTransactions.Select(t => t.DocNo).Distinct().ToList();
-        var alreadyProcessed = await productionOrderRepository.GetAlreadyProcessedDocNosAsync(allDocNos, ct);
-
-        var createdOrders = new List<ProductionOrderDto>();
+        var createdDocuments = new List<BomProductionDto>();
 
         if (request.Mode == SaveMode.Daily)
         {
@@ -150,16 +143,14 @@ public class CalculateSalesProductionUseCase(
             var byDate = eligibleTransactions.GroupBy(t => t.DocDate);
             foreach (var dateGroup in byDate)
             {
-                var docNosForDate = dateGroup.Select(t => t.DocNo).Distinct().ToArray();
-                var orders = await CreateProductionOrdersForGroupAsync(
+                var document = await CreateBomProductionForGroupAsync(
                     dateGroup.ToList(),
-                    docNosForDate,
-                    sourceDocDateFrom: dateGroup.Key,
-                    sourceDocDateTo: dateGroup.Key,
+                    docDate: dateGroup.Key,
                     assignmentMap,
-                    request,
                     ct);
-                createdOrders.AddRange(orders);
+
+                if (document is not null)
+                    createdDocuments.Add(document);
             }
         }
         else // SaveMode.PerDocument
@@ -168,38 +159,33 @@ public class CalculateSalesProductionUseCase(
             var byDocNo = eligibleTransactions.GroupBy(t => t.DocNo);
             foreach (var docGroup in byDocNo)
             {
-                var docDate = docGroup.First().DocDate;
-                var orders = await CreateProductionOrdersForGroupAsync(
+                var document = await CreateBomProductionForGroupAsync(
                     docGroup.ToList(),
-                    [docGroup.Key],
-                    sourceDocDateFrom: docDate,
-                    sourceDocDateTo: docDate,
+                    docDate: docGroup.First().DocDate,
                     assignmentMap,
-                    request,
                     ct);
-                createdOrders.AddRange(orders);
+
+                if (document is not null)
+                    createdDocuments.Add(document);
             }
         }
 
-        return Result<IReadOnlyList<ProductionOrderDto>>.Success(createdOrders);
+        return Result<IReadOnlyList<BomProductionDto>>.Success(createdDocuments);
     }
 
     /// <summary>
-    /// สร้าง Production Orders สำหรับกลุ่มของ transactions
-    /// (1 BOM = 1 order ต่อกลุ่ม)
+    /// สร้างเอกสาร bom_production สำหรับกลุ่มของ transactions
+    /// 1 กลุ่ม = 1 header, แต่ละสินค้าที่ผลิต = 1 detail
     /// </summary>
-    private async Task<IReadOnlyList<ProductionOrderDto>> CreateProductionOrdersForGroupAsync(
+    private async Task<BomProductionDto?> CreateBomProductionForGroupAsync(
         IReadOnlyList<ErpSalesTransactionDto> groupTransactions,
-        string[] sourceDocNos,
-        DateOnly sourceDocDateFrom,
-        DateOnly sourceDocDateTo,
+        DateOnly docDate,
         IReadOnlyDictionary<string, Guid> assignmentMap,
-        CalculateSalesProductionRequest request,
         CancellationToken ct)
     {
-        var createdOrders = new List<ProductionOrderDto>();
+        var details = new List<CreateBomProductionDetailInternalCommand>();
 
-        // Group by item_code เพื่อสร้าง 1 order ต่อสินค้าต่อกลุ่ม
+        // Group by item_code เพื่อสร้าง 1 detail ต่อสินค้าต่อเอกสาร
         var byItem = groupTransactions.GroupBy(t => t.ItemCode);
 
         foreach (var itemGroup in byItem)
@@ -213,33 +199,24 @@ public class CalculateSalesProductionUseCase(
                 continue;
 
             decimal totalQtyBase = itemGroup.Sum(t => t.QtyInBaseUnit);
+            if (totalQtyBase <= 0)
+                continue;
 
-            // คำนวณ materials สำหรับ order นี้
-            var materials = new Dictionary<string, (string Name, decimal Qty, string Unit)>();
-            await ExpandBomAsync(bom, totalQtyBase, materials, new HashSet<Guid>(), depth: 0, ct);
-
-            // Serialize BOM snapshot
-            var bomSnapshot = JsonSerializer.Serialize(bom);
-
-            var cmd = new CreateProductionOrderInternalCommand(
-                BomId: bomId,
-                BomCode: bom.Code,
+            details.Add(new CreateBomProductionDetailInternalCommand(
                 ItemCode: itemCode,
-                ItemName: bom.ItemName,
-                Quantity: totalQtyBase,
-                BomSnapshot: bomSnapshot,
-                SourceSoNumbers: sourceDocNos,
-                SourceDocDateFrom: sourceDocDateFrom,
-                SourceDocDateTo: sourceDocDateTo,
-                CreatedBy: request.CreatedBy,
-                CreatedVia: request.CreatedVia,
-                Notes: null);
-
-            var order = await productionOrderRepository.CreateAsync(cmd, ct);
-            createdOrders.Add(order);
+                Qty: totalQtyBase,
+                UnitCode: bom.YieldUnit));
         }
 
-        return createdOrders;
+        if (details.Count == 0)
+            return null;
+
+        var cmd = new CreateBomProductionInternalCommand(
+            DocDate: docDate,
+            DocTime: TimeOnly.FromDateTime(DateTime.Now),
+            Details: details);
+
+        return await bomProductionRepository.CreateAsync(cmd, ct);
     }
 
     /// <summary>
