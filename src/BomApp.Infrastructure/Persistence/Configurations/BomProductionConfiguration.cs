@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace BomApp.Infrastructure.Persistence.Configurations;
 
 /// <summary>
-/// EF Core configuration สำหรับ BomProduction entity → public.bom_production table
+/// EF Core configuration for production headers → public.bom_productions table.
 /// </summary>
 public class BomProductionConfiguration : IEntityTypeConfiguration<BomProduction>
 {
     public void Configure(EntityTypeBuilder<BomProduction> builder)
     {
-        builder.ToTable("bom_production");
+        builder.ToTable("bom_productions");
 
         builder.HasKey(p => p.Id);
         builder.Property(p => p.Id)
@@ -35,10 +35,16 @@ public class BomProductionConfiguration : IEntityTypeConfiguration<BomProduction
 
         builder.HasIndex(p => p.DocNo)
             .IsUnique()
-            .HasDatabaseName("idx_bom_production_doc_no");
+            .HasDatabaseName("idx_bom_productions_doc_no");
 
         builder.HasIndex(p => p.DocDate)
-            .HasDatabaseName("idx_bom_production_doc_date");
+            .HasDatabaseName("idx_bom_productions_doc_date");
+
+        builder.HasMany(p => p.Orders)
+            .WithOne(o => o.Production)
+            .HasPrincipalKey(p => p.DocNo)
+            .HasForeignKey(o => o.DocNo)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(p => p.Details)
             .WithOne(d => d.Production)

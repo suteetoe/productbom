@@ -18,6 +18,7 @@ public class ProductionListViewModelTests
             DocDate: new DateOnly(2026, 5, 23),
             DocNo: "BP-20260523-00001",
             DocTime: new TimeOnly(8, 0, 0),
+            Orders: [],
             Details: []);
 
         var service = new Mock<IProductionService>();
@@ -52,26 +53,47 @@ public class ProductionListViewModelTests
             DocDate: new DateOnly(2026, 5, 23),
             DocNo: "BP-20260523-00001",
             DocTime: new TimeOnly(8, 0, 0),
+            Orders: [],
             Details: []);
 
-        var detail = new BomProductionDetailDto(
+        var order = new BomProductionOrderDto(
             Id: Guid.NewGuid(),
             DocNo: document.DocNo,
+            DocDate: document.DocDate,
+            RefDocNo: "SO-20260523-00001",
+            RefDocDate: document.DocDate,
             ItemCode: "FG-001",
             Qty: 12m,
             UnitCode: "PCS");
+        var detail = new BomProductionDetailDto(
+            Id: Guid.NewGuid(),
+            DocNo: document.DocNo,
+            ItemCode: "MAT-001",
+            ItemName: "Material 001",
+            Qty: 3m,
+            UnitCode: "KG");
 
         var service = new Mock<IProductionService>();
+        service
+            .Setup(s => s.GetDocumentOrdersAsync(document.DocNo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyList<BomProductionOrderDto>>.Success([order]));
         service
             .Setup(s => s.GetDocumentDetailsAsync(document.DocNo, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<BomProductionDetailDto>>.Success([detail]));
 
         var vm = new ProductionListViewModel(service.Object, Mock.Of<IDialogService>());
 
+        vm.HasSelectedDocument.Should().BeFalse();
+        vm.DocumentListColumnSpan.Should().Be(3);
+
         vm.SelectedDocument = document;
         await Task.Delay(50);
 
-        vm.SelectedDocumentDetails.Should().ContainSingle().Which.Should().Be(detail);
+        vm.HasSelectedDocument.Should().BeTrue();
+        vm.DocumentListColumnSpan.Should().Be(1);
+        vm.SelectedDocumentDetails.Should().ContainSingle().Which.Should().Be(order);
+        vm.MaterialUsageRows.Should().ContainSingle().Which.Should().Be(detail);
+        service.Verify(s => s.GetDocumentOrdersAsync(document.DocNo, It.IsAny<CancellationToken>()), Times.Once);
         service.Verify(s => s.GetDocumentDetailsAsync(document.DocNo, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -83,6 +105,7 @@ public class ProductionListViewModelTests
             DocDate: new DateOnly(2026, 5, 23),
             DocNo: "BP-20260523-00001",
             DocTime: new TimeOnly(8, 0, 0),
+            Orders: [],
             Details: []);
 
         var service = new Mock<IProductionService>();
@@ -118,6 +141,7 @@ public class ProductionListViewModelTests
             DocDate: new DateOnly(2026, 5, 23),
             DocNo: "BP-20260523-00001",
             DocTime: new TimeOnly(8, 0, 0),
+            Orders: [],
             Details: []);
 
         var service = new Mock<IProductionService>();

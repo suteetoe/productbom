@@ -1,8 +1,8 @@
 namespace BomApp.Domain.Entities;
 
 /// <summary>
-/// Header เอกสารเบิกรายการสินค้าที่ผลิต
-/// Maps to public.bom_production table
+/// Production calculation document header.
+/// Maps to public.bom_productions table.
 /// </summary>
 public class BomProduction
 {
@@ -13,6 +13,8 @@ public class BomProduction
     public string DocNo { get; set; } = string.Empty;
 
     public TimeOnly DocTime { get; set; }
+
+    public ICollection<BomProductionOrder> Orders { get; set; } = new List<BomProductionOrder>();
 
     public ICollection<BomProductionDetail> Details { get; set; } = new List<BomProductionDetail>();
 }

@@ -112,8 +112,8 @@ public class CalculateSalesProductionUseCase(
     }
 
     /// <summary>
-    /// บันทึกเอกสาร bom_production จากผลการคำนวณ
-    /// เรียก CalculateAsync ภายในก่อน จากนั้นสร้างเอกสารตาม SaveMode
+    /// บันทึกรายการขายที่เลือกไว้ใน bom_production_orders จากผลการคำนวณ
+    /// เรียก CalculateAsync ภายในก่อน จากนั้นสร้างเลขเอกสารตาม SaveMode
     /// </summary>
     public async Task<Result<IReadOnlyList<BomProductionDto>>> SaveAsync(
         CalculateSalesProductionRequest request,
@@ -174,8 +174,8 @@ public class CalculateSalesProductionUseCase(
     }
 
     /// <summary>
-    /// สร้างเอกสาร bom_production สำหรับกลุ่มของ transactions
-    /// 1 กลุ่ม = 1 header, แต่ละสินค้าที่ผลิต = 1 detail
+    /// สร้างรายการ bom_production_orders สำหรับกลุ่มของ transactions
+    /// 1 กลุ่ม = 1 doc_no, แต่ละรายการขายที่เลือก = 1 row
     /// </summary>
     private async Task<BomProductionDto?> CreateBomProductionForGroupAsync(
         IReadOnlyList<ErpSalesTransactionDto> groupTransactions,
@@ -183,14 +183,21 @@ public class CalculateSalesProductionUseCase(
         IReadOnlyDictionary<string, Guid> assignmentMap,
         CancellationToken ct)
     {
-        var details = new List<CreateBomProductionDetailInternalCommand>();
+        var orders = new List<CreateBomProductionOrderInternalCommand>();
+        var materialTotals = new Dictionary<string, (string Name, decimal Qty, string Unit)>();
 
-        // Group by item_code เพื่อสร้าง 1 detail ต่อสินค้าต่อเอกสาร
-        var byItem = groupTransactions.GroupBy(t => t.ItemCode);
-
-        foreach (var itemGroup in byItem)
+        // Store the selected sales items with a back-reference to the source sales bill.
+        var bySalesItem = groupTransactions.GroupBy(t => new
         {
-            var itemCode = itemGroup.Key;
+            t.DocNo,
+            t.DocDate,
+            t.ItemCode,
+            t.UnitCode
+        });
+
+        foreach (var itemGroup in bySalesItem)
+        {
+            var itemCode = itemGroup.Key.ItemCode;
             if (!assignmentMap.TryGetValue(itemCode, out var bomId))
                 continue;
 
@@ -198,22 +205,45 @@ public class CalculateSalesProductionUseCase(
             if (bom is null || bom.Status != "Active")
                 continue;
 
-            decimal totalQtyBase = itemGroup.Sum(t => t.QtyInBaseUnit);
-            if (totalQtyBase <= 0)
+            decimal saleQty = itemGroup.Sum(t => t.Qty);
+            if (saleQty <= 0)
                 continue;
 
-            details.Add(new CreateBomProductionDetailInternalCommand(
+            orders.Add(new CreateBomProductionOrderInternalCommand(
+                RefDocNo: itemGroup.Key.DocNo,
+                RefDocDate: itemGroup.Key.DocDate,
                 ItemCode: itemCode,
-                Qty: totalQtyBase,
-                UnitCode: bom.YieldUnit));
+                Qty: saleQty,
+                UnitCode: itemGroup.Key.UnitCode));
+
+            var qtyInBaseUnit = itemGroup.Sum(t => t.QtyInBaseUnit);
+            var itemMaterials = new Dictionary<string, (string Name, decimal Qty, string Unit)>();
+            await ExpandBomAsync(bom, qtyInBaseUnit, itemMaterials, new HashSet<Guid>(), depth: 0, ct);
+
+            foreach (var (materialCode, (materialName, requiredQty, unit)) in itemMaterials)
+            {
+                if (materialTotals.TryGetValue(materialCode, out var existing))
+                    materialTotals[materialCode] = (materialName, existing.Qty + requiredQty, unit);
+                else
+                    materialTotals[materialCode] = (materialName, requiredQty, unit);
+            }
         }
 
-        if (details.Count == 0)
+        if (orders.Count == 0)
             return null;
+
+        var details = materialTotals
+            .Select(kv => new CreateBomProductionDetailInternalCommand(
+                ItemCode: kv.Key,
+                ItemName: kv.Value.Name,
+                Qty: kv.Value.Qty,
+                UnitCode: kv.Value.Unit))
+            .ToList();
 
         var cmd = new CreateBomProductionInternalCommand(
             DocDate: docDate,
             DocTime: TimeOnly.FromDateTime(DateTime.Now),
+            Orders: orders,
             Details: details);
 
         return await bomProductionRepository.CreateAsync(cmd, ct);

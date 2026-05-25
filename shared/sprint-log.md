@@ -325,6 +325,59 @@ Sprint 4 scope: real DI wiring (replace stubs), Login wired จริง, Naviga
 
 ---
 
+### [CTO] — Recreate Production Orders as Selected Sales Rows — 2026-05-25
+**สถานะ**: Done
+
+**Output**:
+- เปลี่ยน persistence ของ Sales Calculation ให้บันทึกรายการขายที่เลือกลง `bom_production_orders`
+- ตารางใหม่เก็บ `doc_no`, `doc_date`, `ref_doc_no`, `ref_doc_date`, `item_code`, `qty`, `unit_code`
+- เพิ่ม EF migration `20260525020648_RecreateBomProductionOrdersForSalesSelections` เพื่อ drop ตาราง production เดิมและสร้าง `bom_production_orders` ใหม่
+- อัปเดต DTO/repository/use case/UI detail grid ให้รองรับเลขที่บิลขายและวันที่บิลขาย
+
+**Test coverage**:
+- `dotnet test tests/BomApp.Tests.Unit/BomApp.Tests.Unit.csproj --no-restore -p:BaseOutputPath=D:\Source\productbom\.codex-build\unit\` → 14/14 pass
+- `dotnet test tests/BomApp.Tests.Integration/BomApp.Tests.Integration.csproj --no-restore -p:BaseOutputPath=D:\Source\productbom\.codex-build\integration\ --filter BomProductionRepositoryIntegrationTests` → 3/3 pass
+- `dotnet build src/BomApp.UI/BomApp.UI.csproj -p:BaseOutputPath=D:\Source\productbom\.codex-build\ui\` → pass, มี warning เดิมของ `ConfirmDialog.axaml`
+
+**ส่งให้ทีมอื่น**:
+- Team B: Production List detail มี `RefDocNo` และ `RefDocDate` แล้ว
+- Team C: migration ใหม่เป็น destructive drop/create ตาม requirement ต้อง apply บน DB เป้าหมายก่อนใช้งานจริง
+
+---
+
+### [CTO] — Three-table Production Save Flow — 2026-05-25
+**สถานะ**: Done
+
+**Output**:
+- ปรับ `SaveAsync` ให้บันทึกครบ 3 ตาราง:
+  - `bom_productions` = Header เอกสารผลิต
+  - `bom_production_orders` = เอกสารขายและสินค้าที่ดึงข้อมูลได้ (`ref_doc_no`, `ref_doc_date`, `item_code`, `qty`, `unit_code`)
+  - `bom_production_details` = รายการสินค้าที่ต้องใช้จาก BOM expansion
+- เพิ่ม entity/configuration/repository mapping สำหรับ `BomProductionOrder` และ `BomProductionDetail`
+- เพิ่ม EF migration `20260525025231_RecreateBomProductionTables` แบบ drop/create ตาราง production เดิมตาม requirement
+- อัปเดต Production List ให้โหลดรายการขายและรายการที่ต้องใช้แยกกัน
+
+**Test coverage**:
+- `dotnet build BomApp.slnx -p:BaseOutputPath=D:\Source\productbom\.codex-build\solution\` → pass
+- `dotnet test tests/BomApp.Tests.Unit/BomApp.Tests.Unit.csproj --no-restore -p:BaseOutputPath=D:\Source\productbom\.codex-build\unit\` → 14/14 pass
+- `dotnet test tests/BomApp.Tests.Integration/BomApp.Tests.Integration.csproj --no-restore -p:BaseOutputPath=D:\Source\productbom\.codex-build\integration\ --filter BomProductionRepositoryIntegrationTests` → 3/3 pass
+
+---
+
+### [CTO] — Sales Save Success Dialog and Clear Screen — 2026-05-25
+**สถานะ**: Done
+
+**Output**:
+- เพิ่ม `IDialogService.AlertAsync` และ `MessageDialog` สำหรับแจ้งผลแบบปุ่ม OK อย่างเดียว
+- ปรับ `SalesCalculationViewModel.SaveDocumentsAsync` ให้แสดงข้อความ `บันทึกเข้าสู่เลขที่เอกสาร XXXX สำเร็จแล้ว`
+- หลังผู้ใช้กด OK แล้วล้างหน้าจอคำนวณ: วันที่, รายการขาย, ผลคำนวณวัตถุดิบ, warning, filter และสถานะปุ่มบันทึก
+
+**Test coverage**:
+- `dotnet build BomApp.slnx -p:BaseOutputPath=D:\Source\productbom\.codex-build\solution\` → pass
+- `dotnet test tests/BomApp.Tests.Unit/BomApp.Tests.Unit.csproj --no-restore -p:BaseOutputPath=D:\Source\productbom\.codex-build\unit\` → 15/15 pass
+
+---
+
 ## Template สำหรับ Agent บันทึก Output
 
 ```

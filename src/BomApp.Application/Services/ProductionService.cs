@@ -12,7 +12,7 @@ public class ProductionService(
     IProductionOrderRepository productionOrderRepository,
     IBomProductionRepository bomProductionRepository) : IProductionService
 {
-    /// <summary>ดึงเอกสาร bom_production ตาม filter</summary>
+    /// <summary>ดึงเอกสารผลิตจากรายการขายใน bom_production_orders ตาม filter</summary>
     public async Task<Result<IReadOnlyList<BomProductionDto>>> GetDocumentsAsync(
         DateOnly? docDateFrom = null,
         DateOnly? docDateTo = null,
@@ -25,7 +25,7 @@ public class ProductionService(
         return Result<IReadOnlyList<BomProductionDto>>.Success(documents);
     }
 
-    /// <summary>ดึงเอกสาร bom_production ตามเลขที่เอกสาร</summary>
+    /// <summary>ดึงเอกสารผลิตตามเลขที่เอกสาร</summary>
     public async Task<Result<BomProductionDto>> GetDocumentByDocNoAsync(
         string docNo,
         CancellationToken ct = default)
@@ -37,7 +37,21 @@ public class ProductionService(
         return Result<BomProductionDto>.Success(document);
     }
 
-    /// <summary>ดึงรายละเอียด bom_production_detail ตามเลขที่เอกสาร</summary>
+    /// <summary>ดึงรายการขายใน bom_production_orders ตามเลขที่เอกสาร</summary>
+    public async Task<Result<IReadOnlyList<BomProductionOrderDto>>> GetDocumentOrdersAsync(
+        string docNo,
+        CancellationToken ct = default)
+    {
+        var document = await bomProductionRepository.GetByDocNoAsync(docNo, ct);
+        if (document is null)
+            return Result<IReadOnlyList<BomProductionOrderDto>>.Failure(
+                $"ไม่พบเอกสารผลิตเลขที่: {docNo}");
+
+        var orders = await bomProductionRepository.GetOrdersByDocNoAsync(docNo, ct);
+        return Result<IReadOnlyList<BomProductionOrderDto>>.Success(orders);
+    }
+
+    /// <summary>ดึงรายการสินค้าที่ต้องใช้ใน bom_production_details ตามเลขที่เอกสาร</summary>
     public async Task<Result<IReadOnlyList<BomProductionDetailDto>>> GetDocumentDetailsAsync(
         string docNo,
         CancellationToken ct = default)
@@ -51,7 +65,7 @@ public class ProductionService(
         return Result<IReadOnlyList<BomProductionDetailDto>>.Success(details);
     }
 
-    /// <summary>ลบเอกสาร bom_production พร้อมรายละเอียด</summary>
+    /// <summary>ลบรายการขายใน bom_production_orders ตามเลขที่เอกสารผลิต</summary>
     public async Task<Result> DeleteDocumentAsync(string docNo, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(docNo))

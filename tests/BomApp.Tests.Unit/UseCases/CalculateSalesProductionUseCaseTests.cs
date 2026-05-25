@@ -200,10 +200,20 @@ public class CalculateSalesProductionUseCaseTests
                 DocDate: cmd.DocDate,
                 DocNo: $"BP-{cmd.DocDate:yyyyMMdd}-00001",
                 DocTime: cmd.DocTime,
+                Orders: cmd.Orders.Select(o => new BomProductionOrderDto(
+                    Id: Guid.NewGuid(),
+                    DocNo: $"BP-{cmd.DocDate:yyyyMMdd}-00001",
+                    DocDate: cmd.DocDate,
+                    RefDocNo: o.RefDocNo,
+                    RefDocDate: o.RefDocDate,
+                    ItemCode: o.ItemCode,
+                    Qty: o.Qty,
+                    UnitCode: o.UnitCode)).ToList(),
                 Details: cmd.Details.Select(d => new BomProductionDetailDto(
                     Id: Guid.NewGuid(),
                     DocNo: $"BP-{cmd.DocDate:yyyyMMdd}-00001",
                     ItemCode: d.ItemCode,
+                    ItemName: d.ItemName,
                     Qty: d.Qty,
                     UnitCode: d.UnitCode)).ToList()));
 
@@ -253,10 +263,20 @@ public class CalculateSalesProductionUseCaseTests
                 DocDate: cmd.DocDate,
                 DocNo: $"BP-{cmd.DocDate:yyyyMMdd}-{Guid.NewGuid():N}"[..30],
                 DocTime: cmd.DocTime,
+                Orders: cmd.Orders.Select(o => new BomProductionOrderDto(
+                    Id: Guid.NewGuid(),
+                    DocNo: $"BP-{cmd.DocDate:yyyyMMdd}-00001",
+                    DocDate: cmd.DocDate,
+                    RefDocNo: o.RefDocNo,
+                    RefDocDate: o.RefDocDate,
+                    ItemCode: o.ItemCode,
+                    Qty: o.Qty,
+                    UnitCode: o.UnitCode)).ToList(),
                 Details: cmd.Details.Select(d => new BomProductionDetailDto(
                     Id: Guid.NewGuid(),
                     DocNo: $"BP-{cmd.DocDate:yyyyMMdd}-00001",
                     ItemCode: d.ItemCode,
+                    ItemName: d.ItemName,
                     Qty: d.Qty,
                     UnitCode: d.UnitCode)).ToList()));
 
@@ -277,10 +297,11 @@ public class CalculateSalesProductionUseCaseTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().HaveCount(2);
-        result.Value.SelectMany(o => o.Details).Should().OnlyContain(d => d.ItemCode == "PROD-001");
-        result.Value.Select(o => o.Details.Single().Qty).Should()
+        result.Value.SelectMany(o => o.Orders).Should().OnlyContain(d => d.ItemCode == "PROD-001");
+        result.Value.Select(o => o.Orders.Single().Qty).Should()
             .Contain(10m)
-            .And.Contain(60m);
+            .And.Contain(5m);
+        result.Value.SelectMany(o => o.Details).Should().OnlyContain(d => d.ItemCode == "MAT-A");
     }
 
     [Fact]

@@ -14,4 +14,13 @@ public sealed class DialogService : IDialogService
         var dialog = new ConfirmDialog(title, message);
         return await dialog.ShowDialog<bool>(mainWindow);
     }
+
+    public async Task AlertAsync(string title, string message)
+    {
+        var mainWindow = (AvaloniaApp.Current?.ApplicationLifetime
+            as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        if (mainWindow is null) return;
+        var dialog = new MessageDialog(title, message);
+        await dialog.ShowDialog(mainWindow);
+    }
 }

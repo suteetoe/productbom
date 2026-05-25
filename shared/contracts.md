@@ -107,14 +107,28 @@ public record BomProductionDto(
     DateOnly DocDate,
     string   DocNo,
     TimeOnly DocTime,
+    IReadOnlyList<BomProductionOrderDto> Orders,
     IReadOnlyList<BomProductionDetailDto> Details
 );
 
-/// <summary>Production issue document detail — สินค้าที่ต้องผลิต</summary>
+/// <summary>Selected sales item stored in bom_production_orders.</summary>
+public record BomProductionOrderDto(
+    Guid    Id,
+    string  DocNo,
+    DateOnly DocDate,
+    string  RefDocNo,
+    DateOnly RefDocDate,
+    string  ItemCode,
+    decimal Qty,
+    string  UnitCode
+);
+
+/// <summary>Material/item requirement stored in bom_production_details.</summary>
 public record BomProductionDetailDto(
     Guid    Id,
     string  DocNo,
     string  ItemCode,
+    string  ItemName,
     decimal Qty,
     string  UnitCode
 );
@@ -159,15 +173,25 @@ public enum SaveMode { Daily, PerDocument }
 /// <summary>สำหรับ Cancel production order</summary>
 public record CancelProductionOrderCommand(Guid OrderId, string Reason);
 
-/// <summary>Internal command สำหรับสร้างเอกสาร bom_production พร้อม details</summary>
+/// <summary>Internal command สำหรับสร้าง bom_productions + bom_production_orders + bom_production_details</summary>
 public record CreateBomProductionInternalCommand(
     DateOnly DocDate,
     TimeOnly DocTime,
+    IReadOnlyList<CreateBomProductionOrderInternalCommand> Orders,
     IReadOnlyList<CreateBomProductionDetailInternalCommand> Details
+);
+
+public record CreateBomProductionOrderInternalCommand(
+    string RefDocNo,
+    DateOnly RefDocDate,
+    string ItemCode,
+    decimal Qty,
+    string UnitCode
 );
 
 public record CreateBomProductionDetailInternalCommand(
     string ItemCode,
+    string ItemName,
     decimal Qty,
     string UnitCode
 );

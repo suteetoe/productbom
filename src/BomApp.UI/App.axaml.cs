@@ -126,7 +126,8 @@ public partial class App : Avalonia.Application
             var scope = scopeFactory.CreateScope();
             return new SalesCalculationViewModel(
                 scope.ServiceProvider.GetRequiredService<ICalculateSalesProductionUseCase>(),
-                scope.ServiceProvider.GetRequiredService<IErpSalesOrderRepository>());
+                scope.ServiceProvider.GetRequiredService<IErpSalesOrderRepository>(),
+                dialogService);
         });
     }
 }

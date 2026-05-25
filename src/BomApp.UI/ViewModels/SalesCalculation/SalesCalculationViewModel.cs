@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using BomApp.Application.Interfaces;
 using BomApp.Application.Interfaces.Repositories;
 using BomApp.Shared.Contracts;
+using BomApp.UI.Services;
 
 namespace BomApp.UI.ViewModels.SalesCalculation;
 
@@ -11,6 +12,7 @@ public partial class SalesCalculationViewModel : ViewModelBase
 {
     private readonly ICalculateSalesProductionUseCase _useCase;
     private readonly IErpSalesOrderRepository _salesRepo;
+    private readonly IDialogService _dialogService;
 
     // ── State ────────────────────────────────────────────────────────────────
 
@@ -70,10 +72,14 @@ public partial class SalesCalculationViewModel : ViewModelBase
 
     // ── Constructor ──────────────────────────────────────────────────────────
 
-    public SalesCalculationViewModel(ICalculateSalesProductionUseCase useCase, IErpSalesOrderRepository salesRepo)
+    public SalesCalculationViewModel(
+        ICalculateSalesProductionUseCase useCase,
+        IErpSalesOrderRepository salesRepo,
+        IDialogService dialogService)
     {
-        _useCase   = useCase;
-        _salesRepo = salesRepo;
+        _useCase       = useCase;
+        _salesRepo     = salesRepo;
+        _dialogService = dialogService;
     }
 
     // ── Commands ─────────────────────────────────────────────────────────────
@@ -157,7 +163,7 @@ public partial class SalesCalculationViewModel : ViewModelBase
     /// <summary>
     /// Saves production documents (DryRun=false).
     /// Only enabled after a successful CalculateAsync (HasCalculationResult=true).
-    /// On success, shows the number of documents created in ErrorMessage (info).
+    /// On success, shows the generated document number(s), then clears the screen after OK.
     /// </summary>
     [RelayCommand(CanExecute = nameof(HasCalculationResult))]
     private async Task SaveDocumentsAsync()
@@ -170,9 +176,17 @@ public partial class SalesCalculationViewModel : ViewModelBase
             var result  = await _useCase.SaveAsync(request);
 
             if (!result.IsSuccess)
+            {
                 ErrorMessage = result.Error ?? "บันทึกไม่สำเร็จ";
-            else
-                ErrorMessage = $"บันทึกสำเร็จ {result.Value!.Count} เอกสาร";
+                return;
+            }
+
+            var docNos = string.Join(", ", result.Value!.Select(x => x.DocNo));
+            await _dialogService.AlertAsync(
+                "บันทึกสำเร็จ",
+                $"บันทึกเข้าสู่เลขที่เอกสาร {docNos} สำเร็จแล้ว");
+
+            ClearScreen();
         }
         finally
         {
@@ -199,4 +213,19 @@ public partial class SalesCalculationViewModel : ViewModelBase
         DryRun:     dryRun,
         CreatedBy:  "current-user",
         CreatedVia: "UI");
+
+    private void ClearScreen()
+    {
+        DateFrom = null;
+        DateTo = null;
+        IsDaily = true;
+        ShowOnlyWithBom = false;
+        ItemsWithoutBomCount = 0;
+        ErrorMessage = string.Empty;
+        HasCalculationResult = false;
+
+        SalesTransactions.Clear();
+        MaterialRequirements.Clear();
+        OnPropertyChanged(nameof(HasSalesTransactions));
+    }
 }

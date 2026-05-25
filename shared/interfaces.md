@@ -103,7 +103,7 @@ public interface ICalculateSalesProductionUseCase
         CancellationToken ct = default);
 
     /// <summary>
-    /// บันทึกเอกสาร bom_production จากผลการคำนวณ
+    /// บันทึก bom_productions + bom_production_orders + bom_production_details จากผลการคำนวณ
     /// ต้องเรียก CalculateAsync ก่อนเสมอ
     /// </summary>
     Task<Result<IReadOnlyList<BomProductionDto>>> SaveAsync(
@@ -190,6 +190,29 @@ public interface IProductionOrderRepository
 ```csharp
 public interface IBomProductionRepository
 {
+    Task<IReadOnlyList<BomProductionDto>> GetAllAsync(
+        DateOnly? docDateFrom = null,
+        DateOnly? docDateTo = null,
+        string? docNo = null,
+        string? itemCode = null,
+        CancellationToken ct = default);
+
+    Task<BomProductionDto?> GetByDocNoAsync(
+        string docNo,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<BomProductionOrderDto>> GetOrdersByDocNoAsync(
+        string docNo,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<BomProductionDetailDto>> GetDetailsByDocNoAsync(
+        string docNo,
+        CancellationToken ct = default);
+
+    Task<bool> DeleteByDocNoAsync(
+        string docNo,
+        CancellationToken ct = default);
+
     Task<BomProductionDto> CreateAsync(
         CreateBomProductionInternalCommand cmd,
         CancellationToken ct = default);

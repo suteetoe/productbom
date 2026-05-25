@@ -7,7 +7,7 @@ using System.Globalization;
 namespace BomApp.Infrastructure.Persistence.Repositories;
 
 /// <summary>
-/// EF Core implementation สำหรับเอกสาร bom_production
+/// EF Core implementation for bom_productions, bom_production_orders, and bom_production_details.
 /// </summary>
 public class BomProductionRepository(BomDbContext context) : IBomProductionRepository
 {
@@ -20,6 +20,7 @@ public class BomProductionRepository(BomDbContext context) : IBomProductionRepos
     {
         var query = context.BomProductions
             .AsNoTracking()
+            .Include(p => p.Orders)
             .Include(p => p.Details)
             .AsQueryable();
 
@@ -33,7 +34,9 @@ public class BomProductionRepository(BomDbContext context) : IBomProductionRepos
             query = query.Where(p => p.DocNo.Contains(docNo));
 
         if (!string.IsNullOrWhiteSpace(itemCode))
-            query = query.Where(p => p.Details.Any(d => d.ItemCode.Contains(itemCode)));
+            query = query.Where(p =>
+                p.Orders.Any(o => o.ItemCode.Contains(itemCode)) ||
+                p.Details.Any(d => d.ItemCode.Contains(itemCode)));
 
         var productions = await query
             .OrderByDescending(p => p.DocDate)
@@ -49,10 +52,25 @@ public class BomProductionRepository(BomDbContext context) : IBomProductionRepos
     {
         var production = await context.BomProductions
             .AsNoTracking()
+            .Include(p => p.Orders)
             .Include(p => p.Details)
             .FirstOrDefaultAsync(p => p.DocNo == docNo, ct);
 
         return production is null ? null : MapToDto(production);
+    }
+
+    public async Task<IReadOnlyList<BomProductionOrderDto>> GetOrdersByDocNoAsync(
+        string docNo,
+        CancellationToken ct = default)
+    {
+        var orders = await context.BomProductionOrders
+            .AsNoTracking()
+            .Where(o => o.DocNo == docNo)
+            .OrderBy(o => o.RefDocNo)
+            .ThenBy(o => o.ItemCode)
+            .ToListAsync(ct);
+
+        return orders.Select(MapOrderToDto).ToList();
     }
 
     public async Task<IReadOnlyList<BomProductionDetailDto>> GetDetailsByDocNoAsync(
@@ -92,14 +110,26 @@ public class BomProductionRepository(BomDbContext context) : IBomProductionRepos
         var production = new BomProduction
         {
             Id = Guid.NewGuid(),
-            DocDate = cmd.DocDate,
             DocNo = docNo,
+            DocDate = cmd.DocDate,
             DocTime = cmd.DocTime,
+            Orders = cmd.Orders.Select(o => new BomProductionOrder
+            {
+                Id = Guid.NewGuid(),
+                DocNo = docNo,
+                DocDate = cmd.DocDate,
+                RefDocNo = o.RefDocNo,
+                RefDocDate = o.RefDocDate,
+                ItemCode = o.ItemCode,
+                Qty = o.Qty,
+                UnitCode = o.UnitCode
+            }).ToList(),
             Details = cmd.Details.Select(d => new BomProductionDetail
             {
                 Id = Guid.NewGuid(),
                 DocNo = docNo,
                 ItemCode = d.ItemCode,
+                ItemName = d.ItemName,
                 Qty = d.Qty,
                 UnitCode = d.UnitCode
             }).ToList()
@@ -138,12 +168,24 @@ public class BomProductionRepository(BomDbContext context) : IBomProductionRepos
         DocDate: production.DocDate,
         DocNo: production.DocNo,
         DocTime: production.DocTime,
+        Orders: production.Orders.Select(MapOrderToDto).ToList(),
         Details: production.Details.Select(MapDetailToDto).ToList());
+
+    private static BomProductionOrderDto MapOrderToDto(BomProductionOrder order) => new(
+        Id: order.Id,
+        DocNo: order.DocNo,
+        DocDate: order.DocDate,
+        RefDocNo: order.RefDocNo,
+        RefDocDate: order.RefDocDate,
+        ItemCode: order.ItemCode,
+        Qty: order.Qty,
+        UnitCode: order.UnitCode);
 
     private static BomProductionDetailDto MapDetailToDto(BomProductionDetail detail) => new(
         Id: detail.Id,
         DocNo: detail.DocNo,
         ItemCode: detail.ItemCode,
+        ItemName: detail.ItemName,
         Qty: detail.Qty,
         UnitCode: detail.UnitCode);
 }

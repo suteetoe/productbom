@@ -8,7 +8,7 @@ namespace BomApp.Application.Interfaces.Repositories;
 /// </summary>
 public interface IBomProductionRepository
 {
-    /// <summary>ดึงเอกสาร bom_production ตาม filter ที่ระบุ</summary>
+    /// <summary>ดึงเอกสารผลิตจากรายการขายที่บันทึกไว้ใน bom_production_orders ตาม filter ที่ระบุ</summary>
     Task<IReadOnlyList<BomProductionDto>> GetAllAsync(
         DateOnly? docDateFrom = null,
         DateOnly? docDateTo = null,
@@ -16,22 +16,27 @@ public interface IBomProductionRepository
         string? itemCode = null,
         CancellationToken ct = default);
 
-    /// <summary>ดึงเอกสาร bom_production ตามเลขที่เอกสาร</summary>
+    /// <summary>ดึงเอกสารผลิตตามเลขที่เอกสาร</summary>
     Task<BomProductionDto?> GetByDocNoAsync(
         string docNo,
         CancellationToken ct = default);
 
-    /// <summary>ดึงรายการสินค้าใน bom_production_detail ตามเลขที่เอกสาร</summary>
+    /// <summary>ดึงรายการขายใน bom_production_orders ตามเลขที่เอกสารผลิต</summary>
+    Task<IReadOnlyList<BomProductionOrderDto>> GetOrdersByDocNoAsync(
+        string docNo,
+        CancellationToken ct = default);
+
+    /// <summary>ดึงรายการสินค้าที่ต้องใช้ใน bom_production_details ตามเลขที่เอกสารผลิต</summary>
     Task<IReadOnlyList<BomProductionDetailDto>> GetDetailsByDocNoAsync(
         string docNo,
         CancellationToken ct = default);
 
-    /// <summary>ลบเอกสาร bom_production ตามเลขที่เอกสาร</summary>
+    /// <summary>ลบรายการขายใน bom_production_orders ตามเลขที่เอกสารผลิต</summary>
     Task<bool> DeleteByDocNoAsync(
         string docNo,
         CancellationToken ct = default);
 
-    /// <summary>สร้างเอกสาร bom_production พร้อม bom_production_detail</summary>
+    /// <summary>สร้างรายการขายที่เลือกไว้ใน bom_production_orders</summary>
     Task<BomProductionDto> CreateAsync(
         CreateBomProductionInternalCommand cmd,
         CancellationToken ct = default);

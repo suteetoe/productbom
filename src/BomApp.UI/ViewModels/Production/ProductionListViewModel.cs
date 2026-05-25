@@ -22,10 +22,13 @@ public partial class ProductionListViewModel : ViewModelBase
     [ObservableProperty] private BomProductionDto? _selectedDocument;
 
     public ObservableCollection<BomProductionDto> Documents { get; } = new();
-    public ObservableCollection<BomProductionDetailDto> SelectedDocumentDetails { get; } = new();
+    public ObservableCollection<BomProductionOrderDto> SelectedDocumentDetails { get; } = new();
+    public ObservableCollection<BomProductionDetailDto> MaterialUsageRows { get; } = new();
 
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
     public bool HasDocuments => Documents.Count > 0;
+    public bool HasSelectedDocument => SelectedDocument is not null;
+    public int DocumentListColumnSpan => HasSelectedDocument ? 1 : 3;
 
     public ProductionListViewModel(IProductionService productionService, IDialogService dialogService)
     {
@@ -35,8 +38,12 @@ public partial class ProductionListViewModel : ViewModelBase
 
     partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
 
-    partial void OnSelectedDocumentChanged(BomProductionDto? value) =>
+    partial void OnSelectedDocumentChanged(BomProductionDto? value)
+    {
+        OnPropertyChanged(nameof(HasSelectedDocument));
+        OnPropertyChanged(nameof(DocumentListColumnSpan));
         _ = LoadDocumentDetailsAsync(value);
+    }
 
     [RelayCommand]
     private async Task LoadInitialAsync()
@@ -67,6 +74,7 @@ public partial class ProductionListViewModel : ViewModelBase
             Documents.Clear();
             SelectedDocument = null;
             SelectedDocumentDetails.Clear();
+            MaterialUsageRows.Clear();
 
             if (result.IsSuccess)
             {
@@ -116,6 +124,7 @@ public partial class ProductionListViewModel : ViewModelBase
             {
                 SelectedDocument = null;
                 SelectedDocumentDetails.Clear();
+                MaterialUsageRows.Clear();
             }
 
             OnPropertyChanged(nameof(HasDocuments));
@@ -129,16 +138,20 @@ public partial class ProductionListViewModel : ViewModelBase
     private async Task LoadDocumentDetailsAsync(BomProductionDto? document)
     {
         SelectedDocumentDetails.Clear();
+        MaterialUsageRows.Clear();
         if (document is null) return;
 
-        var result = await _productionService.GetDocumentDetailsAsync(document.DocNo);
-        if (result.IsSuccess)
+        var orderResult = await _productionService.GetDocumentOrdersAsync(document.DocNo);
+        var detailResult = await _productionService.GetDocumentDetailsAsync(document.DocNo);
+
+        if (orderResult.IsSuccess && detailResult.IsSuccess)
         {
-            foreach (var detail in result.Value!) SelectedDocumentDetails.Add(detail);
+            foreach (var order in orderResult.Value!) SelectedDocumentDetails.Add(order);
+            foreach (var detail in detailResult.Value!) MaterialUsageRows.Add(detail);
         }
         else
         {
-            ErrorMessage = result.Error ?? "ไม่สามารถโหลดรายละเอียดเอกสารได้";
+            ErrorMessage = orderResult.Error ?? detailResult.Error ?? "ไม่สามารถโหลดรายละเอียดเอกสารได้";
         }
     }
 }

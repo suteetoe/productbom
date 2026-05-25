@@ -17,16 +17,13 @@ public class BomDbContext(DbContextOptions<BomDbContext> options) : DbContext(op
     /// <summary>BOM assignments (product item → BOM)</summary>
     public DbSet<BomAssignment> BomAssignments { get; set; }
 
-    /// <summary>Production orders</summary>
-    public DbSet<ProductionOrder> ProductionOrders { get; set; }
-
-    /// <summary>Production order lines (วัตถุดิบจริงที่ต้องใช้)</summary>
-    public DbSet<ProductionOrderLine> ProductionOrderLines { get; set; }
-
-    /// <summary>Production issue document headers</summary>
+    /// <summary>Production calculation document headers</summary>
     public DbSet<BomProduction> BomProductions { get; set; }
 
-    /// <summary>Production issue document details</summary>
+    /// <summary>Sales rows captured for production calculation</summary>
+    public DbSet<BomProductionOrder> BomProductionOrders { get; set; }
+
+    /// <summary>Material requirements calculated from BOM expansion</summary>
     public DbSet<BomProductionDetail> BomProductionDetails { get; set; }
 
     /// <summary>Audit logs</summary>

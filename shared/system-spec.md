@@ -201,10 +201,8 @@ WHERE user_code = @username
    └─ รวมยอดวัตถุดิบเดียวกันจากทุกรายการ
 
 5. บันทึกเอกสารเบิกรายการสินค้าที่ผลิต (เลือกรูปแบบ)
-   ├─ รวม 1 เอกสารต่อวัน → สร้าง bom_production 1 ใบต่อ doc_date
-   │    bom_production_detail = สินค้าที่ต้องผลิตรวมของวันนั้น
-   └─ แยกตามเอกสารขาย → สร้าง bom_production 1 ใบต่อ doc_no
-        bom_production_detail = สินค้าที่ต้องผลิตของ doc_no นั้น
+   ├─ รวม 1 เอกสารต่อวัน → สร้าง bom_productions 1 header, บันทึกรายการขายลง bom_production_orders, บันทึกของที่ต้องใช้ลง bom_production_details
+   └─ แยกตามเอกสารขาย → สร้าง bom_productions ต่อบิลขาย, บันทึกรายการขายลง bom_production_orders, บันทึกของที่ต้องใช้ลง bom_production_details
 ```
 
 #### Business Rules เพิ่มเติม
@@ -332,34 +330,52 @@ CLI (BomApp.Cli calculate)       ─┘        └─→ IErpSalesOrderRepositor
 
 ---
 
-### 3.4 `bom_production` — เอกสารเบิกรายการสินค้าที่ผลิต
+### 3.4 `bom_productions` — Header เอกสารผลิต
 
 | Column | Type | Constraint | หมายเหตุ |
 |---|---|---|---|
 | `id` | UUID | PK | |
-| `doc_date` | DATE | NOT NULL | วันที่เอกสาร |
-| `doc_no` | VARCHAR(30) | UNIQUE, NOT NULL | BP-YYYYMMDD-NNNNN |
-| `doc_time` | TIME | NOT NULL | เวลาเอกสาร |
+| `doc_date` | DATE | NOT NULL | วันที่เอกสารผลิต |
+| `doc_no` | VARCHAR(30) | UNIQUE, NOT NULL | เลขที่เอกสารผลิต เช่น BP-YYYYMMDD-NNNNN |
+| `doc_time` | TIME | NOT NULL | เวลาเอกสารผลิต |
 
-**Index**: `idx_bom_production_doc_no` (doc_no), `idx_bom_production_doc_date` (doc_date)
+**Index**: `idx_bom_productions_doc_no` (doc_no), `idx_bom_productions_doc_date` (doc_date)
 
 ---
 
-### 3.5 `bom_production_detail` — Detail สินค้าที่ต้องผลิต
+### 3.5 `bom_production_orders` — รายการขายที่เลือกไว้สำหรับคำนวณการผลิต
 
 | Column | Type | Constraint | หมายเหตุ |
 |---|---|---|---|
 | `id` | UUID | PK | |
-| `doc_no` | VARCHAR(30) | FK → bom_production.doc_no, NOT NULL | CASCADE DELETE |
-| `item_code` | VARCHAR(50) | NOT NULL | รหัสสินค้าที่ผลิต |
-| `qty` | DECIMAL(18,6) | NOT NULL | จำนวนสินค้าที่ต้องผลิต หลังแปลงหน่วยแล้ว |
-| `unit_code` | VARCHAR(20) | NOT NULL | หน่วยนับของสินค้าที่ผลิต |
+| `doc_no` | VARCHAR(30) | NOT NULL | เลขที่เอกสารผลิตที่ระบบสร้าง เช่น BP-YYYYMMDD-NNNNN |
+| `doc_date` | DATE | NOT NULL | วันที่เอกสารผลิต |
+| `ref_doc_no` | VARCHAR(50) | NOT NULL | เลขที่บิลขายจาก ERP |
+| `ref_doc_date` | DATE | NOT NULL | วันที่บิลขายจาก ERP |
+| `item_code` | VARCHAR(50) | NOT NULL | รหัสสินค้าที่ขายและถูกเลือกมาคำนวณ |
+| `qty` | DECIMAL(18,6) | NOT NULL | จำนวนขายตามรายการที่เลือก |
+| `unit_code` | VARCHAR(50) | NOT NULL | หน่วยนับของรายการขาย |
 
-**Index**: `idx_bom_production_detail_doc_no` (doc_no)
+**Index**: `idx_bom_production_orders_doc_no` (doc_no), `idx_bom_production_orders_doc_date` (doc_date), `idx_bom_production_orders_ref_doc_no` (ref_doc_no), `idx_bom_production_orders_item_code` (item_code)
 
 ---
 
-### 3.6 `bom_audit_logs` — บันทึกการเปลี่ยนแปลง
+### 3.6 `bom_production_details` — รายการสินค้าที่ต้องใช้
+
+| Column | Type | Constraint | หมายเหตุ |
+|---|---|---|---|
+| `id` | UUID | PK | |
+| `doc_no` | VARCHAR(30) | FK → bom_productions.doc_no, NOT NULL | CASCADE DELETE |
+| `item_code` | VARCHAR(50) | NOT NULL | รหัสสินค้าที่ต้องใช้ / วัตถุดิบ |
+| `item_name` | VARCHAR(255) | NOT NULL | ชื่อสินค้า / วัตถุดิบ |
+| `qty` | DECIMAL(18,6) | NOT NULL | จำนวนที่ต้องใช้จาก BOM expansion |
+| `unit_code` | VARCHAR(50) | NOT NULL | หน่วยนับ |
+
+**Index**: `idx_bom_production_details_doc_no` (doc_no), `idx_bom_production_details_item_code` (item_code)
+
+---
+
+### 3.7 `bom_audit_logs` — บันทึกการเปลี่ยนแปลง
 
 | Column | Type | Constraint | หมายเหตุ |
 |---|---|---|---|
@@ -385,12 +401,12 @@ bom_boms (1) ──────────── (N) bom_lines
   │
   └── (1) ── bom_assignments (N) ── item_code [ERP]
   │
-  └── (1) ──────────── (N) bom_production_orders
-                                      │
-                                      └── (1) ── (N) bom_production_order_lines
+  └── (1) ──────────── (N) bom_productions
+                                      ├── (1) ── (N) bom_production_orders
+                                      └── (1) ── (N) bom_production_details
 
 [ERP] ic_inventory ──── item_code ──────── bom_assignments
-[ERP] ic_trans_detail ─ doc_no ─────────── production_orders.source_so_numbers
+[ERP] ic_trans_detail ─ doc_no ─────────── bom_production_orders.ref_doc_no
                       (trans_flag=44,
                        last_status=0)
 ```
@@ -405,7 +421,7 @@ bom_boms (1) ──────────── (N) bom_lines
 | BOM ต้อง Active ก่อน assign | ห้าม assign BOM ที่ status = Draft หรือ Inactive |
 | Circular reference | ตรวจด้วย DFS ก่อน save bom_line ที่มี sub_bom_id |
 | 1 item = 1 BOM | UNIQUE constraint บน bom_assignments.item_code |
-| Production issue document | เมื่อบันทึกผลการประมวลผลการขาย ให้สร้าง `bom_production` header และ `bom_production_detail` เป็นรายการสินค้าที่ต้องผลิต |
+| Production save process | เมื่อบันทึกผลการประมวลผลการขาย ให้สร้าง `bom_productions` header, เก็บรายการขายใน `bom_production_orders`, และเก็บรายการสินค้าที่ต้องใช้ใน `bom_production_details` |
 | Quantity > 0 | ทุก bom_line และ production_order ต้องมี quantity > 0 |
 
 ---
@@ -433,13 +449,15 @@ bom_boms (1) ──────────── (N) bom_lines
 [ProductionResultDto] → แสดงผลใน UI
         ↓ user เลือกรูปแบบบันทึก
         ├─ รวม 1 เอกสารต่อวัน
-        │       ↓ สร้าง bom_production 1 ใบต่อ doc_date
-        │          bom_production_detail = สินค้าที่ต้องผลิตของวันนั้น
+        │       ↓ สร้าง doc_no 1 ชุดต่อ doc_date
+        │          bom_production_orders = รายการขายที่เลือกของวันนั้น
+        │          bom_production_details = รายการสินค้าที่ต้องใช้ของวันนั้น
         └─ แยกตามเอกสารขาย
-                ↓ สร้าง bom_production 1 ใบต่อ doc_no
-                   bom_production_detail = สินค้าที่ต้องผลิตของ doc_no นั้น
+                ↓ สร้าง doc_no 1 ชุดต่อบิลขาย
+                   bom_production_orders = รายการขายที่เลือกของบิลขายนั้น
+                   bom_production_details = รายการสินค้าที่ต้องใช้ของบิลขายนั้น
         ↓
-[bom_production + bom_production_detail] ← บันทึกลง PostgreSQL schema public
+[bom_productions + bom_production_orders + bom_production_details] ← บันทึกลง PostgreSQL schema public
 ```
 
 ---
@@ -451,5 +469,5 @@ bom_boms (1) ──────────── (N) bom_lines
 | BOM List | `boms` | — |
 | BOM Editor | `boms`, `bom_lines` | `boms`, `bom_lines`, `audit_logs` |
 | BOM Assignment | `bom_assignments`, [ERP items] | `bom_assignments`, `audit_logs` |
-| Production List | `production_orders`, `production_order_lines`, `boms` (BomCode), [`ic_trans_detail`] (DocDate ใน row detail) | `production_orders` (cancel), `audit_logs` |
-| Sales Calculation | `boms`, `bom_lines`, `bom_assignments`, [`ic_trans_detail`, `ic_inventory`] | `bom_production`, `bom_production_detail`, `audit_logs` |
+| Production List | `bom_productions`, `bom_production_orders`, `bom_production_details` | `bom_productions` (delete cascade) |
+| Sales Calculation | `boms`, `bom_lines`, `bom_assignments`, [`ic_trans_detail`, `ic_inventory`] | `bom_productions`, `bom_production_orders`, `bom_production_details`, `audit_logs` |

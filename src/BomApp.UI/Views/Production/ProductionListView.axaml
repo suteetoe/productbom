@@ -4,205 +4,273 @@
              x:Class="BomApp.UI.Views.Production.ProductionListView"
              x:DataType="vm:ProductionListViewModel">
 
-    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,*"
+          Background="{StaticResource SurfaceSecondaryBrush}">
 
-        <Border Grid.Row="0"
-                Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="0,0,0,1"
-                Padding="{StaticResource PanelPadding}"
-                Height="{StaticResource ToolbarHeight}">
-            <TextBlock Text="รายการผลิต"
-                       FontSize="{StaticResource FontSizeH2}"
-                       FontWeight="SemiBold"
-                       Foreground="{StaticResource TextPrimaryBrush}"
-                       VerticalAlignment="Center"/>
-        </Border>
+        <TextBlock Grid.Row="0"
+                   Text="รายการผลิต"
+                   FontSize="{StaticResource FontSizeH2}"
+                   FontWeight="SemiBold"
+                   Foreground="{StaticResource TextPrimaryBrush}"
+                   Margin="{StaticResource PanelPadding}"/>
 
         <Border Grid.Row="1"
+                Margin="16,0,16,16"
+                Padding="{StaticResource PanelPadding}"
                 Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="0,0,0,1"
-                Padding="{StaticResource PanelPadding}">
-            <WrapPanel Orientation="Horizontal">
-                <StackPanel Orientation="Horizontal" Spacing="4" Margin="{StaticResource SpaceSM}">
-                    <TextBlock Text="จาก"
-                               FontSize="{StaticResource FontSizeBase}"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               VerticalAlignment="Center"/>
-                    <DatePicker SelectedDate="{Binding DateFrom, Mode=TwoWay}"/>
-                </StackPanel>
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusMD}">
+            <Grid ColumnDefinitions="Auto,390,12,Auto,12,Auto"
+                  VerticalAlignment="Top">
+                <TextBlock Grid.Column="0"
+                           Text="ข้อความค้นหา :"
+                           FontSize="{StaticResource FontSizeBase}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
 
-                <StackPanel Orientation="Horizontal" Spacing="4" Margin="{StaticResource SpaceSM}">
-                    <TextBlock Text="ถึง"
-                               FontSize="{StaticResource FontSizeBase}"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               VerticalAlignment="Center"/>
-                    <DatePicker SelectedDate="{Binding DateTo, Mode=TwoWay}"/>
-                </StackPanel>
-
-                <TextBox Text="{Binding DocNoSearch, Mode=TwoWay}"
-                         PlaceholderText="เลขที่เอกสาร"
-                         Width="170"
-                         Margin="{StaticResource SpaceSM}"
+                <TextBox Grid.Column="1"
+                         Text="{Binding DocNoSearch, Mode=TwoWay}"
+                         PlaceholderText="ค้นหาเลขที่เอกสาร"
+                         Height="34"
                          CornerRadius="{StaticResource RadiusMD}"
                          FontSize="{StaticResource FontSizeBase}"/>
 
-                <TextBox Text="{Binding ItemSearch, Mode=TwoWay}"
-                         PlaceholderText="รหัสสินค้า"
-                         Width="140"
-                         Margin="{StaticResource SpaceSM}"
-                         CornerRadius="{StaticResource RadiusMD}"
-                         FontSize="{StaticResource FontSizeBase}"/>
-
-                <Button Content="ค้นหา"
+                <Button Grid.Column="3"
+                        Content="ค้นหา"
                         Command="{Binding SearchCommand}"
+                        MinWidth="96"
+                        Height="34"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
                         Background="{StaticResource AccentBlueBrush}"
                         Foreground="White"
-                        FontSize="{StaticResource FontSizeBase}"
                         CornerRadius="{StaticResource RadiusMD}"
-                        Padding="{StaticResource SpaceSM}"
-                        Margin="{StaticResource SpaceSM}"
-                        VerticalAlignment="Center"/>
-            </WrapPanel>
-        </Border>
+                        FontSize="{StaticResource FontSizeBase}"/>
 
-        <Border Grid.Row="2"
-                Background="#FEF2F2"
-                BorderBrush="{StaticResource DangerBrush}"
-                BorderThickness="1"
-                CornerRadius="{StaticResource RadiusSM}"
-                Padding="{StaticResource SpaceSM}"
-                Margin="{StaticResource SpaceLG}"
-                IsVisible="{Binding HasError}">
-            <TextBlock Text="{Binding ErrorMessage}"
-                       FontSize="{StaticResource FontSizeSM}"
-                       Foreground="{StaticResource DangerBrush}"
-                       TextWrapping="Wrap"/>
-        </Border>
-
-        <Grid Grid.Row="3" Margin="{StaticResource SpaceLG}">
-            <StackPanel HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Spacing="8"
-                        IsVisible="{Binding !HasDocuments}">
-                <TextBlock Text="ยังไม่มีรายการผลิต"
-                           FontSize="{StaticResource FontSizeXL}"
-                           Foreground="{StaticResource TextMutedBrush}"
-                           HorizontalAlignment="Center"/>
-                <TextBlock Text="ยังไม่พบเอกสารตามตัวกรองปัจจุบัน"
-                           FontSize="{StaticResource FontSizeBase}"
-                           Foreground="{StaticResource TextMutedBrush}"
-                           HorizontalAlignment="Center"/>
-            </StackPanel>
-
-            <DataGrid ItemsSource="{Binding Documents}"
-                      SelectedItem="{Binding SelectedDocument, Mode=TwoWay}"
-                      AutoGenerateColumns="False"
-                      CanUserSortColumns="True"
-                      IsReadOnly="True"
-                      SelectionMode="Single"
-                      RowHeight="{StaticResource DataGridRowHeight}"
-                      GridLinesVisibility="Horizontal"
-                      BorderBrush="{StaticResource BorderBrush}"
-                      BorderThickness="1"
-                      CornerRadius="{StaticResource RadiusSM}"
-                      FontSize="{StaticResource FontSizeBase}"
-                      Background="{StaticResource SurfaceBrush}"
-                      IsVisible="{Binding HasDocuments}">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="เลขที่เอกสาร"
-                                        Binding="{Binding DocNo}"
-                                        Width="180"/>
-
-                    <DataGridTextColumn Header="วันที่เอกสาร"
-                                        Binding="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}"
-                                        Width="130"/>
-
-                    <DataGridTextColumn Header="เวลา"
-                                        Binding="{Binding DocTime}"
-                                        Width="100"/>
-
-                    <DataGridTextColumn Header="จำนวนรายการ"
-                                        Binding="{Binding Details.Count}"
-                                        Width="110"/>
-
-                    <DataGridTemplateColumn Header="" Width="140">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal"
-                                            Spacing="4"
-                                            VerticalAlignment="Center">
-                                    <Button Content="Export"
-                                            FontSize="{StaticResource FontSizeSM}"
-                                            Padding="6,2"
-                                            CornerRadius="{StaticResource RadiusSM}"
-                                            Foreground="{StaticResource AccentBlueBrush}"
-                                            Command="{Binding $parent[UserControl].((vm:ProductionListViewModel)DataContext).ExportCsvCommand}"
-                                            CommandParameter="{Binding}"/>
-
-                                    <Button Content="ลบ"
-                                            FontSize="{StaticResource FontSizeSM}"
-                                            Padding="6,2"
-                                            CornerRadius="{StaticResource RadiusSM}"
-                                            Foreground="{StaticResource DangerBrush}"
-                                            Command="{Binding $parent[UserControl].((vm:ProductionListViewModel)DataContext).DeleteDocumentCommand}"
-                                            CommandParameter="{Binding}"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
-        </Grid>
-
-        <Border Grid.Row="4"
-                Margin="{StaticResource SpaceLG}"
-                Background="{StaticResource SurfaceBrush}"
-                BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="1"
-                CornerRadius="{StaticResource RadiusMD}"
-                MaxHeight="220"
-                IsVisible="{Binding SelectedDocument, Converter={x:Static ObjectConverters.IsNotNull}}">
-            <Grid RowDefinitions="Auto,*">
-                <TextBlock Grid.Row="0"
-                           Text="รายละเอียดสินค้าที่ต้องผลิต"
-                           FontSize="{StaticResource FontSizeSM}"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}"
-                           Margin="{StaticResource SpaceSM}"/>
-
-                <DataGrid Grid.Row="1"
-                          ItemsSource="{Binding SelectedDocumentDetails}"
-                          AutoGenerateColumns="False"
-                          CanUserSortColumns="True"
-                          IsReadOnly="True"
-                          RowHeight="{StaticResource DataGridRowHeight}"
-                          GridLinesVisibility="Horizontal"
-                          FontSize="{StaticResource FontSizeBase}"
-                          Background="{StaticResource SurfaceBrush}">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="เลขที่เอกสาร"
-                                            Binding="{Binding DocNo}"
-                                            Width="170"/>
-
-                        <DataGridTextColumn Header="รหัสสินค้า"
-                                            Binding="{Binding ItemCode}"
-                                            Width="*"/>
-
-                        <DataGridTextColumn Header="จำนวน"
-                                            Binding="{Binding Qty, StringFormat='{}{0:N2}'}"
-                                            Width="120"/>
-
-                        <DataGridTextColumn Header="หน่วย"
-                                            Binding="{Binding UnitCode}"
-                                            Width="100"/>
-                    </DataGrid.Columns>
-                </DataGrid>
+                <Button Grid.Column="5"
+                        Content="ลบ"
+                        Command="{Binding DeleteDocumentCommand}"
+                        CommandParameter="{Binding SelectedDocument}"
+                        MinWidth="96"
+                        Height="34"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Background="Transparent"
+                        Foreground="{StaticResource DangerBrush}"
+                        BorderBrush="{StaticResource DangerBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource RadiusMD}"
+                        FontSize="{StaticResource FontSizeBase}"
+                        IsEnabled="{Binding SelectedDocument, Converter={x:Static ObjectConverters.IsNotNull}}"/>
             </Grid>
         </Border>
 
-        <Border Grid.Row="0" Grid.RowSpan="5"
+        <Grid Grid.Row="2"
+              ColumnDefinitions="0.9*,24,1.1*"
+              Margin="16,0,16,16">
+
+            <Border Grid.Column="0"
+                    Grid.ColumnSpan="{Binding DocumentListColumnSpan}"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusMD}">
+                <DataGrid ItemsSource="{Binding Documents}"
+                          SelectedItem="{Binding SelectedDocument, Mode=TwoWay}"
+                          AutoGenerateColumns="False"
+                          CanUserSortColumns="True"
+                          IsReadOnly="True"
+                          SelectionMode="Single"
+                          GridLinesVisibility="Horizontal"
+                          HeadersVisibility="Column"
+                          BorderThickness="0"
+                          Background="{StaticResource SurfaceBrush}"
+                          RowHeight="{StaticResource DataGridRowHeight}"
+                          FontSize="{StaticResource FontSizeBase}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="วันที่"
+                                            Binding="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}"
+                                            Width="160"/>
+                        <DataGridTextColumn Header="เลขที่เอกสาร"
+                                            Binding="{Binding DocNo}"
+                                            Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <Border Grid.Column="2"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusMD}"
+                    Padding="{StaticResource PanelPadding}"
+                    IsVisible="{Binding SelectedDocument, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <Grid RowDefinitions="Auto,8,Auto,8,Auto,20,*,20,*">
+
+                <Grid Grid.Row="0"
+                      ColumnDefinitions="116,108,*">
+                    <TextBlock Grid.Column="0"
+                               Text="วันที่เอกสาร :"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center"
+                               FontSize="{StaticResource FontSizeBase}"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <Border Grid.Column="1"
+                            Height="28"
+                            Background="{StaticResource SurfaceSecondaryBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusSM}">
+                        <TextBlock Text="{Binding SelectedDocument.DocDate, StringFormat='{}{0:dd/MM/yyyy}'}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0"
+                                   FontSize="{StaticResource FontSizeBase}"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="1"
+                      ColumnDefinitions="116,*,126">
+                    <TextBlock Grid.Column="0"
+                               Text="เลขที่เอกสาร :"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center"
+                               FontSize="{StaticResource FontSizeBase}"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <Border Grid.Column="1"
+                            Height="28"
+                            Background="{StaticResource SurfaceSecondaryBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusSM}">
+                        <TextBlock Text="{Binding SelectedDocument.DocNo}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0"
+                                   FontSize="{StaticResource FontSizeBase}"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="2"
+                      ColumnDefinitions="116,*">
+                    <TextBlock Grid.Column="0"
+                               Text="หมายเหตุ :"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Top"
+                               Margin="0,8,8,0"
+                               FontSize="{StaticResource FontSizeBase}"
+                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <Border Grid.Column="1"
+                            Height="66"
+                            Background="{StaticResource SurfaceSecondaryBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusSM}"/>
+                </Grid>
+
+                <Grid Grid.Row="4"
+                      RowDefinitions="Auto,*">
+                    <TextBlock Grid.Row="0"
+                               Text="รายการสินค้าที่ผลิต"
+                               FontSize="{StaticResource FontSizeBase}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Margin="0,0,0,6"/>
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding SelectedDocumentDetails}"
+                              AutoGenerateColumns="False"
+                              CanUserSortColumns="False"
+                              IsReadOnly="True"
+                              GridLinesVisibility="Horizontal"
+                              HeadersVisibility="Column"
+                              BorderBrush="{StaticResource BorderBrush}"
+                              BorderThickness="1"
+                              CornerRadius="{StaticResource RadiusSM}"
+                              Background="{StaticResource SurfaceBrush}"
+                              RowHeight="{StaticResource DataGridRowHeight}"
+                              FontSize="{StaticResource FontSizeBase}"
+                              MinHeight="145">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="รหัสสินค้า"
+                                                Binding="{Binding ItemCode}"
+                                                Width="150"/>
+                            <DataGridTextColumn Header="บิลขาย"
+                                                Binding="{Binding RefDocNo}"
+                                                Width="150"/>
+                            <DataGridTextColumn Header="วันที่บิล"
+                                                Binding="{Binding RefDocDate, StringFormat='{}{0:dd/MM/yyyy}'}"
+                                                Width="120"/>
+                            <DataGridTemplateColumn Header="ชื่อสินค้า"
+                                                    Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="หน่วยนับ"
+                                                Binding="{Binding UnitCode}"
+                                                Width="120"/>
+                            <DataGridTextColumn Header="จำนวน"
+                                                Binding="{Binding Qty, StringFormat='{}{0:N2}'}"
+                                                Width="120"/>
+                            <DataGridTemplateColumn Header="สูตร"
+                                                    Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+
+                <Grid Grid.Row="8"
+                      RowDefinitions="Auto,*">
+                    <TextBlock Grid.Row="0"
+                               Text="วัตถุดิบที่ใช้ไป"
+                               FontSize="{StaticResource FontSizeBase}"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Margin="0,0,0,6"/>
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding MaterialUsageRows}"
+                              AutoGenerateColumns="False"
+                              CanUserSortColumns="False"
+                              IsReadOnly="True"
+                              GridLinesVisibility="Horizontal"
+                              HeadersVisibility="Column"
+                              BorderBrush="{StaticResource BorderBrush}"
+                              BorderThickness="1"
+                              CornerRadius="{StaticResource RadiusSM}"
+                              Background="{StaticResource SurfaceBrush}"
+                              RowHeight="{StaticResource DataGridRowHeight}"
+                              FontSize="{StaticResource FontSizeBase}"
+                              MinHeight="230">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="รหัสสินค้า"
+                                                Binding="{Binding ItemCode}"
+                                                Width="150"/>
+                            <DataGridTextColumn Header="ชื่อสินค้า"
+                                                Binding="{Binding ItemName}"
+                                                Width="*"/>
+                            <DataGridTextColumn Header="หน่วยนับ"
+                                                Binding="{Binding UnitCode}"
+                                                Width="120"/>
+                            <DataGridTextColumn Header="จำนวน"
+                                                Binding="{Binding Qty, StringFormat='{}{0:N2}'}"
+                                                Width="120"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Grid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="0" Grid.RowSpan="3"
                 IsVisible="{Binding IsLoading}"
                 Background="#B3FFFFFF">
             <StackPanel HorizontalAlignment="Center"
@@ -217,6 +285,22 @@
                            Foreground="{StaticResource TextSecondaryBrush}"
                            HorizontalAlignment="Center"/>
             </StackPanel>
+        </Border>
+
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource DangerBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusSM}"
+                Padding="{StaticResource SpaceSM}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,50,0,0"
+                IsVisible="{Binding HasError}">
+            <TextBlock Text="{Binding ErrorMessage}"
+                       FontSize="{StaticResource FontSizeSM}"
+                       Foreground="{StaticResource DangerBrush}"
+                       TextWrapping="Wrap"/>
         </Border>
     </Grid>
 </UserControl>

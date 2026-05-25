@@ -28,20 +28,34 @@ public record ProductionOrderLineDto(
     string   Unit
 );
 
-/// <summary>Production issue document header — เอกสารเบิกรายการสินค้าที่ผลิต</summary>
+/// <summary>Production calculation document grouped from selected sales items.</summary>
 public record BomProductionDto(
     Guid     Id,
     DateOnly DocDate,
     string   DocNo,
     TimeOnly DocTime,
+    IReadOnlyList<BomProductionOrderDto> Orders,
     IReadOnlyList<BomProductionDetailDto> Details
 );
 
-/// <summary>Production issue document detail — สินค้าที่ต้องผลิต</summary>
+/// <summary>Selected sales item stored in bom_production_orders.</summary>
+public record BomProductionOrderDto(
+    Guid    Id,
+    string  DocNo,
+    DateOnly DocDate,
+    string  RefDocNo,
+    DateOnly RefDocDate,
+    string  ItemCode,
+    decimal Qty,
+    string  UnitCode
+);
+
+/// <summary>Material/item requirement stored in bom_production_details.</summary>
 public record BomProductionDetailDto(
     Guid    Id,
     string  DocNo,
     string  ItemCode,
+    string  ItemName,
     decimal Qty,
     string  UnitCode
 );
@@ -102,15 +116,25 @@ public record CreateProductionOrderInternalCommand(
     string? Notes
 );
 
-/// <summary>Internal command สำหรับสร้างเอกสาร bom_production พร้อม details</summary>
+/// <summary>Internal command for creating selected sales rows in bom_production_orders.</summary>
 public record CreateBomProductionInternalCommand(
     DateOnly DocDate,
     TimeOnly DocTime,
+    IReadOnlyList<CreateBomProductionOrderInternalCommand> Orders,
     IReadOnlyList<CreateBomProductionDetailInternalCommand> Details
+);
+
+public record CreateBomProductionOrderInternalCommand(
+    string RefDocNo,
+    DateOnly RefDocDate,
+    string ItemCode,
+    decimal Qty,
+    string UnitCode
 );
 
 public record CreateBomProductionDetailInternalCommand(
     string ItemCode,
+    string ItemName,
     decimal Qty,
     string UnitCode
 );

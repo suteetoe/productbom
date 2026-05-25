@@ -18,7 +18,7 @@ public interface ICalculateSalesProductionUseCase
         CancellationToken ct = default);
 
     /// <summary>
-    /// บันทึกเอกสาร bom_production จากผลการคำนวณ
+    /// บันทึกรายการขายที่เลือกไว้ใน bom_production_orders จากผลการคำนวณ
     /// ต้องเรียก CalculateAsync ก่อนเสมอ
     /// </summary>
     Task<Result<IReadOnlyList<BomProductionDto>>> SaveAsync(
