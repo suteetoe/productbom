@@ -8,8 +8,62 @@ namespace BomApp.Application.Services;
 /// <summary>
 /// Implementation ของ IProductionService — query และ lifecycle ของ Production Orders
 /// </summary>
-public class ProductionService(IProductionOrderRepository productionOrderRepository) : IProductionService
+public class ProductionService(
+    IProductionOrderRepository productionOrderRepository,
+    IBomProductionRepository bomProductionRepository) : IProductionService
 {
+    /// <summary>ดึงเอกสาร bom_production ตาม filter</summary>
+    public async Task<Result<IReadOnlyList<BomProductionDto>>> GetDocumentsAsync(
+        DateOnly? docDateFrom = null,
+        DateOnly? docDateTo = null,
+        string? docNo = null,
+        string? itemCode = null,
+        CancellationToken ct = default)
+    {
+        var documents = await bomProductionRepository.GetAllAsync(
+            docDateFrom, docDateTo, docNo, itemCode, ct);
+        return Result<IReadOnlyList<BomProductionDto>>.Success(documents);
+    }
+
+    /// <summary>ดึงเอกสาร bom_production ตามเลขที่เอกสาร</summary>
+    public async Task<Result<BomProductionDto>> GetDocumentByDocNoAsync(
+        string docNo,
+        CancellationToken ct = default)
+    {
+        var document = await bomProductionRepository.GetByDocNoAsync(docNo, ct);
+        if (document is null)
+            return Result<BomProductionDto>.Failure($"ไม่พบเอกสารผลิตเลขที่: {docNo}");
+
+        return Result<BomProductionDto>.Success(document);
+    }
+
+    /// <summary>ดึงรายละเอียด bom_production_detail ตามเลขที่เอกสาร</summary>
+    public async Task<Result<IReadOnlyList<BomProductionDetailDto>>> GetDocumentDetailsAsync(
+        string docNo,
+        CancellationToken ct = default)
+    {
+        var document = await bomProductionRepository.GetByDocNoAsync(docNo, ct);
+        if (document is null)
+            return Result<IReadOnlyList<BomProductionDetailDto>>.Failure(
+                $"ไม่พบเอกสารผลิตเลขที่: {docNo}");
+
+        var details = await bomProductionRepository.GetDetailsByDocNoAsync(docNo, ct);
+        return Result<IReadOnlyList<BomProductionDetailDto>>.Success(details);
+    }
+
+    /// <summary>ลบเอกสาร bom_production พร้อมรายละเอียด</summary>
+    public async Task<Result> DeleteDocumentAsync(string docNo, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(docNo))
+            return Result.Failure("กรุณาระบุเลขที่เอกสารผลิตที่ต้องการลบ");
+
+        var deleted = await bomProductionRepository.DeleteByDocNoAsync(docNo, ct);
+        if (!deleted)
+            return Result.Failure($"ไม่พบเอกสารผลิตเลขที่: {docNo}");
+
+        return Result.Success();
+    }
+
     /// <summary>ดึง Production Orders ตาม filter</summary>
     public async Task<Result<IReadOnlyList<ProductionOrderDto>>> GetOrdersAsync(
         DateOnly?    dateFrom    = null,

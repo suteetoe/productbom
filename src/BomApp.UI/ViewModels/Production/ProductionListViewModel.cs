@@ -3,133 +3,79 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using BomApp.Application.Interfaces;
 using BomApp.Shared.Contracts;
+using BomApp.UI.Services;
 
 namespace BomApp.UI.ViewModels.Production;
 
 public partial class ProductionListViewModel : ViewModelBase
 {
     private readonly IProductionService _productionService;
-    private bool _hasLoadedInitialOrders;
-
-    // ── State ────────────────────────────────────────────────────────────────
+    private readonly IDialogService _dialogService;
+    private bool _hasLoadedInitialDocuments;
 
     [ObservableProperty] private bool _isLoading;
-
     [ObservableProperty] private string _errorMessage = string.Empty;
+    [ObservableProperty] private DateTimeOffset? _dateFrom;
+    [ObservableProperty] private DateTimeOffset? _dateTo;
+    [ObservableProperty] private string _docNoSearch = string.Empty;
+    [ObservableProperty] private string _itemSearch = string.Empty;
+    [ObservableProperty] private BomProductionDto? _selectedDocument;
 
-    /// <summary>Drives error banner visibility.</summary>
+    public ObservableCollection<BomProductionDto> Documents { get; } = new();
+    public ObservableCollection<BomProductionDetailDto> SelectedDocumentDetails { get; } = new();
+
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+    public bool HasDocuments => Documents.Count > 0;
+
+    public ProductionListViewModel(IProductionService productionService, IDialogService dialogService)
+    {
+        _productionService = productionService;
+        _dialogService = dialogService;
+    }
 
     partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
 
-    // ── Filter properties ────────────────────────────────────────────────────
+    partial void OnSelectedDocumentChanged(BomProductionDto? value) =>
+        _ = LoadDocumentDetailsAsync(value);
 
-    /// <summary>Bound to the "จาก" DatePicker.</summary>
-    [ObservableProperty] private DateTimeOffset? _dateFrom;
-
-    /// <summary>Bound to the "ถึง" DatePicker.</summary>
-    [ObservableProperty] private DateTimeOffset? _dateTo;
-
-    /// <summary>
-    /// Status filter — empty string means "ทั้งหมด".
-    /// Valid values: Pending | Processing | Done | Cancelled.
-    /// </summary>
-    [ObservableProperty] private string _statusFilter = string.Empty;
-
-    /// <summary>Free-text item code search.</summary>
-    [ObservableProperty] private string _itemSearch = string.Empty;
-
-    /// <summary>
-    /// CreatedVia filter — empty string means "ทั้งหมด".
-    /// Valid values: "UI" | "CLI".
-    /// </summary>
-    [ObservableProperty] private string _createdViaFilter = string.Empty;
-
-    /// <summary>Free-text search inside source SO numbers.</summary>
-    [ObservableProperty] private string _sourceDocNoSearch = string.Empty;
-
-    // ── Data ─────────────────────────────────────────────────────────────────
-
-    /// <summary>Production orders returned by the last SearchAsync call.</summary>
-    public ObservableCollection<ProductionOrderDto> Orders { get; } = new();
-
-    /// <summary>True when Orders has at least one entry — hides empty-state placeholder.</summary>
-    public bool HasOrders => Orders.Count > 0;
-
-    /// <summary>
-    /// Currently selected order in the upper DataGrid.
-    /// On change, triggers LoadOrderLinesAsync to populate the lower DataGrid.
-    /// </summary>
-    [ObservableProperty] private ProductionOrderDto? _selectedOrder;
-
-    /// <summary>BOM lines of the selected order — bound to the lower DataGrid.</summary>
-    public ObservableCollection<ProductionOrderLineDto> SelectedOrderLines { get; } = new();
-
-    // ── Constructor ──────────────────────────────────────────────────────────
-
-    public ProductionListViewModel(IProductionService productionService)
-    {
-        _productionService = productionService;
-    }
-
-    // ── Reactive handlers ────────────────────────────────────────────────────
-
-    partial void OnSelectedOrderChanged(ProductionOrderDto? value) => _ = LoadOrderLinesAsync(value);
-
-    /// <summary>Loads BOM lines for the given order into SelectedOrderLines.</summary>
-    private async Task LoadOrderLinesAsync(ProductionOrderDto? order)
-    {
-        SelectedOrderLines.Clear();
-        if (order is null) return;
-
-        var result = await _productionService.GetOrderLinesAsync(order.Id);
-        if (result.IsSuccess)
-            foreach (var line in result.Value!) SelectedOrderLines.Add(line);
-    }
-
-    // ── Commands ─────────────────────────────────────────────────────────────
-
-    /// <summary>Loads the production list once when the screen is opened.</summary>
     [RelayCommand]
     private async Task LoadInitialAsync()
     {
-        if (_hasLoadedInitialOrders) return;
+        if (_hasLoadedInitialDocuments) return;
 
-        _hasLoadedInitialOrders = true;
+        _hasLoadedInitialDocuments = true;
         await SearchAsync();
     }
 
-    /// <summary>
-    /// Queries IProductionService.GetOrdersAsync with the current filter values.
-    /// Converts DateTimeOffset? → DateOnly? before passing to the service.
-    /// </summary>
     [RelayCommand]
     private async Task SearchAsync()
     {
         IsLoading = true;
         ErrorMessage = string.Empty;
+
         try
         {
             var dateFrom = DateFrom.HasValue ? DateOnly.FromDateTime(DateFrom.Value.DateTime) : (DateOnly?)null;
-            var dateTo   = DateTo.HasValue   ? DateOnly.FromDateTime(DateTo.Value.DateTime)   : (DateOnly?)null;
+            var dateTo = DateTo.HasValue ? DateOnly.FromDateTime(DateTo.Value.DateTime) : (DateOnly?)null;
 
-            var result = await _productionService.GetOrdersAsync(
-                dateFrom:    dateFrom,
-                dateTo:      dateTo,
-                status:      string.IsNullOrWhiteSpace(StatusFilter)     ? null : StatusFilter,
-                itemCode:    string.IsNullOrWhiteSpace(ItemSearch)        ? null : ItemSearch,
-                createdVia:  string.IsNullOrWhiteSpace(CreatedViaFilter)  ? null : CreatedViaFilter,
-                sourceDocNo: string.IsNullOrWhiteSpace(SourceDocNoSearch) ? null : SourceDocNoSearch);
+            var result = await _productionService.GetDocumentsAsync(
+                docDateFrom: dateFrom,
+                docDateTo: dateTo,
+                docNo: string.IsNullOrWhiteSpace(DocNoSearch) ? null : DocNoSearch,
+                itemCode: string.IsNullOrWhiteSpace(ItemSearch) ? null : ItemSearch);
 
-            Orders.Clear();
+            Documents.Clear();
+            SelectedDocument = null;
+            SelectedDocumentDetails.Clear();
+
             if (result.IsSuccess)
             {
-                foreach (var o in result.Value!) Orders.Add(o);
-                OnPropertyChanged(nameof(HasOrders));
+                foreach (var document in result.Value!) Documents.Add(document);
+                OnPropertyChanged(nameof(HasDocuments));
             }
             else
             {
-                ErrorMessage = result.Error ?? "เกิดข้อผิดพลาด";
+                ErrorMessage = result.Error ?? "ไม่สามารถโหลดรายการผลิตได้";
             }
         }
         finally
@@ -138,26 +84,41 @@ public partial class ProductionListViewModel : ViewModelBase
         }
     }
 
-    /// <summary>
-    /// Cancels the given production order.
-    /// CommandParameter="{Binding}" passes the row's ProductionOrderDto.
-    /// Refreshes the list on success.
-    /// </summary>
     [RelayCommand]
-    private async Task CancelOrderAsync(ProductionOrderDto order)
+    private void ExportCsv(BomProductionDto document)
     {
+        _ = document;
+        // Sprint 4: open save dialog and write SelectedDocumentDetails to CSV.
+    }
+
+    [RelayCommand]
+    private async Task DeleteDocumentAsync(BomProductionDto document)
+    {
+        var confirmed = await _dialogService.ConfirmAsync(
+            "ยืนยันการลบ",
+            $"ต้องการลบเอกสารผลิต '{document.DocNo}' ใช่หรือไม่?");
+        if (!confirmed) return;
+
         IsLoading = true;
         ErrorMessage = string.Empty;
+
         try
         {
-            // CancelProductionOrderCommand(Guid OrderId, string Reason)
-            var result = await _productionService.CancelOrderAsync(
-                new CancelProductionOrderCommand(order.Id, "ยกเลิกโดย current-user"));
+            var result = await _productionService.DeleteDocumentAsync(document.DocNo);
+            if (!result.IsSuccess)
+            {
+                ErrorMessage = result.Error ?? "ไม่สามารถลบเอกสารผลิตได้";
+                return;
+            }
 
-            if (result.IsSuccess)
-                await SearchAsync();
-            else
-                ErrorMessage = result.Error ?? "ยกเลิกไม่สำเร็จ";
+            Documents.Remove(document);
+            if (SelectedDocument?.DocNo == document.DocNo)
+            {
+                SelectedDocument = null;
+                SelectedDocumentDetails.Clear();
+            }
+
+            OnPropertyChanged(nameof(HasDocuments));
         }
         finally
         {
@@ -165,14 +126,19 @@ public partial class ProductionListViewModel : ViewModelBase
         }
     }
 
-    /// <summary>
-    /// Exports the given order's lines to CSV.
-    /// CommandParameter="{Binding}" passes the row's ProductionOrderDto.
-    /// Sprint 4: implement file save dialog + CSV write.
-    /// </summary>
-    [RelayCommand]
-    private void ExportCsv(ProductionOrderDto order)
+    private async Task LoadDocumentDetailsAsync(BomProductionDto? document)
     {
-        // TODO Sprint 4: open save dialog and write SelectedOrderLines to CSV
+        SelectedDocumentDetails.Clear();
+        if (document is null) return;
+
+        var result = await _productionService.GetDocumentDetailsAsync(document.DocNo);
+        if (result.IsSuccess)
+        {
+            foreach (var detail in result.Value!) SelectedDocumentDetails.Add(detail);
+        }
+        else
+        {
+            ErrorMessage = result.Error ?? "ไม่สามารถโหลดรายละเอียดเอกสารได้";
+        }
     }
 }

@@ -9,6 +9,31 @@ namespace BomApp.Application.Interfaces;
 public interface IProductionService
 {
     /// <summary>
+    /// ดึงเอกสารเบิกรายการสินค้าที่ผลิตจาก bom_production
+    /// </summary>
+    Task<Result<IReadOnlyList<BomProductionDto>>> GetDocumentsAsync(
+        DateOnly? docDateFrom = null,
+        DateOnly? docDateTo = null,
+        string? docNo = null,
+        string? itemCode = null,
+        CancellationToken ct = default);
+
+    /// <summary>ดึงเอกสาร bom_production ตามเลขที่เอกสาร</summary>
+    Task<Result<BomProductionDto>> GetDocumentByDocNoAsync(
+        string docNo,
+        CancellationToken ct = default);
+
+    /// <summary>ดึงรายละเอียดจาก bom_production_detail ตามเลขที่เอกสาร</summary>
+    Task<Result<IReadOnlyList<BomProductionDetailDto>>> GetDocumentDetailsAsync(
+        string docNo,
+        CancellationToken ct = default);
+
+    /// <summary>ลบเอกสาร bom_production และรายละเอียด bom_production_detail</summary>
+    Task<Result> DeleteDocumentAsync(
+        string docNo,
+        CancellationToken ct = default);
+
+    /// <summary>
     /// ดึง Production Orders ตาม filter ที่ระบุ
     /// </summary>
     Task<Result<IReadOnlyList<ProductionOrderDto>>> GetOrdersAsync(

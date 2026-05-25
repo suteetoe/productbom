@@ -11,6 +11,78 @@ namespace BomApp.Infrastructure.Persistence.Repositories;
 /// </summary>
 public class BomProductionRepository(BomDbContext context) : IBomProductionRepository
 {
+    public async Task<IReadOnlyList<BomProductionDto>> GetAllAsync(
+        DateOnly? docDateFrom = null,
+        DateOnly? docDateTo = null,
+        string? docNo = null,
+        string? itemCode = null,
+        CancellationToken ct = default)
+    {
+        var query = context.BomProductions
+            .AsNoTracking()
+            .Include(p => p.Details)
+            .AsQueryable();
+
+        if (docDateFrom.HasValue)
+            query = query.Where(p => p.DocDate >= docDateFrom.Value);
+
+        if (docDateTo.HasValue)
+            query = query.Where(p => p.DocDate <= docDateTo.Value);
+
+        if (!string.IsNullOrWhiteSpace(docNo))
+            query = query.Where(p => p.DocNo.Contains(docNo));
+
+        if (!string.IsNullOrWhiteSpace(itemCode))
+            query = query.Where(p => p.Details.Any(d => d.ItemCode.Contains(itemCode)));
+
+        var productions = await query
+            .OrderByDescending(p => p.DocDate)
+            .ThenByDescending(p => p.DocNo)
+            .ToListAsync(ct);
+
+        return productions.Select(MapToDto).ToList();
+    }
+
+    public async Task<BomProductionDto?> GetByDocNoAsync(
+        string docNo,
+        CancellationToken ct = default)
+    {
+        var production = await context.BomProductions
+            .AsNoTracking()
+            .Include(p => p.Details)
+            .FirstOrDefaultAsync(p => p.DocNo == docNo, ct);
+
+        return production is null ? null : MapToDto(production);
+    }
+
+    public async Task<IReadOnlyList<BomProductionDetailDto>> GetDetailsByDocNoAsync(
+        string docNo,
+        CancellationToken ct = default)
+    {
+        var details = await context.BomProductionDetails
+            .AsNoTracking()
+            .Where(d => d.DocNo == docNo)
+            .OrderBy(d => d.ItemCode)
+            .ToListAsync(ct);
+
+        return details.Select(MapDetailToDto).ToList();
+    }
+
+    public async Task<bool> DeleteByDocNoAsync(
+        string docNo,
+        CancellationToken ct = default)
+    {
+        var production = await context.BomProductions
+            .FirstOrDefaultAsync(p => p.DocNo == docNo, ct);
+
+        if (production is null)
+            return false;
+
+        context.BomProductions.Remove(production);
+        await context.SaveChangesAsync(ct);
+        return true;
+    }
+
     public async Task<BomProductionDto> CreateAsync(
         CreateBomProductionInternalCommand cmd,
         CancellationToken ct = default)
@@ -66,10 +138,12 @@ public class BomProductionRepository(BomDbContext context) : IBomProductionRepos
         DocDate: production.DocDate,
         DocNo: production.DocNo,
         DocTime: production.DocTime,
-        Details: production.Details.Select(d => new BomProductionDetailDto(
-            Id: d.Id,
-            DocNo: d.DocNo,
-            ItemCode: d.ItemCode,
-            Qty: d.Qty,
-            UnitCode: d.UnitCode)).ToList());
+        Details: production.Details.Select(MapDetailToDto).ToList());
+
+    private static BomProductionDetailDto MapDetailToDto(BomProductionDetail detail) => new(
+        Id: detail.Id,
+        DocNo: detail.DocNo,
+        ItemCode: detail.ItemCode,
+        Qty: detail.Qty,
+        UnitCode: detail.UnitCode);
 }

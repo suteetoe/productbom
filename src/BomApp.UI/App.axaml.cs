@@ -116,7 +116,9 @@ public partial class App : Avalonia.Application
         nav.Register<ProductionListViewModel>(() =>
         {
             var scope = scopeFactory.CreateScope();
-            return new ProductionListViewModel(scope.ServiceProvider.GetRequiredService<IProductionService>());
+            return new ProductionListViewModel(
+                scope.ServiceProvider.GetRequiredService<IProductionService>(),
+                dialogService);
         });
 
         nav.Register<SalesCalculationViewModel>(() =>
