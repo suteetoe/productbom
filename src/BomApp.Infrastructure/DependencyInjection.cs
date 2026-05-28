@@ -47,6 +47,7 @@ public static class DependencyInjection
         // ERP Repositories
         services.AddScoped<IErpItemRepository, ErpItemRepository>();
         services.AddScoped<IErpSalesOrderRepository, ErpSalesOrderRepository>();
+        services.AddScoped<IErpProductionRepository, ErpProductionRepository>();
 
         return services;
     }

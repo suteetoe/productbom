@@ -58,6 +58,8 @@ public class ErpDbContext(DbContextOptions<ErpDbContext> options) : DbContext(op
             entity.Property(e => e.UnitCode).HasColumnName("unit_code").HasMaxLength(50);
             entity.Property(e => e.StandValue).HasColumnName("stand_value");
             entity.Property(e => e.DivideValue).HasColumnName("divide_value");
+            entity.Property(e => e.WhCode).HasColumnName("wh_code").HasMaxLength(50);
+            entity.Property(e => e.ShelfCode).HasColumnName("shelf_code").HasMaxLength(50);
         });
     }
 }
@@ -94,4 +96,6 @@ public class IcTransDetail
     public string UnitCode { get; set; } = string.Empty;
     public decimal StandValue { get; set; }
     public decimal DivideValue { get; set; }
+    public string WhCode { get; set; } = string.Empty;
+    public string ShelfCode { get; set; } = string.Empty;
 }

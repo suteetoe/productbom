@@ -55,6 +55,29 @@ public abstract class ErpDbIntegrationTestBase : IAsyncLifetime
             )
             """);
 
+        await DbContext.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS ic_trans_detail (
+                trans_type SMALLINT NOT NULL DEFAULT 0,
+                doc_date DATE NOT NULL,
+                doc_time VARCHAR(5) NOT NULL DEFAULT '00:00',
+                doc_date_calc DATE NOT NULL DEFAULT DATE '1900-01-01',
+                doc_time_calc VARCHAR(5) NOT NULL DEFAULT '00:00',
+                calc_flag SMALLINT NOT NULL DEFAULT 0,
+                doc_no VARCHAR(50) NOT NULL,
+                trans_flag SMALLINT NOT NULL,
+                last_status SMALLINT NOT NULL DEFAULT 0,
+                item_code VARCHAR(50) NOT NULL,
+                item_name VARCHAR(255) NOT NULL DEFAULT '',
+                qty NUMERIC(18,6) NOT NULL,
+                unit_code VARCHAR(50) NOT NULL,
+                stand_value NUMERIC(18,6) NOT NULL DEFAULT 1,
+                divide_value NUMERIC(18,6) NOT NULL DEFAULT 1,
+                wh_code VARCHAR(50) NOT NULL DEFAULT '',
+                shelf_code VARCHAR(50) NOT NULL DEFAULT '',
+                line_number INT NOT NULL DEFAULT 0
+            )
+            """);
+
         await SeedAsync();
     }
 

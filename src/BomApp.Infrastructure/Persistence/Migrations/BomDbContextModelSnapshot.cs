@@ -345,6 +345,18 @@ namespace BomApp.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("unit_code");
 
+                    b.Property<string>("WhCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("wh_code");
+
+                    b.Property<string>("ShelfCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("shelf_code");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DocNo")

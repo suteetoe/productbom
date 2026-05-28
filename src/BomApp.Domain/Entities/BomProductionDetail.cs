@@ -18,5 +18,9 @@ public class BomProductionDetail
 
     public string UnitCode { get; set; } = string.Empty;
 
+    public string WhCode { get; set; } = string.Empty;
+
+    public string ShelfCode { get; set; } = string.Empty;
+
     public BomProduction? Production { get; set; }
 }

@@ -43,6 +43,16 @@ public class BomProductionDetailConfiguration : IEntityTypeConfiguration<BomProd
             .HasMaxLength(50)
             .IsRequired();
 
+        builder.Property(d => d.WhCode)
+            .HasColumnName("wh_code")
+            .HasMaxLength(50)
+            .IsRequired();
+
+        builder.Property(d => d.ShelfCode)
+            .HasColumnName("shelf_code")
+            .HasMaxLength(50)
+            .IsRequired();
+
         builder.HasIndex(d => d.DocNo)
             .HasDatabaseName("idx_bom_production_details_doc_no");
 

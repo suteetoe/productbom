@@ -21,8 +21,8 @@ public class BomProductionRepositoryIntegrationTests : BomDbIntegrationTestBase
             ],
             Details:
             [
-                new("MAT-001", "Material 001", 20m, "KG"),
-                new("MAT-002", "Material 002", 5m, "PCS")
+                new("MAT-001", "Material 001", 20m, "KG", "WH-A", "SH-01"),
+                new("MAT-002", "Material 002", 5m, "PCS", "WH-B", "SH-02")
             ]);
 
         // Act
@@ -47,7 +47,9 @@ public class BomProductionRepositoryIntegrationTests : BomDbIntegrationTestBase
             d.ItemCode == "MAT-001" &&
             d.ItemName == "Material 001" &&
             d.Qty == 20m &&
-            d.UnitCode == "KG");
+            d.UnitCode == "KG" &&
+            d.WhCode == "WH-A" &&
+            d.ShelfCode == "SH-01");
 
         DbContext.BomProductions.Should().ContainSingle(p => p.DocNo == created.DocNo);
         DbContext.BomProductionOrders.Should().HaveCount(2);

@@ -131,7 +131,9 @@ public class BomProductionRepository(BomDbContext context) : IBomProductionRepos
                 ItemCode = d.ItemCode,
                 ItemName = d.ItemName,
                 Qty = d.Qty,
-                UnitCode = d.UnitCode
+                UnitCode = d.UnitCode,
+                WhCode = d.WhCode,
+                ShelfCode = d.ShelfCode
             }).ToList()
         };
 
@@ -187,5 +189,7 @@ public class BomProductionRepository(BomDbContext context) : IBomProductionRepos
         ItemCode: detail.ItemCode,
         ItemName: detail.ItemName,
         Qty: detail.Qty,
-        UnitCode: detail.UnitCode);
+        UnitCode: detail.UnitCode,
+        WhCode: detail.WhCode,
+        ShelfCode: detail.ShelfCode);
 }

@@ -40,6 +40,8 @@ public class ErpSalesOrderRepository(ErpDbContext context) : IErpSalesOrderRepos
             Qty: t.Qty,
             UnitCode: t.UnitCode,
             StandValue: t.StandValue,
-            DivideValue: t.DivideValue)).ToList();
+            DivideValue: t.DivideValue,
+            WhCode: t.WhCode,
+            ShelfCode: t.ShelfCode)).ToList();
     }
 }

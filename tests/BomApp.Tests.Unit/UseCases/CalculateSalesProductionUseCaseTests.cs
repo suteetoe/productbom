@@ -18,6 +18,7 @@ public class CalculateSalesProductionUseCaseTests
     private readonly Mock<IBomRepository> _bomRepoMock = new();
     private readonly Mock<IBomAssignmentRepository> _assignmentRepoMock = new();
     private readonly Mock<IBomProductionRepository> _bomProductionRepoMock = new();
+    private readonly Mock<IErpProductionRepository> _erpProductionRepoMock = new();
 
     [Fact]
     public async Task CalculateAsync_WhenItemsHaveActiveBom_ShouldReturnProductionResult()
@@ -215,7 +216,9 @@ public class CalculateSalesProductionUseCaseTests
                     ItemCode: d.ItemCode,
                     ItemName: d.ItemName,
                     Qty: d.Qty,
-                    UnitCode: d.UnitCode)).ToList()));
+                    UnitCode: d.UnitCode,
+                    WhCode: d.WhCode,
+                    ShelfCode: d.ShelfCode)).ToList()));
 
         var request = new CalculateSalesProductionRequest(
             DateFrom: new DateOnly(2024, 1, 15),
@@ -278,7 +281,9 @@ public class CalculateSalesProductionUseCaseTests
                     ItemCode: d.ItemCode,
                     ItemName: d.ItemName,
                     Qty: d.Qty,
-                    UnitCode: d.UnitCode)).ToList()));
+                    UnitCode: d.UnitCode,
+                    WhCode: d.WhCode,
+                    ShelfCode: d.ShelfCode)).ToList()));
 
         var request = new CalculateSalesProductionRequest(
             DateFrom: new DateOnly(2024, 1, 15),
@@ -338,9 +343,125 @@ public class CalculateSalesProductionUseCaseTests
             r => r.CreateAsync(It.IsAny<CreateBomProductionInternalCommand>(), It.IsAny<CancellationToken>()),
             Times.Never,
             "DryRun=true must not write to IBomProductionRepository");
+        _erpProductionRepoMock.Verify(
+            r => r.SaveProductionDocumentAsync(It.IsAny<BomProductionDto>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "DryRun=true must not write to ERP");
+    }
+
+    [Fact]
+    public async Task SaveAsync_WhenDocumentIsCreated_ShouldWriteDocumentToErp()
+    {
+        var bomId = Guid.NewGuid();
+        var createdDocument = new BomProductionDto(
+            Id: Guid.NewGuid(),
+            DocDate: new DateOnly(2024, 1, 15),
+            DocNo: "BP-20240115-00001",
+            DocTime: new TimeOnly(9, 30, 0),
+            Orders: [],
+            Details:
+            [
+                new BomProductionDetailDto(
+                    Id: Guid.NewGuid(),
+                    DocNo: "BP-20240115-00001",
+                    ItemCode: "MAT-A",
+                    ItemName: "Material A",
+                    Qty: 10m,
+                    UnitCode: "KG")
+            ]);
+
+        _assignmentRepoMock
+            .Setup(r => r.GetAssignedItemCodesAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, Guid> { ["PROD-001"] = bomId });
+
+        _bomRepoMock
+            .Setup(r => r.GetByIdAsync(bomId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildMinimalBom(bomId, "PROD-001"));
+
+        _bomProductionRepoMock
+            .Setup(r => r.CreateAsync(It.IsAny<CreateBomProductionInternalCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(createdDocument);
+
+        var request = new CalculateSalesProductionRequest(
+            DateFrom: new DateOnly(2024, 1, 15),
+            DateTo: new DateOnly(2024, 1, 15),
+            Mode: SaveMode.Daily,
+            DryRun: false,
+            CreatedBy: "test-user",
+            CreatedVia: "UI"
+        );
+
+        var result = await BuildUseCase().SaveAsync(request);
+
+        result.IsSuccess.Should().BeTrue();
+        _erpProductionRepoMock.Verify(
+            r => r.SaveProductionDocumentAsync(createdDocument, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SaveAsync_WhenDailyModeHasDifferentSalesWarehouses_ShouldKeepWarehouseAndShelfOnDetails()
+    {
+        var bomId = Guid.NewGuid();
+        CreateBomProductionInternalCommand? capturedCommand = null;
+
+        _assignmentRepoMock
+            .Setup(r => r.GetAssignedItemCodesAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, Guid> { ["PROD-001"] = bomId });
+
+        _bomRepoMock
+            .Setup(r => r.GetByIdAsync(bomId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildMinimalBom(bomId, "PROD-001"));
+
+        _bomProductionRepoMock
+            .Setup(r => r.CreateAsync(It.IsAny<CreateBomProductionInternalCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CreateBomProductionInternalCommand cmd, CancellationToken _) =>
+            {
+                capturedCommand = cmd;
+                return new BomProductionDto(
+                    Id: Guid.NewGuid(),
+                    DocDate: cmd.DocDate,
+                    DocNo: "BP-20240115-00001",
+                    DocTime: cmd.DocTime,
+                    Orders: [],
+                    Details: cmd.Details.Select(d => new BomProductionDetailDto(
+                        Guid.NewGuid(),
+                        "BP-20240115-00001",
+                        d.ItemCode,
+                        d.ItemName,
+                        d.Qty,
+                        d.UnitCode,
+                        d.WhCode,
+                        d.ShelfCode)).ToList());
+            });
+
+        var request = new CalculateSalesProductionRequest(
+            DateFrom: new DateOnly(2024, 1, 15),
+            DateTo: new DateOnly(2024, 1, 15),
+            Mode: SaveMode.Daily,
+            DryRun: false,
+            CreatedBy: "test-user",
+            CreatedVia: "UI"
+        );
+
+        var result = await BuildUseCase().SaveAsync(request);
+
+        result.IsSuccess.Should().BeTrue();
+        capturedCommand.Should().NotBeNull();
+        capturedCommand!.Details.Should().HaveCount(2);
+        capturedCommand.Details.Should().Contain(d =>
+            d.ItemCode == "MAT-A" &&
+            d.Qty == 10m &&
+            d.WhCode == "WH-A" &&
+            d.ShelfCode == "SH-01");
+        capturedCommand.Details.Should().Contain(d =>
+            d.ItemCode == "MAT-A" &&
+            d.Qty == 60m &&
+            d.WhCode == "WH-B" &&
+            d.ShelfCode == "SH-02");
+    }
 
     private ICalculateSalesProductionUseCase BuildUseCase()
     {
@@ -351,7 +472,8 @@ public class CalculateSalesProductionUseCaseTests
             _fakeSalesRepo,
             _bomRepoMock.Object,
             _assignmentRepoMock.Object,
-            _bomProductionRepoMock.Object
+            _bomProductionRepoMock.Object,
+            _erpProductionRepoMock.Object
         );
     }
 

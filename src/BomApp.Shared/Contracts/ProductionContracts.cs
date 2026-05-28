@@ -57,7 +57,9 @@ public record BomProductionDetailDto(
     string  ItemCode,
     string  ItemName,
     decimal Qty,
-    string  UnitCode
+    string  UnitCode,
+    string  WhCode = "",
+    string  ShelfCode = ""
 );
 
 /// <summary>ผลลัพธ์การคำนวณ — แสดงใน 2.5 ก่อนบันทึก</summary>
@@ -136,5 +138,7 @@ public record CreateBomProductionDetailInternalCommand(
     string ItemCode,
     string ItemName,
     decimal Qty,
-    string UnitCode
+    string UnitCode,
+    string WhCode = "",
+    string ShelfCode = ""
 );

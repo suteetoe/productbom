@@ -27,18 +27,18 @@ public static class SeedData
     // Day 1 (2024-01-15) — two documents
     // Doc SO-2024-0001: 10 PCS of PROD-001
     public static readonly ErpSalesTransactionDto Sales_Day1_Doc1_PROD001 = new(
-        new DateOnly(2024, 1, 15), "SO-2024-0001", "PROD-001", 10m, "PCS", 1m, 1m);
+        new DateOnly(2024, 1, 15), "SO-2024-0001", "PROD-001", 10m, "PCS", 1m, 1m, "WH-A", "SH-01");
 
     // Doc SO-2024-0002: 5 BOX of PROD-001 (= 60 PCS in base unit)
     public static readonly ErpSalesTransactionDto Sales_Day1_Doc2_PROD001 = new(
-        new DateOnly(2024, 1, 15), "SO-2024-0002", "PROD-001", 5m, "BOX", 12m, 1m);
+        new DateOnly(2024, 1, 15), "SO-2024-0002", "PROD-001", 5m, "BOX", 12m, 1m, "WH-B", "SH-02");
 
     // Doc SO-2024-0001: 2 PCS of PROD-999 (no BOM — should warn and skip)
     public static readonly ErpSalesTransactionDto Sales_Day1_Doc1_PROD999 = new(
-        new DateOnly(2024, 1, 15), "SO-2024-0001", "PROD-999", 2m, "PCS", 1m, 1m);
+        new DateOnly(2024, 1, 15), "SO-2024-0001", "PROD-999", 2m, "PCS", 1m, 1m, "WH-A", "SH-01");
 
     // Day 2 (2024-01-16) — one document
     // Doc SO-2024-0003: 20 KG of PROD-002
     public static readonly ErpSalesTransactionDto Sales_Day2_Doc1_PROD002 = new(
-        new DateOnly(2024, 1, 16), "SO-2024-0003", "PROD-002", 20m, "KG", 1m, 1m);
+        new DateOnly(2024, 1, 16), "SO-2024-0003", "PROD-002", 20m, "KG", 1m, 1m, "WH-A", "SH-01");
 }

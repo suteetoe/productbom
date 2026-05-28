@@ -31,7 +31,9 @@ public record ErpSalesTransactionDto(
     decimal   Qty,
     string    UnitCode,
     decimal   StandValue,
-    decimal   DivideValue
+    decimal   DivideValue,
+    string    WhCode = "",
+    string    ShelfCode = ""
 )
 {
     /// <summary>จำนวนในหน่วยหลัก สำหรับคำนวณ BOM</summary>

@@ -13,7 +13,8 @@ public class CalculateSalesProductionUseCase(
     IErpSalesOrderRepository erpSalesOrderRepository,
     IBomRepository bomRepository,
     IBomAssignmentRepository bomAssignmentRepository,
-    IBomProductionRepository bomProductionRepository)
+    IBomProductionRepository bomProductionRepository,
+    IErpProductionRepository erpProductionRepository)
     : ICalculateSalesProductionUseCase
 {
     private const int MaxBomDepth = 10;
@@ -184,7 +185,7 @@ public class CalculateSalesProductionUseCase(
         CancellationToken ct)
     {
         var orders = new List<CreateBomProductionOrderInternalCommand>();
-        var materialTotals = new Dictionary<string, (string Name, decimal Qty, string Unit)>();
+        var materialTotals = new Dictionary<(string Code, string Unit, string WhCode, string ShelfCode), (string Name, decimal Qty)>();
 
         // Store the selected sales items with a back-reference to the source sales bill.
         var bySalesItem = groupTransactions.GroupBy(t => new
@@ -192,7 +193,9 @@ public class CalculateSalesProductionUseCase(
             t.DocNo,
             t.DocDate,
             t.ItemCode,
-            t.UnitCode
+            t.UnitCode,
+            t.WhCode,
+            t.ShelfCode
         });
 
         foreach (var itemGroup in bySalesItem)
@@ -222,10 +225,11 @@ public class CalculateSalesProductionUseCase(
 
             foreach (var (materialCode, (materialName, requiredQty, unit)) in itemMaterials)
             {
-                if (materialTotals.TryGetValue(materialCode, out var existing))
-                    materialTotals[materialCode] = (materialName, existing.Qty + requiredQty, unit);
+                var key = (materialCode, unit, itemGroup.Key.WhCode, itemGroup.Key.ShelfCode);
+                if (materialTotals.TryGetValue(key, out var existing))
+                    materialTotals[key] = (materialName, existing.Qty + requiredQty);
                 else
-                    materialTotals[materialCode] = (materialName, requiredQty, unit);
+                    materialTotals[key] = (materialName, requiredQty);
             }
         }
 
@@ -234,10 +238,12 @@ public class CalculateSalesProductionUseCase(
 
         var details = materialTotals
             .Select(kv => new CreateBomProductionDetailInternalCommand(
-                ItemCode: kv.Key,
+                ItemCode: kv.Key.Code,
                 ItemName: kv.Value.Name,
                 Qty: kv.Value.Qty,
-                UnitCode: kv.Value.Unit))
+                UnitCode: kv.Key.Unit,
+                WhCode: kv.Key.WhCode,
+                ShelfCode: kv.Key.ShelfCode))
             .ToList();
 
         var cmd = new CreateBomProductionInternalCommand(
@@ -246,7 +252,10 @@ public class CalculateSalesProductionUseCase(
             Orders: orders,
             Details: details);
 
-        return await bomProductionRepository.CreateAsync(cmd, ct);
+        var document = await bomProductionRepository.CreateAsync(cmd, ct);
+        await erpProductionRepository.SaveProductionDocumentAsync(document, ct);
+
+        return document;
     }
 
     /// <summary>
