@@ -10,7 +10,8 @@ namespace BomApp.Application.Services;
 /// </summary>
 public class ProductionService(
     IProductionOrderRepository productionOrderRepository,
-    IBomProductionRepository bomProductionRepository) : IProductionService
+    IBomProductionRepository bomProductionRepository,
+    IErpProductionRepository erpProductionRepository) : IProductionService
 {
     /// <summary>ดึงเอกสารผลิตจากรายการขายใน bom_production_orders ตาม filter</summary>
     public async Task<Result<IReadOnlyList<BomProductionDto>>> GetDocumentsAsync(
@@ -71,6 +72,11 @@ public class ProductionService(
         if (string.IsNullOrWhiteSpace(docNo))
             return Result.Failure("กรุณาระบุเลขที่เอกสารผลิตที่ต้องการลบ");
 
+        var document = await bomProductionRepository.GetByDocNoAsync(docNo, ct);
+        if (document is null)
+            return Result.Failure($"ไม่พบเอกสารผลิตเลขที่: {docNo}");
+
+        await erpProductionRepository.DeleteProductionDocumentAsync(docNo, ct);
         var deleted = await bomProductionRepository.DeleteByDocNoAsync(docNo, ct);
         if (!deleted)
             return Result.Failure($"ไม่พบเอกสารผลิตเลขที่: {docNo}");

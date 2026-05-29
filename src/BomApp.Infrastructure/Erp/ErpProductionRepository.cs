@@ -87,4 +87,27 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
 
         await transaction.CommitAsync(ct);
     }
+
+    public async Task DeleteProductionDocumentAsync(
+        string docNo,
+        CancellationToken ct = default)
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            DELETE FROM ic_trans_detail
+            WHERE trans_type = {ProductionTransType}
+              AND trans_flag = {ProductionTransFlag}
+              AND doc_no = {docNo}
+            """, ct);
+
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            DELETE FROM ic_trans
+            WHERE trans_type = {ProductionTransType}
+              AND trans_flag = {ProductionTransFlag}
+              AND doc_no = {docNo}
+            """, ct);
+
+        await transaction.CommitAsync(ct);
+    }
 }

@@ -11,4 +11,8 @@ public interface IErpProductionRepository
     Task SaveProductionDocumentAsync(
         BomProductionDto document,
         CancellationToken ct = default);
+
+    Task DeleteProductionDocumentAsync(
+        string docNo,
+        CancellationToken ct = default);
 }
