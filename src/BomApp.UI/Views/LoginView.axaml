@@ -20,8 +20,26 @@
         No Design.DataContext — LoginViewModel requires INavigationService.
     -->
 
-    <!-- Outer centering container -->
-    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+    <Grid>
+        <Button Command="{Binding OpenSettingsCommand}"
+                Width="44"
+                Height="44"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                Margin="{StaticResource SpaceLG}"
+                CornerRadius="{StaticResource RadiusMD}"
+                Background="{StaticResource SurfaceBrush}"
+                Foreground="{StaticResource TextSecondaryBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                ToolTip.Tip="ตั้งค่า">
+            <TextBlock Text="⚙"
+                       FontSize="20"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+        </Button>
+
+        <!-- Outer centering container -->
+        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
 
         <!-- Card panel -->
         <Border Background="{StaticResource SurfaceBrush}"
@@ -141,5 +159,6 @@
 
             </StackPanel>
         </Border>
+        </Grid>
     </Grid>
 </Window>

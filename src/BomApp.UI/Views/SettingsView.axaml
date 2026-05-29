@@ -1,0 +1,148 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BomApp.UI.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        x:Class="BomApp.UI.Views.SettingsView"
+        x:DataType="vm:SettingsViewModel"
+        Title="ตั้งค่า"
+        Width="520"
+        Height="700"
+        MinWidth="520"
+        MinHeight="700"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource SurfaceSecondaryBrush}">
+
+    <Border Background="{StaticResource SurfaceBrush}"
+            CornerRadius="{StaticResource RadiusLG}"
+            Padding="{StaticResource CardPadding}"
+            Margin="{StaticResource SpaceXL}"
+            BoxShadow="0 4 16 0 #1A000000">
+
+        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="20">
+            <StackPanel Grid.Row="0" Spacing="4">
+                <TextBlock Text="ตั้งค่า"
+                           FontSize="{StaticResource FontSizeH1}"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                <TextBlock Text="Database Connection และ ERP Web Service"
+                           FontSize="{StaticResource FontSizeBase}"
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="18">
+                    <Border Background="#FFEAEA"
+                            CornerRadius="{StaticResource RadiusMD}"
+                            Padding="{StaticResource SpaceSM}"
+                            IsVisible="{Binding HasError}">
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Foreground="{StaticResource DangerBrush}"
+                                   FontSize="{StaticResource FontSizeSM}"
+                                   TextWrapping="Wrap"/>
+                    </Border>
+
+                    <Border Background="#ECFDF5"
+                            CornerRadius="{StaticResource RadiusMD}"
+                            Padding="{StaticResource SpaceSM}"
+                            IsVisible="{Binding HasSuccessMessage}">
+                        <TextBlock Text="{Binding SuccessMessage}"
+                                   Foreground="{StaticResource SuccessBrush}"
+                                   FontSize="{StaticResource FontSizeSM}"
+                                   TextWrapping="Wrap"/>
+                    </Border>
+
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Database Connection"
+                                   FontSize="{StaticResource FontSizeXL}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Host" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBox Text="{Binding Host, Mode=TwoWay}"
+                                     PlaceholderText="localhost"
+                                     CornerRadius="{StaticResource RadiusMD}"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Port" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBox Text="{Binding Port, Mode=TwoWay}"
+                                     PlaceholderText="5432"
+                                     CornerRadius="{StaticResource RadiusMD}"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Username" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBox Text="{Binding Username, Mode=TwoWay}"
+                                     PlaceholderText="postgres"
+                                     CornerRadius="{StaticResource RadiusMD}"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Password" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBox Text="{Binding Password, Mode=TwoWay}"
+                                     PasswordChar="*"
+                                     CornerRadius="{StaticResource RadiusMD}"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Authen Database Name" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBox Text="{Binding AuthDatabaseName, Mode=TwoWay}"
+                                     PlaceholderText="smlerpmaindebug"
+                                     CornerRadius="{StaticResource RadiusMD}"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Database Name" Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBox Text="{Binding DatabaseName, Mode=TwoWay}"
+                                     PlaceholderText="productbom"
+                                     CornerRadius="{StaticResource RadiusMD}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="ERP Web Service URL"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBox Text="{Binding ErpWebServiceUrl, Mode=TwoWay}"
+                                 PlaceholderText="https://erp.example.com/service"
+                                 CornerRadius="{StaticResource RadiusMD}"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Provider Code"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                        <TextBox Text="{Binding ProviderCode, Mode=TwoWay}"
+                                 PlaceholderText="PROVIDER01"
+                                 CornerRadius="{StaticResource RadiusMD}"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                <ProgressBar Grid.Column="0"
+                             IsIndeterminate="True"
+                             IsVisible="{Binding IsSaving}"
+                             Height="4"
+                             VerticalAlignment="Center"
+                             Foreground="{StaticResource AccentBlueBrush}"/>
+
+                <Button Grid.Column="1"
+                        Content="ปิด"
+                        Command="{Binding CloseCommand}"
+                        Padding="18,8"
+                        CornerRadius="{StaticResource RadiusMD}"/>
+
+                <Button Grid.Column="2"
+                        Content="บันทึก"
+                        Command="{Binding SaveCommand}"
+                        Padding="18,8"
+                        CornerRadius="{StaticResource RadiusMD}"
+                        Background="{StaticResource AccentBlueBrush}"
+                        Foreground="White"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

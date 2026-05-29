@@ -1,50 +1,54 @@
+using BomApp.Application.Interfaces;
 using BomApp.Application.Interfaces.Repositories;
 using BomApp.Infrastructure.Auth;
+using BomApp.Infrastructure.Configuration;
 using BomApp.Infrastructure.Erp;
 using BomApp.Infrastructure.Persistence;
 using BomApp.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace BomApp.Infrastructure;
 
 /// <summary>
-/// Extension methods สำหรับลงทะเบียน Infrastructure layer services ใน DI container
+/// Extension methods for registering Infrastructure layer services.
 /// </summary>
 public static class DependencyInjection
 {
     /// <summary>
-    /// ลงทะเบียน Infrastructure services ทั้งหมด — DbContexts และ Repositories
-    /// เรียกใน Program.cs หรือ Startup
+    /// Registers Infrastructure services: runtime configuration, DbContexts, and repositories.
     /// </summary>
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddDbContext<BomDbContext>(options =>
+        services.TryAddSingleton<IRuntimeConfigurationService>(_ =>
+        {
+            var service = new RuntimeConfigurationService(configuration);
+            service.Load();
+            return service;
+        });
+
+        services.AddDbContext<BomDbContext>((sp, options) =>
             options.UseNpgsql(
-                configuration.GetConnectionString("erp-database"),
+                sp.GetRequiredService<IRuntimeConfigurationService>().GetConnectionString("erp-database"),
                 o => o.MigrationsHistoryTable("__EFMigrationsHistory", "public")));
 
-        // Authentication database — read-only
-        services.AddDbContext<AuthDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("authentication-database")));
+        services.AddDbContext<AuthDbContext>((sp, options) =>
+            options.UseNpgsql(sp.GetRequiredService<IRuntimeConfigurationService>().GetConnectionString("authentication-database")));
 
-        // ERP database — read-only
-        services.AddDbContext<ErpDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("erp-database")));
+        services.AddDbContext<ErpDbContext>((sp, options) =>
+            options.UseNpgsql(sp.GetRequiredService<IRuntimeConfigurationService>().GetConnectionString("erp-database")));
 
-        // BOM Repositories
         services.AddScoped<IBomRepository, BomRepository>();
         services.AddScoped<IBomAssignmentRepository, BomAssignmentRepository>();
         services.AddScoped<IProductionOrderRepository, ProductionOrderRepository>();
         services.AddScoped<IBomProductionRepository, BomProductionRepository>();
 
-        // Auth Repository
         services.AddScoped<IAuthRepository, AuthRepository>();
 
-        // ERP Repositories
         services.AddScoped<IErpItemRepository, ErpItemRepository>();
         services.AddScoped<IErpSalesOrderRepository, ErpSalesOrderRepository>();
         services.AddScoped<IErpProductionRepository, ErpProductionRepository>();

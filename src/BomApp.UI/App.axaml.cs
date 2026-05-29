@@ -38,15 +38,24 @@ public partial class App : Avalonia.Application
                 .Build();
 
             var services = new ServiceCollection();
+            services.AddSingleton<IConfiguration>(config);
             services.AddApplicationServices();
             services.AddInfrastructureServices(config);
             var sp = services.BuildServiceProvider();
 
             RegisterViewModels(NavigationService, sp);
 
-            var authRepo    = sp.GetRequiredService<IAuthRepository>();
-            var loginVm     = new LoginViewModel(NavigationService, authRepo);
+            var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+            var configService = sp.GetRequiredService<IRuntimeConfigurationService>();
+            var loginVm = new LoginViewModel(NavigationService, scopeFactory);
             var loginWindow = new LoginView { DataContext = loginVm };
+            loginVm.SettingsRequested += (_, _) =>
+            {
+                var settingsVm = new SettingsViewModel(configService);
+                var settingsWindow = new SettingsView { DataContext = settingsVm };
+                settingsVm.CloseRequested += (_, _) => settingsWindow.Close();
+                settingsWindow.ShowDialog(loginWindow);
+            };
 
             EventHandler<ViewModelBase>? handler = null;
             handler = (_, firstVm) =>

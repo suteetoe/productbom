@@ -1,19 +1,16 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using BomApp.Application.Interfaces.Repositories;
 using BomApp.UI.Services;
 using BomApp.UI.ViewModels.Bom;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BomApp.UI.ViewModels;
 
 public partial class LoginViewModel : ViewModelBase
 {
     private readonly INavigationService _navigation;
-    private readonly IAuthRepository _authRepo;
-
-    // ------------------------------------------------------------------ //
-    // Observable Properties                                                //
-    // ------------------------------------------------------------------ //
+    private readonly IServiceScopeFactory _scopeFactory;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]
@@ -35,10 +32,12 @@ public partial class LoginViewModel : ViewModelBase
 
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
-    public LoginViewModel(INavigationService navigation, IAuthRepository authRepo)
+    public event EventHandler? SettingsRequested;
+
+    public LoginViewModel(INavigationService navigation, IServiceScopeFactory scopeFactory)
     {
         _navigation = navigation;
-        _authRepo   = authRepo;
+        _scopeFactory = scopeFactory;
     }
 
     [RelayCommand(CanExecute = nameof(CanLogin))]
@@ -61,12 +60,15 @@ public partial class LoginViewModel : ViewModelBase
         IsLoading = true;
         try
         {
-            var user = await _authRepo.ValidateUserAsync(Username, Password);
+            using var scope = _scopeFactory.CreateScope();
+            var authRepo = scope.ServiceProvider.GetRequiredService<IAuthRepository>();
+            var user = await authRepo.ValidateUserAsync(Username, Password);
             if (user is null)
             {
                 ErrorMessage = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
                 return;
             }
+
             _navigation.NavigateTo<BomListViewModel>();
         }
         catch (Exception)
@@ -81,4 +83,10 @@ public partial class LoginViewModel : ViewModelBase
 
     private bool CanLogin() =>
         !string.IsNullOrWhiteSpace(Username) && !string.IsNullOrWhiteSpace(Password);
+
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        SettingsRequested?.Invoke(this, EventArgs.Empty);
+    }
 }
