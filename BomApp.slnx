@@ -7,6 +7,9 @@
     <Project Path="src/BomApp.Shared/BomApp.Shared.csproj" />
     <Project Path="src/BomApp.UI/BomApp.UI.csproj" />
   </Folder>
+  <Folder Name="/installer/">
+    <Project Path="installer/BomApp.Installer/BomApp.Installer.wixproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/BomApp.Tests.Fakes/BomApp.Tests.Fakes.csproj" />
     <Project Path="tests/BomApp.Tests.Integration/BomApp.Tests.Integration.csproj" />

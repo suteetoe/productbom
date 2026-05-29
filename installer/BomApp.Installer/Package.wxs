@@ -1,0 +1,54 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="BOM Production Calculator"
+    Manufacturer="BOM Production Calculator Team"
+    Version="$(var.ProductVersion)"
+    UpgradeCode="1cc8719f-4874-4144-a4e9-317f50735d4f"
+    Scope="perMachine">
+
+    <SummaryInformation Description="BOM Production Calculator installer" />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon.ico" SourceFile="$(var.RepoRoot)src\BomApp.UI\Assets\avalonia-logo.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="CompanyFolder" Name="BOM Production Calculator Team">
+        <Directory Id="INSTALLFOLDER" Name="BOM Production Calculator" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="BOM Production Calculator" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="BOM Production Calculator" Level="1">
+      <ComponentGroupRef Id="ApplicationPayload" />
+      <ComponentRef Id="ApplicationShortcutComponent" />
+    </Feature>
+
+    <ComponentGroup Id="ApplicationPayload" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)**">
+        <Exclude Files="$(var.PublishDir)**\*.pdb" />
+        <Exclude Files="$(var.PublishDir)**\*.xml" />
+      </Files>
+    </ComponentGroup>
+
+    <Component Id="ApplicationShortcutComponent" Directory="ApplicationProgramsFolder" Guid="f3a4a534-a090-42c9-ae1c-70083b07be99">
+      <Shortcut
+        Id="ApplicationStartMenuShortcut"
+        Name="BOM Production Calculator"
+        Description="Open BOM Production Calculator"
+        Target="[INSTALLFOLDER]BomApp.UI.exe"
+        WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\BOM Production Calculator"
+        Name="Installed"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+  </Package>
+</Wix>
