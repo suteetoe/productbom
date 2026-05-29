@@ -4,10 +4,11 @@
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
     <ProductVersion Condition="'$(ProductVersion)' == ''">1.0.0</ProductVersion>
     <PublishDir>$(MSBuildProjectDirectory)\..\..\artifacts\publish\BomApp.UI\$(RuntimeIdentifier)\</PublishDir>
+    <CliPublishDir>$(MSBuildProjectDirectory)\..\..\artifacts\publish\BomApp.Cli\$(RuntimeIdentifier)\</CliPublishDir>
     <InstallerPlatform>x64</InstallerPlatform>
     <OutputName>BomProductionCalculator-$(ProductVersion)-$(RuntimeIdentifier)</OutputName>
     <OutputPath>$(MSBuildProjectDirectory)\..\..\artifacts\installer\</OutputPath>
-    <DefineConstants>PublishDir=$(PublishDir);ProductVersion=$(ProductVersion);RepoRoot=$(MSBuildProjectDirectory)\..\..\</DefineConstants>
+    <DefineConstants>PublishDir=$(PublishDir);CliPublishDir=$(CliPublishDir);ProductVersion=$(ProductVersion);RepoRoot=$(MSBuildProjectDirectory)\..\..\</DefineConstants>
   </PropertyGroup>
 
   <Target Name="PublishBomApp" BeforeTargets="CoreCompile">
@@ -15,5 +16,9 @@
       Projects="$(MSBuildProjectDirectory)\..\..\src\BomApp.UI\BomApp.UI.csproj"
       Targets="Restore;Publish"
       Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=true;PublishSingleFile=false;PublishReadyToRun=true;PublishDir=$(PublishDir);DebugType=None;DebugSymbols=false" />
+    <MSBuild
+      Projects="$(MSBuildProjectDirectory)\..\..\src\BomApp.Cli\BomApp.Cli.csproj"
+      Targets="Restore;Publish"
+      Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=true;PublishSingleFile=false;PublishReadyToRun=true;PublishDir=$(CliPublishDir);DebugType=None;DebugSymbols=false" />
   </Target>
 </Project>

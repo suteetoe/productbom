@@ -14,7 +14,9 @@
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="CompanyFolder" Name="BOM Production Calculator Team">
-        <Directory Id="INSTALLFOLDER" Name="BOM Production Calculator" />
+        <Directory Id="INSTALLFOLDER" Name="BOM Production Calculator">
+          <Directory Id="CLIFOLDER" Name="Cli" />
+        </Directory>
       </Directory>
     </StandardDirectory>
 
@@ -24,13 +26,22 @@
 
     <Feature Id="MainFeature" Title="BOM Production Calculator" Level="1">
       <ComponentGroupRef Id="ApplicationPayload" />
+      <ComponentGroupRef Id="CliPayload" />
       <ComponentRef Id="ApplicationShortcutComponent" />
+      <ComponentRef Id="CliPathComponent" />
     </Feature>
 
     <ComponentGroup Id="ApplicationPayload" Directory="INSTALLFOLDER">
       <Files Include="$(var.PublishDir)**">
         <Exclude Files="$(var.PublishDir)**\*.pdb" />
         <Exclude Files="$(var.PublishDir)**\*.xml" />
+      </Files>
+    </ComponentGroup>
+
+    <ComponentGroup Id="CliPayload" Directory="CLIFOLDER">
+      <Files Include="$(var.CliPublishDir)**">
+        <Exclude Files="$(var.CliPublishDir)**\*.pdb" />
+        <Exclude Files="$(var.CliPublishDir)**\*.xml" />
       </Files>
     </ComponentGroup>
 
@@ -46,6 +57,23 @@
         Root="HKCU"
         Key="Software\BOM Production Calculator"
         Name="Installed"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+
+    <Component Id="CliPathComponent" Directory="CLIFOLDER" Guid="9e47c447-3a48-419b-a35e-4a3e91ff0ed1">
+      <Environment
+        Id="CliPath"
+        Name="PATH"
+        Value="[CLIFOLDER]"
+        Action="set"
+        Part="last"
+        System="yes" />
+      <RegistryValue
+        Root="HKLM"
+        Key="Software\BOM Production Calculator"
+        Name="CliPathConfigured"
         Type="integer"
         Value="1"
         KeyPath="yes" />

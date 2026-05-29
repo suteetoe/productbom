@@ -26,6 +26,51 @@
 > **หมายเหตุ**: `erp-database` connection เดียวรองรับทั้ง ERP read และ BOM write บน `public` schema
 > BOM tables ทุกตารางขึ้นต้นด้วย `bom_` เพื่อป้องกันชนกับ ERP tables
 
+### Runtime Configuration
+
+Application ต้องโหลด runtime configuration ตอนเปิดโปรแกรมก่อนสร้าง DbContext สำหรับใช้งานจริง และต้อง reload configuration หลังผู้ใช้บันทึกค่าจากหน้าจอ Settings
+
+| Setting | ใช้กับ | หมายเหตุ |
+|---|---|---|
+| Host | PostgreSQL host | ใช้ร่วมกันทั้ง `authentication-database` และ `erp-database` |
+| Port | PostgreSQL port | default `5432` |
+| Username | PostgreSQL username | ใช้ร่วมกันทั้ง `authentication-database` และ `erp-database` |
+| Password | PostgreSQL password | เก็บในไฟล์เป็น Base64 encoded string (`passwordBase64`) |
+| Authen Database Name | `authentication-database` | ใช้ตรวจ login จาก `sml_user_list` |
+| Database Name | `erp-database` | ใช้อ่าน ERP และเขียน BOM tables |
+| ERP Web Service URL | ERP web service endpoint | เก็บเป็น `erpWebServiceUrl` |
+| Provider Code | ERP/provider identifier | เก็บเป็น `providerCode` |
+
+Runtime config file:
+
+```text
+{ApplicationData}/BomApp/bomapp.settings.json
+```
+
+Platform mapping:
+
+| Platform | ตัวอย่าง path |
+|---|---|
+| Windows | `%AppData%\BomApp\bomapp.settings.json` |
+| macOS/Linux | path จาก `.NET Environment.SpecialFolder.ApplicationData` + `/BomApp/bomapp.settings.json` |
+
+JSON schema:
+
+```json
+{
+  "databaseConnection": {
+    "host": "192.168.2.212",
+    "port": 5432,
+    "username": "postgres",
+    "passwordBase64": "c21s",
+    "authDatabaseName": "smlerpmaindebug",
+    "databaseName": "productbom"
+  },
+  "erpWebServiceUrl": "https://erp.example.com/service",
+  "providerCode": "SML"
+}
+```
+
 ---
 
 ## 2. หน้าจอทั้งหมด (Screens)
@@ -36,7 +81,7 @@
 | Element | รายละเอียด |
 |---|---|
 | Input | Username (`user_code`), Password (`user_password`) |
-| Action | Login button, Remember me toggle |
+| Action | Login button, Remember me toggle, Settings icon button at bottom-left |
 | Validation | Required fields, แสดง error message ใต้ field |
 | On success | Navigate → สูตรการผลิต (BOM List) |
 | Auth method | ตรวจ `user_code` + `user_password` จาก `sml_user_list` และ `active_status = 1` |
@@ -54,6 +99,24 @@ WHERE user_code = @username
 **ViewModel**: `LoginViewModel`
 **Agent**: team-b-frontend
 **Auth table spec**: ดูรายละเอียดเต็มที่ `shared/auth-spec.md`
+
+---
+
+### 2.1a Settings
+**วัตถุประสงค์**: ตั้งค่า database connection และ ERP integration ก่อน login หรือเมื่อ connection เปลี่ยน โดยเปิดจาก Settings icon ที่มุมล่างซ้ายของหน้า Login
+
+| Element | รายละเอียด |
+|---|---|
+| Database Connection | Host, Port, Username, Password, Authen Database Name, Database Name |
+| ERP Integration | ERP Web Service URL, Provider Code |
+| Action | Save, Close |
+| Storage | บันทึกลง `{ApplicationData}/BomApp/bomapp.settings.json` |
+| Password storage | Password ต้อง encode เป็น Base64 ใน JSON field `passwordBase64` |
+| On save | Reload runtime configuration ทันที เพื่อให้ DbContext scope ใหม่ใช้ connection ล่าสุด |
+| On app start | Load runtime configuration ก่อน register/use database connections; ถ้าไม่มี runtime config ให้ fallback ไปที่ `appsettings.json` |
+
+**ViewModel**: `SettingsViewModel`  
+**Service**: `IRuntimeConfigurationService` / `RuntimeConfigurationService`
 
 ---
 

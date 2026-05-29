@@ -27,11 +27,26 @@ var rootCommand = new RootCommand("BOM Production Calculator CLI");
 // Define 'calculate' sub-command
 var calculateCommand = new Command("calculate", "คำนวณวัตถุดิบจากรายการขาย");
 
-var fromOption    = new Option<string>("--from",     "วันที่เริ่มต้น (yyyy-MM-dd)");
-var toOption      = new Option<string>("--to",       "วันที่สิ้นสุด (yyyy-MM-dd)");
-var modeOption    = new Option<string>("--mode",     "รูปแบบบันทึก: daily|per-document");
-var dryRunOption  = new Option<bool>  ("--dry-run",  "คำนวณแต่ไม่บันทึก");
-var outputOption  = new Option<string>("--output",   "csv|json|none");
+var fromOption = new Option<string>("--from")
+{
+    Description = "วันที่เริ่มต้น (yyyy-MM-dd)",
+};
+var toOption = new Option<string>("--to")
+{
+    Description = "วันที่สิ้นสุด (yyyy-MM-dd)",
+};
+var modeOption = new Option<string>("--mode")
+{
+    Description = "รูปแบบบันทึก: daily|per-document",
+};
+var dryRunOption = new Option<bool>("--dry-run")
+{
+    Description = "คำนวณแต่ไม่บันทึก",
+};
+var outputOption = new Option<string>("--output")
+{
+    Description = "csv|json|none",
+};
 
 calculateCommand.Add(fromOption);
 calculateCommand.Add(toOption);
