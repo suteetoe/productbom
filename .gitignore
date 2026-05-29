@@ -49,3 +49,4 @@ package-lock.json
 package.json
 .claude
 .codegraph/
+.kilocode
