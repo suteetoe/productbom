@@ -14,7 +14,8 @@ public class CalculateSalesProductionUseCase(
     IBomRepository bomRepository,
     IBomAssignmentRepository bomAssignmentRepository,
     IBomProductionRepository bomProductionRepository,
-    IErpProductionRepository erpProductionRepository)
+    IErpProductionRepository erpProductionRepository,
+    IErpStockRequestProcessor erpStockRequestProcessor)
     : ICalculateSalesProductionUseCase
 {
     private const int MaxBomDepth = 10;
@@ -121,57 +122,69 @@ public class CalculateSalesProductionUseCase(
         CancellationToken ct = default)
     {
         // คำนวณก่อนเสมอ
-        var calcResult = await CalculateAsync(request, ct);
-        if (!calcResult.IsSuccess)
-            return Result<IReadOnlyList<BomProductionDto>>.Failure(calcResult.Error!);
-
-        // ดึงรายการขายอีกครั้งเพื่อสร้างเอกสาร (ต้องการ doc grouping)
-        var transactions = await erpSalesOrderRepository
-            .GetSalesTransactionsByDateRangeAsync(request.DateFrom, request.DateTo, ct);
-
-        var allItemCodes = transactions.Select(t => t.ItemCode).Distinct().ToList();
-        var assignmentMap = await bomAssignmentRepository.GetAssignedItemCodesAsync(allItemCodes, ct);
-
-        var eligibleTransactions = transactions
-            .Where(t => assignmentMap.ContainsKey(t.ItemCode))
-            .ToList();
-
-        var createdDocuments = new List<BomProductionDto>();
-
-        if (request.Mode == SaveMode.Daily)
+        try
         {
-            // รวม 1 เอกสารต่อวัน
-            var byDate = eligibleTransactions.GroupBy(t => t.DocDate);
-            foreach (var dateGroup in byDate)
-            {
-                var document = await CreateBomProductionForGroupAsync(
-                    dateGroup.ToList(),
-                    docDate: dateGroup.Key,
-                    assignmentMap,
-                    ct);
+            var calcResult = await CalculateAsync(request, ct);
+            if (!calcResult.IsSuccess)
+                return Result<IReadOnlyList<BomProductionDto>>.Failure(calcResult.Error!);
 
-                if (document is not null)
-                    createdDocuments.Add(document);
+            // ดึงรายการขายอีกครั้งเพื่อสร้างเอกสาร (ต้องการ doc grouping)
+            var transactions = await erpSalesOrderRepository
+                .GetSalesTransactionsByDateRangeAsync(request.DateFrom, request.DateTo, ct);
+
+            var allItemCodes = transactions.Select(t => t.ItemCode).Distinct().ToList();
+            var assignmentMap = await bomAssignmentRepository.GetAssignedItemCodesAsync(allItemCodes, ct);
+
+            var eligibleTransactions = transactions
+                .Where(t => assignmentMap.ContainsKey(t.ItemCode))
+                .ToList();
+
+            var createdDocuments = new List<BomProductionDto>();
+
+            if (request.Mode == SaveMode.Daily)
+            {
+                // รวม 1 เอกสารต่อวัน
+                var byDate = eligibleTransactions.GroupBy(t => t.DocDate);
+                foreach (var dateGroup in byDate)
+                {
+                    var document = await CreateBomProductionForGroupAsync(
+                        dateGroup.ToList(),
+                        docDate: dateGroup.Key,
+                        assignmentMap,
+                        ct);
+
+                    if (document is not null)
+                        createdDocuments.Add(document);
+                }
             }
+            else // SaveMode.PerDocument
+            {
+                // แยกตามเลขเอกสารขาย
+                var byDocNo = eligibleTransactions.GroupBy(t => t.DocNo);
+                foreach (var docGroup in byDocNo)
+                {
+                    var document = await CreateBomProductionForGroupAsync(
+                        docGroup.ToList(),
+                        docDate: docGroup.First().DocDate,
+                        assignmentMap,
+                        ct);
+
+                    if (document is not null)
+                        createdDocuments.Add(document);
+                }
+            }
+
+            return Result<IReadOnlyList<BomProductionDto>>.Success(createdDocuments);
         }
-        else // SaveMode.PerDocument
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            // แยกตามเลขเอกสารขาย
-            var byDocNo = eligibleTransactions.GroupBy(t => t.DocNo);
-            foreach (var docGroup in byDocNo)
-            {
-                var document = await CreateBomProductionForGroupAsync(
-                    docGroup.ToList(),
-                    docDate: docGroup.First().DocDate,
-                    assignmentMap,
-                    ct);
-
-                if (document is not null)
-                    createdDocuments.Add(document);
-            }
+            throw;
         }
-
-        return Result<IReadOnlyList<BomProductionDto>>.Success(createdDocuments);
+        catch (Exception ex)
+        {
+            return Result<IReadOnlyList<BomProductionDto>>.Failure(
+                $"บันทึกเอกสารหรือสั่ง ERP ประมวลผลไม่สำเร็จ: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -254,6 +267,13 @@ public class CalculateSalesProductionUseCase(
 
         var document = await bomProductionRepository.CreateAsync(cmd, ct);
         await erpProductionRepository.SaveProductionDocumentAsync(document, ct);
+        await erpStockRequestProcessor.ProcessStockRequestAsync(
+            document.Details
+                .Select(d => d.ItemCode)
+                .Where(code => !string.IsNullOrWhiteSpace(code))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList(),
+            ct);
 
         return document;
     }

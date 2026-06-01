@@ -52,6 +52,8 @@ public static class DependencyInjection
         services.AddScoped<IErpItemRepository, ErpItemRepository>();
         services.AddScoped<IErpSalesOrderRepository, ErpSalesOrderRepository>();
         services.AddScoped<IErpProductionRepository, ErpProductionRepository>();
+        services.AddSingleton<HttpClient>();
+        services.AddScoped<IErpStockRequestProcessor, ErpStockRequestProcessor>();
 
         return services;
     }

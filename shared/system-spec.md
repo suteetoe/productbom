@@ -40,6 +40,7 @@ Application ต้องโหลด runtime configuration ตอนเปิด
 | Database Name | `erp-database` | ใช้อ่าน ERP และเขียน BOM tables |
 | ERP Web Service URL | ERP web service endpoint | เก็บเป็น `erpWebServiceUrl` |
 | Provider Code | ERP/provider identifier | เก็บเป็น `providerCode` |
+| ERP stock process endpoint | `processstockrequest` web service | ใช้ `erpWebServiceUrl`, `providerCode`, และ Database Name เพื่อสั่ง ERP ประมวลผล stock หลังบันทึกเอกสารผลิต |
 
 Runtime config file:
 
@@ -484,7 +485,7 @@ bom_boms (1) ──────────── (N) bom_lines
 | BOM ต้อง Active ก่อน assign | ห้าม assign BOM ที่ status = Draft หรือ Inactive |
 | Circular reference | ตรวจด้วย DFS ก่อน save bom_line ที่มี sub_bom_id |
 | 1 item = 1 BOM | UNIQUE constraint บน bom_assignments.item_code |
-| Production save process | เมื่อบันทึกผลการประมวลผลการขาย ให้สร้าง `bom_productions` header, เก็บรายการขายใน `bom_production_orders`, และเก็บรายการสินค้าที่ต้องใช้ใน `bom_production_details` |
+| Production save process | เมื่อบันทึกผลการประมวลผลการขาย ให้สร้าง `bom_productions` header, เก็บรายการขายใน `bom_production_orders`, และเก็บรายการสินค้าที่ต้องใช้ใน `bom_production_details`; หลังบันทึกเอกสารเข้า ERP แล้วต้อง POST ไปที่ ERP `processstockrequest` ด้วย item codes จาก `bom_production_details` |
 | Quantity > 0 | ทุก bom_line และ production_order ต้องมี quantity > 0 |
 
 ---
@@ -521,6 +522,11 @@ bom_boms (1) ──────────── (N) bom_lines
                    bom_production_details = รายการสินค้าที่ต้องใช้ของบิลขายนั้น
         ↓
 [bom_productions + bom_production_orders + bom_production_details] ← บันทึกลง PostgreSQL schema public
+        ↓
+[ErpProductionRepository] → บันทึกเอกสารเข้า ERP `ic_trans` + `ic_trans_detail`
+        ↓
+[IErpStockRequestProcessor] → POST `{erpWebServiceUrl}/SMLJavaWebService/rest/v1/processstockrequest`
+        payload = providerCode + databaseName + itemCode[] จาก material/detail item codes
 ```
 
 ---

@@ -6,8 +6,48 @@
 
 ## Connection
 - **Connection name**: `erp-database`
-- **เข้าถึงผ่าน**: Infrastructure layer เท่านั้น — ผ่าน `IErpItemRepository`, `IErpSalesOrderRepository`
+- **เข้าถึงผ่าน**: Infrastructure layer เท่านั้น — ผ่าน `IErpItemRepository`, `IErpSalesOrderRepository`, `IErpStockRequestProcessor`
 - **ห้าม**: Domain / Application layer reference connection นี้โดยตรง
+
+---
+
+## ERP Web Service
+
+### Process Stock Request
+
+ใช้หลังจากระบบบันทึก production issue document เข้า ERP แล้ว เพื่อสั่งให้ ERP ประมวลผล stock request ของรายการสินค้าที่เกี่ยวข้อง
+ก่อนเรียก endpoint นี้ `ErpProductionRepository` ต้องบันทึกเอกสารผลิตลง ERP tables `ic_trans` และ `ic_trans_detail` ให้สำเร็จก่อน โดยรายการใน `ic_trans_detail` ใช้ `trans_type = 3`, `trans_flag = 56`, และ `calc_flag = -1`
+
+```http
+POST {ERP Web Service URL}/SMLJavaWebService/rest/v1/processstockrequest
+Content-Type: application/json
+```
+
+Runtime settings ที่ใช้:
+
+| Field | Source |
+|---|---|
+| `providerCode` | `RuntimeAppSettings.ProviderCode` |
+| `databaseName` | `RuntimeAppSettings.DatabaseConnection.DatabaseName` |
+| `itemCode` | distinct `BomProductionDto.Details[].ItemCode` หลังบันทึกเอกสาร |
+
+Payload:
+
+```json
+{
+  "providerCode": "IMEXERPPOC",
+  "databaseName": "imexpocdata",
+  "itemCode": [
+    "04000-IS4HF",
+    "04000-IS6BB1"
+  ]
+}
+```
+
+Implementation contract:
+- Application layer เรียกผ่าน `IErpStockRequestProcessor` เท่านั้น
+- Infrastructure layer เป็นผู้ประกอบ URL, payload, และ HTTP POST
+- ถ้า ERP web service ตอบ non-success ให้ `SaveAsync` คืน `Result.Failure` เพื่อไม่ให้ plugin crash ERP host
 
 ---
 

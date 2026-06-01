@@ -18,6 +18,7 @@
 | `IAuthRepository` | Infrastructure | team-a-backend | อ่านจาก authentication-database |
 | `IErpItemRepository` | Infrastructure | team-c-integration | อ่านจาก erp-database |
 | `IErpSalesOrderRepository` | Infrastructure | team-c-integration | อ่านจาก erp-database |
+| `IErpStockRequestProcessor` | Infrastructure | team-c-integration | POST ERP process stock request หลังบันทึกเอกสารผลิต |
 
 ---
 
@@ -301,6 +302,23 @@ public interface IErpSalesOrderRepository
 
 ---
 
+### `IErpStockRequestProcessor`
+
+```csharp
+public interface IErpStockRequestProcessor
+{
+    /// <summary>
+    /// ส่งคำสั่งให้ ERP ประมวลผล stock request หลังจากบันทึกเอกสารผลิตเข้า ERP แล้ว
+    /// Infrastructure ต้องสร้าง payload: providerCode, databaseName, itemCode[]
+    /// </summary>
+    Task ProcessStockRequestAsync(
+        IReadOnlyList<string> itemCodes,
+        CancellationToken ct = default);
+}
+```
+
+---
+
 ## Fake Implementations (team-c-integration — สำหรับ unit test)
 
 ```csharp
@@ -327,3 +345,4 @@ public class FakeErpSalesOrderRepository : IErpSalesOrderRepository { ... }
 | 2026-04-17 | เพิ่ม `ICalculateSalesProductionUseCase` | team-a implement, ทั้ง UI + CLI ใช้ |
 | 2026-04-17 | เพิ่ม `IAuthRepository` | team-a implement |
 | 2026-04-17 | เพิ่ม `IBomAssignmentRepository`, `IProductionOrderRepository` | team-a implement |
+| 2026-06-01 | เพิ่ม `IErpStockRequestProcessor` สำหรับเรียก ERP `processstockrequest` หลัง save production document | team-c implement, team-a เรียกจาก use case |

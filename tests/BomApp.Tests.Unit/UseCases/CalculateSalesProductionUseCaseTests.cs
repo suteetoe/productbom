@@ -19,6 +19,18 @@ public class CalculateSalesProductionUseCaseTests
     private readonly Mock<IBomAssignmentRepository> _assignmentRepoMock = new();
     private readonly Mock<IBomProductionRepository> _bomProductionRepoMock = new();
     private readonly Mock<IErpProductionRepository> _erpProductionRepoMock = new();
+    private readonly Mock<IErpStockRequestProcessor> _erpStockRequestProcessorMock = new();
+
+    public CalculateSalesProductionUseCaseTests()
+    {
+        _erpProductionRepoMock
+            .Setup(r => r.SaveProductionDocumentAsync(It.IsAny<BomProductionDto>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _erpStockRequestProcessorMock
+            .Setup(r => r.ProcessStockRequestAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+    }
 
     [Fact]
     public async Task CalculateAsync_WhenItemsHaveActiveBom_ShouldReturnProductionResult()
@@ -347,6 +359,10 @@ public class CalculateSalesProductionUseCaseTests
             r => r.SaveProductionDocumentAsync(It.IsAny<BomProductionDto>(), It.IsAny<CancellationToken>()),
             Times.Never,
             "DryRun=true must not write to ERP");
+        _erpStockRequestProcessorMock.Verify(
+            r => r.ProcessStockRequestAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()),
+            Times.Never,
+            "DryRun=true must not request ERP stock processing");
     }
 
     [Fact]
@@ -396,6 +412,57 @@ public class CalculateSalesProductionUseCaseTests
         result.IsSuccess.Should().BeTrue();
         _erpProductionRepoMock.Verify(
             r => r.SaveProductionDocumentAsync(createdDocument, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task SaveAsync_WhenDocumentIsWrittenToErp_ShouldRequestStockProcessingForMaterialCodes()
+    {
+        var bomId = Guid.NewGuid();
+        var createdDocument = new BomProductionDto(
+            Id: Guid.NewGuid(),
+            DocDate: new DateOnly(2024, 1, 15),
+            DocNo: "BP-20240115-00001",
+            DocTime: new TimeOnly(9, 30, 0),
+            Orders: [],
+            Details:
+            [
+                new BomProductionDetailDto(Guid.NewGuid(), "BP-20240115-00001", "MAT-A", "Material A", 10m, "KG"),
+                new BomProductionDetailDto(Guid.NewGuid(), "BP-20240115-00001", "MAT-A", "Material A", 5m, "KG"),
+                new BomProductionDetailDto(Guid.NewGuid(), "BP-20240115-00001", "MAT-B", "Material B", 2m, "PCS")
+            ]);
+
+        _assignmentRepoMock
+            .Setup(r => r.GetAssignedItemCodesAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, Guid> { ["PROD-001"] = bomId });
+
+        _bomRepoMock
+            .Setup(r => r.GetByIdAsync(bomId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildMinimalBom(bomId, "PROD-001"));
+
+        _bomProductionRepoMock
+            .Setup(r => r.CreateAsync(It.IsAny<CreateBomProductionInternalCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(createdDocument);
+
+        var request = new CalculateSalesProductionRequest(
+            DateFrom: new DateOnly(2024, 1, 15),
+            DateTo: new DateOnly(2024, 1, 15),
+            Mode: SaveMode.Daily,
+            DryRun: false,
+            CreatedBy: "test-user",
+            CreatedVia: "UI"
+        );
+
+        var result = await BuildUseCase().SaveAsync(request);
+
+        result.IsSuccess.Should().BeTrue();
+        _erpStockRequestProcessorMock.Verify(
+            r => r.ProcessStockRequestAsync(
+                It.Is<IReadOnlyList<string>>(codes =>
+                    codes.Count == 2 &&
+                    codes.Contains("MAT-A") &&
+                    codes.Contains("MAT-B")),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -473,7 +540,8 @@ public class CalculateSalesProductionUseCaseTests
             _bomRepoMock.Object,
             _assignmentRepoMock.Object,
             _bomProductionRepoMock.Object,
-            _erpProductionRepoMock.Object
+            _erpProductionRepoMock.Object,
+            _erpStockRequestProcessorMock.Object
         );
     }
 

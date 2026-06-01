@@ -12,6 +12,7 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
 {
     private const short ProductionTransType = 3;
     private const short ProductionTransFlag = 56;
+    private const short CalculatedFlag = -1;
 
     public async Task SaveProductionDocumentAsync(
         BomProductionDto document,
@@ -70,7 +71,7 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
                     {docTime},
                     {document.DocDate},
                     {docTime},
-                    {1},
+                    {CalculatedFlag},
                     {document.DocNo},
                     {detail.ItemCode},
                     {detail.ItemName},

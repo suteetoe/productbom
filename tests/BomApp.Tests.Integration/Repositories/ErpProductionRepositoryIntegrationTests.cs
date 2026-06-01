@@ -82,6 +82,9 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
         var firstLineQty = await DbContext.Database
             .SqlQueryRaw<decimal>("SELECT qty AS \"Value\" FROM ic_trans_detail WHERE doc_no = 'BP-20240115-00001' AND line_number = 1")
             .SingleAsync();
+        var firstLineCalcFlag = await DbContext.Database
+            .SqlQueryRaw<short>("SELECT calc_flag AS \"Value\" FROM ic_trans_detail WHERE doc_no = 'BP-20240115-00001' AND line_number = 1")
+            .SingleAsync();
         var firstLineLocation = await DbContext.Database
             .SqlQueryRaw<string>("SELECT wh_code || '/' || shelf_code AS \"Value\" FROM ic_trans_detail WHERE doc_no = 'BP-20240115-00001' AND line_number = 1")
             .SingleAsync();
@@ -98,6 +101,7 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
         headerCount.Should().Be(1);
         detailCount.Should().Be(2);
         firstLineQty.Should().Be(12.5m);
+        firstLineCalcFlag.Should().Be(-1);
         firstLineLocation.Should().Be("WH-A/SH-01");
         headerDocTime.Should().Be("09:30");
         headerDocTime.Should().HaveLength(5);

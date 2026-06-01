@@ -378,6 +378,28 @@ Sprint 4 scope: real DI wiring (replace stubs), Login wired จริง, Naviga
 
 ---
 
+### [CTO] — ERP Process Stock Request After Production Save — 2026-06-01
+**สถานะ**: Done
+
+**Output**:
+- เพิ่ม `IErpStockRequestProcessor` ใน Application contract เพื่อซ่อนรายละเอียด ERP web service ไว้ใน Infrastructure
+- เพิ่ม `ErpStockRequestProcessor` สำหรับ POST ไปที่ `{erpWebServiceUrl}/SMLJavaWebService/rest/v1/processstockrequest`
+- Payload ใช้ `providerCode`, `databaseName`, และ distinct `itemCode[]` จาก `BomProductionDto.Details`
+- ปรับ `CalculateSalesProductionUseCase.SaveAsync` ให้เรียก stock processing หลัง `ErpProductionRepository.SaveProductionDocumentAsync`
+- ปรับ error handling ให้คืน `Result.Failure` เมื่อการบันทึกหรือการสั่ง ERP ประมวลผลไม่สำเร็จ เพื่อไม่ให้ plugin crash ERP host
+- อัปเดต `shared/system-spec.md`, `shared/erp-spec.md`, และ `shared/interfaces.md`
+
+**Test coverage**:
+- `dotnet test tests\BomApp.Tests.Unit\BomApp.Tests.Unit.csproj -p:OutputPath=D:\Source\productbom\.artifacts\unit-test-output\` → 20/20 pass
+- `dotnet test tests\BomApp.Tests.Integration\BomApp.Tests.Integration.csproj` → 23/23 pass
+- `dotnet test` ทั้ง solution ถูกบล็อกโดย process `BomApp.UI (60976)` ที่ล็อก DLL ใน output folder
+
+**ส่งให้ทีมอื่น**:
+- Team B: UI ไม่ต้องเรียก web service โดยตรง ใช้ `ICalculateSalesProductionUseCase.SaveAsync` เหมือนเดิม
+- Team C: ERP web service spec อยู่ใน `shared/erp-spec.md` และ implementation อยู่ใน `src/BomApp.Infrastructure/Erp/ErpStockRequestProcessor.cs`
+
+---
+
 ## Template สำหรับ Agent บันทึก Output
 
 ```
