@@ -8,7 +8,7 @@
         x:Class="BomApp.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="BOM Production Calculator"
+        Title="Smart BOM"
         Width="1200"
         Height="750"
         MinWidth="900"

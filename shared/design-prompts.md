@@ -1,4 +1,4 @@
-# Design Prompts — BOM Production Calculator
+# Design Prompts — Smart BOM
 > team-b-frontend ใช้ไฟล์นี้เป็น UI spec สำหรับ implement แต่ละ screen
 > หลัง implement แต่ละ screen ให้บันทึกใน `shared/design-tokens.md`
 
@@ -23,13 +23,13 @@ Language: Thai labels, English field names where appropriate.
 ## Screen 1 — Login (2.1)
 
 ```
-Design a desktop login screen for a Thai ERP plugin called "BOM Production Calculator".
+Design a desktop login screen for a Thai ERP plugin called "Smart BOM".
 
 Layout:
 - Centered card on a light gray background (#F8FAFC)
 - Card width: 400px, with subtle shadow and 8px border radius
 - App logo/icon at the top of the card
-- App title: "BOM Production Calculator" in Thai below the logo
+- App title: "Smart BOM" in Thai below the logo
 
 Form fields (top to bottom inside card):
 1. Label "ชื่อผู้ใช้" with text input (placeholder: "กรอกชื่อผู้ใช้")

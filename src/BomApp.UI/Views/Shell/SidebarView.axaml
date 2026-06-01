@@ -73,11 +73,11 @@
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <StackPanel Spacing="2">
-                <TextBlock Text="BOM"
+                <TextBlock Text="Smart BOM"
                            FontSize="{StaticResource FontSizeH2}"
                            FontWeight="Bold"
                            Foreground="{StaticResource AccentBlueBrush}"/>
-                <TextBlock Text="Production Calculator"
+                <TextBlock Text="BOM Management"
                            FontSize="{StaticResource FontSizeXS}"
                            Foreground="{StaticResource TextMutedBrush}"
                            TextWrapping="Wrap"/>

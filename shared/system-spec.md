@@ -1,4 +1,4 @@
-# System Specification — BOM Production Calculator
+# System Specification — Smart BOM
 > Single source of truth สำหรับ CTO และทุกทีม
 > อัปเดตทุกครั้งที่มีการเปลี่ยน scope — ต้องผ่าน CTO approve
 
@@ -6,7 +6,7 @@
 
 ## 1. ภาพรวมระบบ
 
-โปรแกรม **BOM Production Calculator** เป็น Avalonia desktop plugin
+โปรแกรม **Smart BOM** เป็น Avalonia desktop plugin
 ที่ embed อยู่ใน ERP โดยมีหน้าที่หลัก 3 อย่าง:
 
 1. **จัดการสูตรการผลิต (BOM)** — กำหนดว่าผลิตสินค้าหนึ่งชิ้นต้องใช้วัตถุดิบอะไร เท่าไหร่

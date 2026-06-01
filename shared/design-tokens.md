@@ -1,4 +1,4 @@
-# Design Tokens — BOM Production Calculator
+# Design Tokens — Smart BOM
 > Team B บันทึกค่า design tokens ที่นี่ เพื่อให้ทุก screen มี UI สม่ำเสมอ
 > ทุก screen ต้องใช้ค่าจากไฟล์นี้เท่านั้น — ห้าม hardcode ค่าใน AXAML โดยตรง
 

@@ -25,9 +25,6 @@ public partial class LoginViewModel : ViewModelBase
     private string _password = string.Empty;
 
     [ObservableProperty]
-    private bool _rememberMe;
-
-    [ObservableProperty]
     private bool _isLoading;
 
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);

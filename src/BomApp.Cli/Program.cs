@@ -22,7 +22,7 @@ services.AddInfrastructureServices(config);
 var sp = services.BuildServiceProvider();
 
 // Root command
-var rootCommand = new RootCommand("BOM Production Calculator CLI");
+var rootCommand = new RootCommand("Smart BOM CLI");
 
 // Define 'calculate' sub-command
 var calculateCommand = new Command("calculate", "คำนวณวัตถุดิบจากรายการขาย");

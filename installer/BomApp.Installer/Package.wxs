@@ -1,30 +1,30 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package
-    Name="BOM Production Calculator"
-    Manufacturer="BOM Production Calculator Team"
+    Name="Smart BOM"
+    Manufacturer="Smart BOM Team"
     Version="$(var.ProductVersion)"
     UpgradeCode="1cc8719f-4874-4144-a4e9-317f50735d4f"
     Scope="perMachine">
 
-    <SummaryInformation Description="BOM Production Calculator installer" />
+    <SummaryInformation Description="Smart BOM installer" />
     <MediaTemplate EmbedCab="yes" />
 
     <Icon Id="AppIcon.ico" SourceFile="$(var.RepoRoot)src\BomApp.UI\Assets\avalonia-logo.ico" />
     <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="CompanyFolder" Name="BOM Production Calculator Team">
-        <Directory Id="INSTALLFOLDER" Name="BOM Production Calculator">
+      <Directory Id="CompanyFolder" Name="Smart BOM Team">
+        <Directory Id="INSTALLFOLDER" Name="Smart BOM">
           <Directory Id="CLIFOLDER" Name="Cli" />
         </Directory>
       </Directory>
     </StandardDirectory>
 
     <StandardDirectory Id="ProgramMenuFolder">
-      <Directory Id="ApplicationProgramsFolder" Name="BOM Production Calculator" />
+      <Directory Id="ApplicationProgramsFolder" Name="Smart BOM" />
     </StandardDirectory>
 
-    <Feature Id="MainFeature" Title="BOM Production Calculator" Level="1">
+    <Feature Id="MainFeature" Title="Smart BOM" Level="1">
       <ComponentGroupRef Id="ApplicationPayload" />
       <ComponentGroupRef Id="CliPayload" />
       <ComponentRef Id="ApplicationShortcutComponent" />
@@ -48,14 +48,14 @@
     <Component Id="ApplicationShortcutComponent" Directory="ApplicationProgramsFolder" Guid="f3a4a534-a090-42c9-ae1c-70083b07be99">
       <Shortcut
         Id="ApplicationStartMenuShortcut"
-        Name="BOM Production Calculator"
-        Description="Open BOM Production Calculator"
+        Name="Smart BOM"
+        Description="Open Smart BOM"
         Target="[INSTALLFOLDER]BomApp.UI.exe"
         WorkingDirectory="INSTALLFOLDER" />
       <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
       <RegistryValue
         Root="HKCU"
-        Key="Software\BOM Production Calculator"
+        Key="Software\Smart BOM"
         Name="Installed"
         Type="integer"
         Value="1"
@@ -72,7 +72,7 @@
         System="yes" />
       <RegistryValue
         Root="HKLM"
-        Key="Software\BOM Production Calculator"
+        Key="Software\Smart BOM"
         Name="CliPathConfigured"
         Type="integer"
         Value="1"

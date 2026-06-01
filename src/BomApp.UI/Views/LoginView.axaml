@@ -6,7 +6,7 @@
         mc:Ignorable="d"
         x:Class="BomApp.UI.Views.LoginView"
         x:DataType="vm:LoginViewModel"
-        Title="BOM Production Calculator — เข้าสู่ระบบ"
+        Title="Smart BOM — เข้าสู่ระบบ"
         Width="420"
         Height="480"
         MinWidth="420"
@@ -56,7 +56,7 @@
                 <StackPanel HorizontalAlignment="Center"
                             Margin="{StaticResource SpaceLG}">
 
-                    <TextBlock Text="BOM Production Calculator"
+                    <TextBlock Text="Smart BOM"
                                FontSize="{StaticResource FontSizeH1}"
                                FontWeight="Bold"
                                Foreground="{StaticResource TextPrimaryBrush}"
@@ -112,12 +112,6 @@
                                  CornerRadius="{StaticResource RadiusMD}"
                                  FontSize="{StaticResource FontSizeBase}"/>
                     </StackPanel>
-
-                    <!-- Remember me -->
-                    <CheckBox Content="จดจำการเข้าสู่ระบบ"
-                              IsChecked="{Binding RememberMe, Mode=TwoWay}"
-                              FontSize="{StaticResource FontSizeBase}"
-                              Foreground="{StaticResource TextSecondaryBrush}"/>
 
                     <!-- Login button -->
                     <Button Content="เข้าสู่ระบบ"
