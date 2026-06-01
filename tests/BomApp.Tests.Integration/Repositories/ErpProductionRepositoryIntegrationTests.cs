@@ -37,8 +37,21 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
                 shelf_code VARCHAR(50) NOT NULL,
                 stand_value NUMERIC(18,6) NOT NULL,
                 divide_value NUMERIC(18,6) NOT NULL,
+                tax_type SMALLINT NOT NULL DEFAULT 0,
                 line_number INT NOT NULL
             )
+            """);
+
+        await DbContext.Database.ExecuteSqlRawAsync("""
+            INSERT INTO ic_inventory (code, name_1, unit_cost, tax_type)
+            VALUES ('MAT-A', 'ERP Material A', '', 7),
+                   ('MAT-B', 'ERP Material B', '', 8)
+            """);
+
+        await DbContext.Database.ExecuteSqlRawAsync("""
+            INSERT INTO ic_unit_use (code, ic_code, name_1, stand_value, divide_value, ratio, line_number)
+            VALUES ('KG', 'MAT-A', 'Kilogram', 1000, 1, 1, 1),
+                   ('PCS', 'MAT-B', 'Piece', 1, 12, 1, 2)
             """);
     }
 
@@ -78,6 +91,9 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
         var detailDocTime = await DbContext.Database
             .SqlQueryRaw<string>("SELECT doc_time || '/' || doc_time_calc AS \"Value\" FROM ic_trans_detail WHERE doc_no = 'BP-20240115-00001' AND line_number = 1")
             .SingleAsync();
+        var firstLineMasterData = await DbContext.Database
+            .SqlQueryRaw<string>("SELECT item_name || '/' || stand_value::text || '/' || divide_value::text || '/' || tax_type::text AS \"Value\" FROM ic_trans_detail WHERE doc_no = 'BP-20240115-00001' AND line_number = 1")
+            .SingleAsync();
 
         headerCount.Should().Be(1);
         detailCount.Should().Be(2);
@@ -86,6 +102,7 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
         headerDocTime.Should().Be("09:30");
         headerDocTime.Should().HaveLength(5);
         detailDocTime.Should().Be("09:30/09:30");
+        firstLineMasterData.Should().Be("ERP Material A/1000.000000/1.000000/7");
     }
 
     [Fact]
@@ -116,11 +133,12 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
                 shelf_code,
                 stand_value,
                 divide_value,
+                tax_type,
                 line_number
             )
-            VALUES (3, 56, DATE '2024-01-15', '09:30', DATE '2024-01-15', '09:30', 1, 'BP-20240115-00001', 'MAT-A', 'Material A', 'KG', 12.5, 'WH-A', 'SH-01', 1, 1, 1),
-                   (3, 56, DATE '2024-01-15', '09:30', DATE '2024-01-15', '09:30', 1, 'BP-20240115-00002', 'MAT-B', 'Material B', 'PCS', 3, 'WH-B', 'SH-02', 1, 1, 1),
-                   (3, 44, DATE '2024-01-15', '09:30', DATE '2024-01-15', '09:30', 1, 'BP-20240115-00001', 'MAT-C', 'Material C', 'PCS', 1, 'WH-C', 'SH-03', 1, 1, 1)
+            VALUES (3, 56, DATE '2024-01-15', '09:30', DATE '2024-01-15', '09:30', 1, 'BP-20240115-00001', 'MAT-A', 'Material A', 'KG', 12.5, 'WH-A', 'SH-01', 1, 1, 0, 1),
+                   (3, 56, DATE '2024-01-15', '09:30', DATE '2024-01-15', '09:30', 1, 'BP-20240115-00002', 'MAT-B', 'Material B', 'PCS', 3, 'WH-B', 'SH-02', 1, 1, 0, 1),
+                   (3, 44, DATE '2024-01-15', '09:30', DATE '2024-01-15', '09:30', 1, 'BP-20240115-00001', 'MAT-C', 'Material C', 'PCS', 1, 'WH-C', 'SH-03', 1, 1, 0, 1)
             """);
 
         var repo = new ErpProductionRepository(DbContext);

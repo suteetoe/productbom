@@ -32,7 +32,8 @@ public abstract class ErpDbIntegrationTestBase : IAsyncLifetime
             CREATE TABLE IF NOT EXISTS ic_inventory (
                 code      VARCHAR(25)  NOT NULL,
                 name_1    VARCHAR(255) NOT NULL,
-                unit_cost VARCHAR(25)  NOT NULL DEFAULT ''
+                unit_cost VARCHAR(25)  NOT NULL DEFAULT '',
+                tax_type  SMALLINT     NOT NULL DEFAULT 0
             )
             """);
 
@@ -72,6 +73,7 @@ public abstract class ErpDbIntegrationTestBase : IAsyncLifetime
                 unit_code VARCHAR(50) NOT NULL,
                 stand_value NUMERIC(18,6) NOT NULL DEFAULT 1,
                 divide_value NUMERIC(18,6) NOT NULL DEFAULT 1,
+                tax_type SMALLINT NOT NULL DEFAULT 0,
                 wh_code VARCHAR(50) NOT NULL DEFAULT '',
                 shelf_code VARCHAR(50) NOT NULL DEFAULT '',
                 line_number INT NOT NULL DEFAULT 0

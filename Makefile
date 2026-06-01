@@ -14,5 +14,7 @@ msi:
 
 migrate_db:
 	dotnet ef database update --project src/BomApp.Infrastructure/BomApp.Infrastructure.csproj --startup-project src/BomApp.Infrastructure/BomApp.Infrastructure.csproj --context BomDbContext 
-cli_run:
+cli_run_perdoc:
 	dotnet run --project src/BomApp.Cli/BomApp.Cli.csproj -- calculate --from 2026-05-01 --to 2026-05-29 --mode per-document
+cli_run_daily:
+	dotnet run --project src/BomApp.Cli/BomApp.Cli.csproj -- calculate --from 2026-04-01 --to 2026-05-29 --mode daily

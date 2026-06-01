@@ -85,7 +85,46 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
                 """, ct);
         }
 
+        await UpdateProductionDetailMasterDataAsync(document.DocNo, ct);
+
         await transaction.CommitAsync(ct);
+    }
+
+    private async Task UpdateProductionDetailMasterDataAsync(
+        string docNo,
+        CancellationToken ct)
+    {
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE ic_trans_detail
+            SET
+                item_name = (
+                    SELECT name_1
+                    FROM ic_inventory
+                    WHERE ic_inventory.code = ic_trans_detail.item_code
+                ),
+                stand_value = (
+                    SELECT stand_value
+                    FROM ic_unit_use
+                    WHERE ic_unit_use.code = ic_trans_detail.unit_code
+                      AND ic_unit_use.ic_code = ic_trans_detail.item_code
+                ),
+                divide_value = (
+                    SELECT divide_value
+                    FROM ic_unit_use
+                    WHERE ic_unit_use.code = ic_trans_detail.unit_code
+                      AND ic_unit_use.ic_code = ic_trans_detail.item_code
+                ),
+                doc_date_calc = doc_date,
+                doc_time_calc = doc_time,
+                tax_type = (
+                    SELECT tax_type
+                    FROM ic_inventory
+                    WHERE ic_inventory.code = ic_trans_detail.item_code
+                )
+            WHERE trans_type = {ProductionTransType}
+              AND trans_flag = {ProductionTransFlag}
+              AND doc_no = {docNo}
+            """, ct);
     }
 
     public async Task DeleteProductionDocumentAsync(
