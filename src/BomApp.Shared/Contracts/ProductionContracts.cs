@@ -38,6 +38,15 @@ public record BomProductionDto(
     IReadOnlyList<BomProductionDetailDto> Details
 );
 
+public record BomProductionListQuery(
+    DateOnly? DocDateFrom,
+    DateOnly? DocDateTo,
+    string? DocNo,
+    string? ItemCode,
+    int PageNumber,
+    int PageSize
+);
+
 /// <summary>Selected sales item stored in bom_production_orders.</summary>
 public record BomProductionOrderDto(
     Guid    Id,

@@ -22,6 +22,38 @@ public class ErpItemRepository(ErpDbContext context) : IErpItemRepository
         return rows.Select(r => new ErpItemDto(r.Code, r.Name1, r.UnitCost)).ToList();
     }
 
+    /// <summary>ดึงสินค้าจาก ic_inventory แบบแบ่งหน้า พร้อมค้นหา code/name_1</summary>
+    public async Task<PagedResult<ErpItemDto>> GetItemsPageAsync(
+        ErpItemListQuery query,
+        CancellationToken ct = default)
+    {
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Max(1, query.PageSize);
+
+        var itemsQuery = context.IcInventories.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(query.SearchText))
+        {
+            var searchText = query.SearchText.Trim().ToLower();
+            itemsQuery = itemsQuery.Where(i =>
+                i.Code.ToLower().Contains(searchText) ||
+                i.Name1.ToLower().Contains(searchText));
+        }
+
+        var totalCount = await itemsQuery.CountAsync(ct);
+        var rows = await itemsQuery
+            .OrderBy(i => i.Code)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(i => new { i.Code, i.Name1, i.UnitCost })
+            .ToListAsync(ct);
+
+        return new PagedResult<ErpItemDto>(
+            rows.Select(r => new ErpItemDto(r.Code, r.Name1, r.UnitCost)).ToList(),
+            totalCount,
+            pageNumber,
+            pageSize);
+    }
+
     /// <summary>ค้นหาสินค้าตาม code หรือ name_1 (case-insensitive)</summary>
     public async Task<IReadOnlyList<ErpItemDto>> SearchItemsAsync(
         string keyword,

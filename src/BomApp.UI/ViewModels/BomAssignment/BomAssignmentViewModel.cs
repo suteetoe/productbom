@@ -41,25 +41,68 @@ public partial class BomAssignmentViewModel : ViewModelBase
 
     [ObservableProperty] private string _errorMessage = string.Empty;
 
+    [ObservableProperty] private int _pageNumber = 1;
+
+    [ObservableProperty] private int _pageSize = 20;
+
+    [ObservableProperty] private int _totalCount;
+
+    [ObservableProperty] private int _totalPages = 1;
+
     /// <summary>Computed from ErrorMessage — drives error banner visibility.</summary>
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
     partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
 
-    /// <summary>Full list loaded from IErpItemRepository.</summary>
+    public bool CanGoPrevious => PageNumber > 1 && !IsLoading;
+
+    public bool CanGoNext => PageNumber < TotalPages && !IsLoading;
+
+    public string PageSummary => $"หน้า {PageNumber} / {TotalPages} ({TotalCount} รายการ)";
+
+    public IReadOnlyList<int> PageSizeOptions { get; } = [10, 20, 50, 100];
+
+    /// <summary>Current ERP item page loaded from IErpItemRepository.</summary>
     public ObservableCollection<ErpItemRow> ErpItems { get; } = new();
 
     /// <summary>
-    /// Client-side filter — searches ItemCode and ItemName (case-insensitive).
-    /// Re-evaluated whenever ItemSearchText changes.
+    /// Current page rows. Search is handled by the repository so the total count stays correct.
     /// </summary>
-    public IEnumerable<ErpItemRow> FilteredItems => string.IsNullOrWhiteSpace(ItemSearchText)
-        ? ErpItems
-        : ErpItems.Where(i =>
-            i.ItemCode.Contains(ItemSearchText, StringComparison.OrdinalIgnoreCase) ||
-            i.ItemName.Contains(ItemSearchText, StringComparison.OrdinalIgnoreCase));
+    public IEnumerable<ErpItemRow> FilteredItems => ErpItems;
 
-    partial void OnItemSearchTextChanged(string value) => OnPropertyChanged(nameof(FilteredItems));
+    partial void OnItemSearchTextChanged(string value)
+    {
+        PageNumber = 1;
+        _ = LoadAsync();
+    }
+
+    partial void OnIsLoadingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanGoPrevious));
+        OnPropertyChanged(nameof(CanGoNext));
+    }
+
+    partial void OnPageNumberChanged(int value)
+    {
+        OnPropertyChanged(nameof(CanGoPrevious));
+        OnPropertyChanged(nameof(CanGoNext));
+        OnPropertyChanged(nameof(PageSummary));
+    }
+
+    partial void OnPageSizeChanged(int value)
+    {
+        PageNumber = 1;
+        _ = LoadAsync();
+    }
+
+    partial void OnTotalCountChanged(int value) => OnPropertyChanged(nameof(PageSummary));
+
+    partial void OnTotalPagesChanged(int value)
+    {
+        OnPropertyChanged(nameof(CanGoPrevious));
+        OnPropertyChanged(nameof(CanGoNext));
+        OnPropertyChanged(nameof(PageSummary));
+    }
 
     // ── Right panel ─────────────────────────────────────────────────────────
 
@@ -136,7 +179,7 @@ public partial class BomAssignmentViewModel : ViewModelBase
     // ── Commands ─────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Loads ERP items and active BOMs in parallel.
+    /// Loads ERP item page and active BOMs in parallel.
     /// Assignment status is resolved lazily when a row is selected.
     /// </summary>
     [RelayCommand]
@@ -146,11 +189,11 @@ public partial class BomAssignmentViewModel : ViewModelBase
         ErrorMessage = string.Empty;
         try
         {
-            var itemsTask = _erpItemRepository.GetAllItemsAsync();
+            var itemsTask = _erpItemRepository.GetItemsPageAsync(new ErpItemListQuery(ItemSearchText, PageNumber, PageSize));
             var bomsTask  = _assignmentService.GetActiveBomsAsync();
             await Task.WhenAll(itemsTask, bomsTask);
 
-            var erpItems  = await itemsTask;
+            var erpItemsPage = await itemsTask;
             var bomsResult = await bomsTask;
 
             // Populate Active BOMs dropdown
@@ -158,12 +201,20 @@ public partial class BomAssignmentViewModel : ViewModelBase
             if (bomsResult.IsSuccess)
                 foreach (var b in bomsResult.Value!) ActiveBoms.Add(b);
 
+            TotalCount = erpItemsPage.TotalCount;
+            TotalPages = erpItemsPage.TotalPages;
+            PageNumber = Math.Min(erpItemsPage.PageNumber, TotalPages);
+            PageSize = erpItemsPage.PageSize;
+
             // Populate ERP items list; assignment status starts unknown (false)
             // and is resolved lazily when the user selects a row.
+            var previousItemCode = SelectedItem?.ItemCode;
+            SelectedItem = null;
             ErpItems.Clear();
-            foreach (var item in erpItems)
+            foreach (var item in erpItemsPage.Items)
                 ErpItems.Add(new ErpItemRow(item.Code, item.Name, null, false, null));
 
+            SelectedItem = ErpItems.FirstOrDefault(i => i.ItemCode == previousItemCode);
             OnPropertyChanged(nameof(FilteredItems));
         }
         finally
@@ -230,5 +281,25 @@ public partial class BomAssignmentViewModel : ViewModelBase
         {
             IsLoading = false;
         }
+    }
+
+    [RelayCommand]
+    private async Task PreviousPageAsync()
+    {
+        if (PageNumber <= 1)
+            return;
+
+        PageNumber--;
+        await LoadAsync();
+    }
+
+    [RelayCommand]
+    private async Task NextPageAsync()
+    {
+        if (PageNumber >= TotalPages)
+            return;
+
+        PageNumber++;
+        await LoadAsync();
     }
 }

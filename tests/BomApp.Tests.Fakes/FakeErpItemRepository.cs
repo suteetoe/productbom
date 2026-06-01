@@ -23,6 +23,26 @@ public class FakeErpItemRepository : IErpItemRepository
     public Task<IReadOnlyList<ErpItemDto>> GetAllItemsAsync(CancellationToken ct = default)
         => Task.FromResult<IReadOnlyList<ErpItemDto>>(_items.AsReadOnly());
 
+    public Task<PagedResult<ErpItemDto>> GetItemsPageAsync(ErpItemListQuery query, CancellationToken ct = default)
+    {
+        var filtered = string.IsNullOrWhiteSpace(query.SearchText)
+            ? _items
+            : _items
+                .Where(i => i.Code.Contains(query.SearchText, StringComparison.OrdinalIgnoreCase)
+                         || i.Name.Contains(query.SearchText, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Max(1, query.PageSize);
+        var pageItems = filtered
+            .OrderBy(i => i.Code)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return Task.FromResult(new PagedResult<ErpItemDto>(pageItems, filtered.Count, pageNumber, pageSize));
+    }
+
     public Task<IReadOnlyList<ErpItemDto>> SearchItemsAsync(string keyword, CancellationToken ct = default)
     {
         var result = _items

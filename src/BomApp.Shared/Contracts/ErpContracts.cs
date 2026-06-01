@@ -7,6 +7,12 @@ public record ErpItemDto(
     string  UnitCost   // ic_inventory.unit_cost
 );
 
+public record ErpItemListQuery(
+    string? SearchText,
+    int PageNumber,
+    int PageSize
+);
+
 /// <summary>หน่วยนับต่อสินค้าจาก ic_unit_use JOIN ic_unit</summary>
 public record ErpUnitDto(
     string   Code,          // ic_unit.code

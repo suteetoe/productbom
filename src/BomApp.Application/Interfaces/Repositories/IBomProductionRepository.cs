@@ -16,6 +16,11 @@ public interface IBomProductionRepository
         string? itemCode = null,
         CancellationToken ct = default);
 
+    /// <summary>ดึงเอกสารผลิตแบบแบ่งหน้า ตาม filter ที่ระบุ</summary>
+    Task<PagedResult<BomProductionDto>> GetPageAsync(
+        BomProductionListQuery query,
+        CancellationToken ct = default);
+
     /// <summary>ดึงเอกสารผลิตตามเลขที่เอกสาร</summary>
     Task<BomProductionDto?> GetByDocNoAsync(
         string docNo,

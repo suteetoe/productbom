@@ -20,15 +20,23 @@ public partial class ProductionListViewModel : ViewModelBase
     [ObservableProperty] private string _docNoSearch = string.Empty;
     [ObservableProperty] private string _itemSearch = string.Empty;
     [ObservableProperty] private BomProductionDto? _selectedDocument;
+    [ObservableProperty] private int _pageNumber = 1;
+    [ObservableProperty] private int _pageSize = 20;
+    [ObservableProperty] private int _totalCount;
+    [ObservableProperty] private int _totalPages = 1;
 
     public ObservableCollection<BomProductionDto> Documents { get; } = new();
     public ObservableCollection<BomProductionOrderDto> SelectedDocumentDetails { get; } = new();
     public ObservableCollection<BomProductionDetailDto> MaterialUsageRows { get; } = new();
+    public IReadOnlyList<int> PageSizeOptions { get; } = [10, 20, 50, 100];
 
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
     public bool HasDocuments => Documents.Count > 0;
     public bool HasSelectedDocument => SelectedDocument is not null;
     public int DocumentListColumnSpan => HasSelectedDocument ? 1 : 3;
+    public bool CanGoPrevious => PageNumber > 1 && !IsLoading;
+    public bool CanGoNext => PageNumber < TotalPages && !IsLoading;
+    public string PageSummary => $"หน้า {PageNumber} / {TotalPages} ({TotalCount} รายการ)";
 
     public ProductionListViewModel(IProductionService productionService, IDialogService dialogService)
     {
@@ -37,6 +45,34 @@ public partial class ProductionListViewModel : ViewModelBase
     }
 
     partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
+
+    partial void OnIsLoadingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanGoPrevious));
+        OnPropertyChanged(nameof(CanGoNext));
+    }
+
+    partial void OnPageNumberChanged(int value)
+    {
+        OnPropertyChanged(nameof(CanGoPrevious));
+        OnPropertyChanged(nameof(CanGoNext));
+        OnPropertyChanged(nameof(PageSummary));
+    }
+
+    partial void OnPageSizeChanged(int value)
+    {
+        PageNumber = 1;
+        _ = SearchAsync();
+    }
+
+    partial void OnTotalCountChanged(int value) => OnPropertyChanged(nameof(PageSummary));
+
+    partial void OnTotalPagesChanged(int value)
+    {
+        OnPropertyChanged(nameof(CanGoPrevious));
+        OnPropertyChanged(nameof(CanGoNext));
+        OnPropertyChanged(nameof(PageSummary));
+    }
 
     partial void OnSelectedDocumentChanged(BomProductionDto? value)
     {
@@ -57,6 +93,12 @@ public partial class ProductionListViewModel : ViewModelBase
     [RelayCommand]
     private async Task SearchAsync()
     {
+        PageNumber = 1;
+        await LoadPageAsync();
+    }
+
+    private async Task LoadPageAsync()
+    {
         IsLoading = true;
         ErrorMessage = string.Empty;
 
@@ -65,11 +107,13 @@ public partial class ProductionListViewModel : ViewModelBase
             var dateFrom = DateFrom.HasValue ? DateOnly.FromDateTime(DateFrom.Value.DateTime) : (DateOnly?)null;
             var dateTo = DateTo.HasValue ? DateOnly.FromDateTime(DateTo.Value.DateTime) : (DateOnly?)null;
 
-            var result = await _productionService.GetDocumentsAsync(
-                docDateFrom: dateFrom,
-                docDateTo: dateTo,
-                docNo: string.IsNullOrWhiteSpace(DocNoSearch) ? null : DocNoSearch,
-                itemCode: string.IsNullOrWhiteSpace(ItemSearch) ? null : ItemSearch);
+            var result = await _productionService.GetDocumentsPageAsync(new BomProductionListQuery(
+                DocDateFrom: dateFrom,
+                DocDateTo: dateTo,
+                DocNo: string.IsNullOrWhiteSpace(DocNoSearch) ? null : DocNoSearch,
+                ItemCode: string.IsNullOrWhiteSpace(ItemSearch) ? null : ItemSearch,
+                PageNumber: PageNumber,
+                PageSize: PageSize));
 
             Documents.Clear();
             SelectedDocument = null;
@@ -78,7 +122,13 @@ public partial class ProductionListViewModel : ViewModelBase
 
             if (result.IsSuccess)
             {
-                foreach (var document in result.Value!) Documents.Add(document);
+                var page = result.Value!;
+                TotalCount = page.TotalCount;
+                TotalPages = page.TotalPages;
+                PageNumber = Math.Min(page.PageNumber, TotalPages);
+                PageSize = page.PageSize;
+
+                foreach (var document in page.Items) Documents.Add(document);
                 OnPropertyChanged(nameof(HasDocuments));
             }
             else
@@ -128,6 +178,11 @@ public partial class ProductionListViewModel : ViewModelBase
             }
 
             OnPropertyChanged(nameof(HasDocuments));
+            TotalCount = Math.Max(0, TotalCount - 1);
+            if (Documents.Count == 0 && PageNumber > 1)
+                PageNumber--;
+
+            await LoadPageAsync();
         }
         finally
         {
@@ -153,5 +208,25 @@ public partial class ProductionListViewModel : ViewModelBase
         {
             ErrorMessage = orderResult.Error ?? detailResult.Error ?? "ไม่สามารถโหลดรายละเอียดเอกสารได้";
         }
+    }
+
+    [RelayCommand]
+    private async Task PreviousPageAsync()
+    {
+        if (PageNumber <= 1)
+            return;
+
+        PageNumber--;
+        await LoadPageAsync();
+    }
+
+    [RelayCommand]
+    private async Task NextPageAsync()
+    {
+        if (PageNumber >= TotalPages)
+            return;
+
+        PageNumber++;
+        await LoadPageAsync();
     }
 }

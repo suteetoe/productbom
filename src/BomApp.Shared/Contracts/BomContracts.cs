@@ -18,6 +18,22 @@ public record BomDto(
     IReadOnlyList<BomLineDto> Lines
 );
 
+public record BomListQuery(
+    string? SearchText,
+    int PageNumber,
+    int PageSize
+);
+
+public record PagedResult<T>(
+    IReadOnlyList<T> Items,
+    int TotalCount,
+    int PageNumber,
+    int PageSize
+)
+{
+    public int TotalPages => TotalCount == 0 ? 1 : (int)Math.Ceiling(TotalCount / (double)PageSize);
+}
+
 public record BomLineDto(
     Guid     Id,
     string   MaterialCode,            // ref ic_inventory.code

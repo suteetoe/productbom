@@ -46,6 +46,37 @@ public class BomProductionRepository(BomDbContext context) : IBomProductionRepos
         return productions.Select(MapToDto).ToList();
     }
 
+    public async Task<PagedResult<BomProductionDto>> GetPageAsync(
+        BomProductionListQuery query,
+        CancellationToken ct = default)
+    {
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Max(1, query.PageSize);
+
+        var productionsQuery = ApplyDocumentFilters(
+            context.BomProductions.AsNoTracking().AsQueryable(),
+            query.DocDateFrom,
+            query.DocDateTo,
+            query.DocNo,
+            query.ItemCode);
+
+        var totalCount = await productionsQuery.CountAsync(ct);
+        var productions = await productionsQuery
+            .Include(p => p.Orders)
+            .Include(p => p.Details)
+            .OrderByDescending(p => p.DocDate)
+            .ThenByDescending(p => p.DocNo)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return new PagedResult<BomProductionDto>(
+            productions.Select(MapToDto).ToList(),
+            totalCount,
+            pageNumber,
+            pageSize);
+    }
+
     public async Task<BomProductionDto?> GetByDocNoAsync(
         string docNo,
         CancellationToken ct = default)
@@ -163,6 +194,30 @@ public class BomProductionRepository(BomDbContext context) : IBomProductionRepos
         }
 
         return $"{prefix}{nextSeq:D5}";
+    }
+
+    private static IQueryable<BomProduction> ApplyDocumentFilters(
+        IQueryable<BomProduction> query,
+        DateOnly? docDateFrom,
+        DateOnly? docDateTo,
+        string? docNo,
+        string? itemCode)
+    {
+        if (docDateFrom.HasValue)
+            query = query.Where(p => p.DocDate >= docDateFrom.Value);
+
+        if (docDateTo.HasValue)
+            query = query.Where(p => p.DocDate <= docDateTo.Value);
+
+        if (!string.IsNullOrWhiteSpace(docNo))
+            query = query.Where(p => p.DocNo.Contains(docNo));
+
+        if (!string.IsNullOrWhiteSpace(itemCode))
+            query = query.Where(p =>
+                p.Orders.Any(o => o.ItemCode.Contains(itemCode)) ||
+                p.Details.Any(d => d.ItemCode.Contains(itemCode)));
+
+        return query;
     }
 
     private static BomProductionDto MapToDto(BomProduction production) => new(

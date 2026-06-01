@@ -22,6 +22,36 @@ public class BomRepository(BomDbContext context) : IBomRepository
         return boms.Select(MapToDto).ToList();
     }
 
+    /// <summary>ดึง BOM แบบแบ่งหน้า พร้อมค้นหาจาก code/name</summary>
+    public async Task<PagedResult<BomDto>> GetPageAsync(BomListQuery query, CancellationToken ct = default)
+    {
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Max(1, query.PageSize);
+
+        var bomsQuery = context.Boms.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(query.SearchText))
+        {
+            var searchText = query.SearchText.Trim().ToLower();
+            bomsQuery = bomsQuery.Where(b =>
+                b.Code.ToLower().Contains(searchText) ||
+                b.Name.ToLower().Contains(searchText));
+        }
+
+        var totalCount = await bomsQuery.CountAsync(ct);
+        var boms = await bomsQuery
+            .Include(b => b.Lines)
+            .OrderBy(b => b.Code)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return new PagedResult<BomDto>(
+            boms.Select(MapToDto).ToList(),
+            totalCount,
+            pageNumber,
+            pageSize);
+    }
+
     /// <summary>ดึง BOM ตาม Id พร้อม lines — คืน null ถ้าไม่พบ</summary>
     public async Task<BomDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {

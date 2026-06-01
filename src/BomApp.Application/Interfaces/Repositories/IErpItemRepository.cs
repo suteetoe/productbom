@@ -13,6 +13,11 @@ public interface IErpItemRepository
     Task<IReadOnlyList<ErpItemDto>> GetAllItemsAsync(
         CancellationToken ct = default);
 
+    /// <summary>ดึงสินค้าแบบแบ่งหน้า พร้อมค้นหาตาม code หรือ name_1</summary>
+    Task<PagedResult<ErpItemDto>> GetItemsPageAsync(
+        ErpItemListQuery query,
+        CancellationToken ct = default);
+
     /// <summary>ค้นหาสินค้าตาม code หรือ name_1</summary>
     Task<IReadOnlyList<ErpItemDto>> SearchItemsAsync(
         string keyword,

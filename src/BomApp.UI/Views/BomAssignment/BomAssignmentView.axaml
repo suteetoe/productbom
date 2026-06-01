@@ -97,7 +97,7 @@
                     BorderThickness="1"
                     CornerRadius="{StaticResource RadiusMD}">
 
-                <Grid RowDefinitions="Auto,Auto,*">
+                <Grid RowDefinitions="Auto,Auto,*,Auto">
 
                     <!-- Panel heading -->
                     <TextBlock Grid.Row="0"
@@ -107,13 +107,29 @@
                                Foreground="{StaticResource TextPrimaryBrush}"
                                Margin="{StaticResource PanelPadding}"/>
 
-                    <!-- Search box -->
-                    <TextBox Grid.Row="1"
-                             Text="{Binding ItemSearchText, Mode=TwoWay}"
-                             PlaceholderText="ค้นหา รหัส / ชื่อสินค้า"
-                             Margin="{StaticResource PanelPadding}"
-                             CornerRadius="{StaticResource RadiusMD}"
-                             FontSize="{StaticResource FontSizeBase}"/>
+                    <Grid Grid.Row="1"
+                          ColumnDefinitions="*,Auto,120"
+                          ColumnSpacing="8"
+                          Margin="{StaticResource PanelPadding}">
+                        <!-- Search box -->
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding ItemSearchText, Mode=TwoWay}"
+                                 PlaceholderText="ค้นหา รหัส / ชื่อสินค้า"
+                                 CornerRadius="{StaticResource RadiusMD}"
+                                 FontSize="{StaticResource FontSizeBase}"/>
+
+                        <TextBlock Grid.Column="1"
+                                   Text="ต่อหน้า"
+                                   FontSize="{StaticResource FontSizeSM}"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center"/>
+
+                        <ComboBox Grid.Column="2"
+                                  ItemsSource="{Binding PageSizeOptions}"
+                                  SelectedItem="{Binding PageSize, Mode=TwoWay}"
+                                  FontSize="{StaticResource FontSizeBase}"
+                                  CornerRadius="{StaticResource RadiusMD}"/>
+                    </Grid>
 
                     <!--
                         DataGrid: ERP item list
@@ -177,6 +193,36 @@
 
                         </DataGrid.Columns>
                     </DataGrid>
+
+                    <Border Grid.Row="3"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="0,1,0,0"
+                            Padding="{StaticResource SpaceSM}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding PageSummary}"
+                                       FontSize="{StaticResource FontSizeSM}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="8">
+                                <Button Content="ก่อนหน้า"
+                                        Command="{Binding PreviousPageCommand}"
+                                        IsEnabled="{Binding CanGoPrevious}"
+                                        FontSize="{StaticResource FontSizeSM}"
+                                        CornerRadius="{StaticResource RadiusSM}"
+                                        Padding="10,4"/>
+                                <Button Content="ถัดไป"
+                                        Command="{Binding NextPageCommand}"
+                                        IsEnabled="{Binding CanGoNext}"
+                                        FontSize="{StaticResource FontSizeSM}"
+                                        CornerRadius="{StaticResource RadiusSM}"
+                                        Padding="10,4"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
 

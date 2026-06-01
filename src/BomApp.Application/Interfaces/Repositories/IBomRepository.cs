@@ -11,6 +11,9 @@ public interface IBomRepository
     /// <summary>ดึง BOM ทั้งหมด</summary>
     Task<IReadOnlyList<BomDto>> GetAllAsync(CancellationToken ct = default);
 
+    /// <summary>ดึง BOM แบบแบ่งหน้า พร้อมค้นหาจาก code/name</summary>
+    Task<PagedResult<BomDto>> GetPageAsync(BomListQuery query, CancellationToken ct = default);
+
     /// <summary>ดึง BOM ตาม Id — คืน null ถ้าไม่พบ</summary>
     Task<BomDto?> GetByIdAsync(Guid id, CancellationToken ct = default);
 

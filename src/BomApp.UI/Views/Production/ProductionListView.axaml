@@ -21,7 +21,7 @@
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="1"
                 CornerRadius="{StaticResource RadiusMD}">
-            <Grid ColumnDefinitions="Auto,390,12,Auto,12,Auto"
+            <Grid ColumnDefinitions="Auto,390,12,Auto,12,Auto,12,Auto,120"
                   VerticalAlignment="Top">
                 <TextBlock Grid.Column="0"
                            Text="ข้อความค้นหา :"
@@ -64,6 +64,19 @@
                         CornerRadius="{StaticResource RadiusMD}"
                         FontSize="{StaticResource FontSizeBase}"
                         IsEnabled="{Binding SelectedDocument, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+
+                <TextBlock Grid.Column="7"
+                           Text="ต่อหน้า"
+                           FontSize="{StaticResource FontSizeSM}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"/>
+
+                <ComboBox Grid.Column="8"
+                          ItemsSource="{Binding PageSizeOptions}"
+                          SelectedItem="{Binding PageSize, Mode=TwoWay}"
+                          Height="34"
+                          CornerRadius="{StaticResource RadiusMD}"
+                          FontSize="{StaticResource FontSizeBase}"/>
             </Grid>
         </Border>
 
@@ -77,27 +90,60 @@
                     BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="{StaticResource RadiusMD}">
-                <DataGrid ItemsSource="{Binding Documents}"
-                          SelectedItem="{Binding SelectedDocument, Mode=TwoWay}"
-                          AutoGenerateColumns="False"
-                          CanUserSortColumns="True"
-                          IsReadOnly="True"
-                          SelectionMode="Single"
-                          GridLinesVisibility="Horizontal"
-                          HeadersVisibility="Column"
-                          BorderThickness="0"
-                          Background="{StaticResource SurfaceBrush}"
-                          RowHeight="{StaticResource DataGridRowHeight}"
-                          FontSize="{StaticResource FontSizeBase}">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="วันที่"
-                                            Binding="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}"
-                                            Width="160"/>
-                        <DataGridTextColumn Header="เลขที่เอกสาร"
-                                            Binding="{Binding DocNo}"
-                                            Width="*"/>
-                    </DataGrid.Columns>
-                </DataGrid>
+                <Grid RowDefinitions="*,Auto">
+                    <DataGrid Grid.Row="0"
+                              ItemsSource="{Binding Documents}"
+                              SelectedItem="{Binding SelectedDocument, Mode=TwoWay}"
+                              AutoGenerateColumns="False"
+                              CanUserSortColumns="True"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              GridLinesVisibility="Horizontal"
+                              HeadersVisibility="Column"
+                              BorderThickness="0"
+                              Background="{StaticResource SurfaceBrush}"
+                              RowHeight="{StaticResource DataGridRowHeight}"
+                              FontSize="{StaticResource FontSizeBase}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="วันที่"
+                                                Binding="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}"
+                                                Width="160"/>
+                            <DataGridTextColumn Header="เลขที่เอกสาร"
+                                                Binding="{Binding DocNo}"
+                                                Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <Border Grid.Row="1"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="0,1,0,0"
+                            Padding="{StaticResource SpaceSM}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding PageSummary}"
+                                       FontSize="{StaticResource FontSizeSM}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="8">
+                                <Button Content="ก่อนหน้า"
+                                        Command="{Binding PreviousPageCommand}"
+                                        IsEnabled="{Binding CanGoPrevious}"
+                                        FontSize="{StaticResource FontSizeSM}"
+                                        CornerRadius="{StaticResource RadiusSM}"
+                                        Padding="10,4"/>
+                                <Button Content="ถัดไป"
+                                        Command="{Binding NextPageCommand}"
+                                        IsEnabled="{Binding CanGoNext}"
+                                        FontSize="{StaticResource FontSizeSM}"
+                                        CornerRadius="{StaticResource RadiusSM}"
+                                        Padding="10,4"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
             </Border>
 
             <Border Grid.Column="2"

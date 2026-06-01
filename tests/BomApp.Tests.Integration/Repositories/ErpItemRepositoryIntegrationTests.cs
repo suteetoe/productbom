@@ -49,6 +49,32 @@ public class ErpItemRepositoryIntegrationTests : ErpDbIntegrationTestBase
     }
 
     [Fact]
+    public async Task GetItemsPageAsync_ReturnsRequestedPageAndTotalCount()
+    {
+        var repo = new ErpItemRepository(DbContext);
+
+        var result = await repo.GetItemsPageAsync(new(SearchText: null, PageNumber: 2, PageSize: 2));
+
+        result.TotalCount.Should().Be(3);
+        result.PageNumber.Should().Be(2);
+        result.PageSize.Should().Be(2);
+        result.Items.Should().ContainSingle();
+        result.Items[0].Code.Should().Be("MAT-001");
+    }
+
+    [Fact]
+    public async Task GetItemsPageAsync_WithSearchText_ReturnsFilteredTotalCount()
+    {
+        var repo = new ErpItemRepository(DbContext);
+
+        var result = await repo.GetItemsPageAsync(new(SearchText: "ITEM", PageNumber: 1, PageSize: 20));
+
+        result.TotalCount.Should().Be(2);
+        result.Items.Should().HaveCount(2);
+        result.Items.Should().AllSatisfy(r => r.Code.Should().Contain("ITEM"));
+    }
+
+    [Fact]
     public async Task SearchItemsAsync_ByName_ReturnsMatch()
     {
         var repo = new ErpItemRepository(DbContext);

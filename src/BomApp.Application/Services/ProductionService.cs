@@ -26,6 +26,21 @@ public class ProductionService(
         return Result<IReadOnlyList<BomProductionDto>>.Success(documents);
     }
 
+    /// <summary>ดึงเอกสารผลิตแบบแบ่งหน้า ตาม filter</summary>
+    public async Task<Result<PagedResult<BomProductionDto>>> GetDocumentsPageAsync(
+        BomProductionListQuery query,
+        CancellationToken ct = default)
+    {
+        if (query.PageNumber < 1)
+            return Result<PagedResult<BomProductionDto>>.Failure("เลขหน้าต้องมากกว่าหรือเท่ากับ 1");
+
+        if (query.PageSize < 1)
+            return Result<PagedResult<BomProductionDto>>.Failure("จำนวนรายการต่อหน้าต้องมากกว่าหรือเท่ากับ 1");
+
+        var page = await bomProductionRepository.GetPageAsync(query, ct);
+        return Result<PagedResult<BomProductionDto>>.Success(page);
+    }
+
     /// <summary>ดึงเอกสารผลิตตามเลขที่เอกสาร</summary>
     public async Task<Result<BomProductionDto>> GetDocumentByDocNoAsync(
         string docNo,

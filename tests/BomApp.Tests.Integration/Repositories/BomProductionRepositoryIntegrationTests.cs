@@ -94,6 +94,61 @@ public class BomProductionRepositoryIntegrationTests : BomDbIntegrationTestBase
     }
 
     [Fact]
+    public async Task GetPageAsync_ReturnsRequestedPageAndTotalCount()
+    {
+        var repo = new BomProductionRepository(DbContext);
+        await repo.CreateAsync(new CreateBomProductionInternalCommand(
+            DocDate: new DateOnly(2026, 5, 23),
+            DocTime: new TimeOnly(9, 15, 30),
+            Orders: [new("SI260523-00001", new DateOnly(2026, 5, 23), "PROD-001", 10m, "PCS")],
+            Details: [new("MAT-001", "Material 001", 20m, "KG")]));
+        var newer = await repo.CreateAsync(new CreateBomProductionInternalCommand(
+            DocDate: new DateOnly(2026, 5, 24),
+            DocTime: new TimeOnly(9, 15, 30),
+            Orders: [new("SI260524-00001", new DateOnly(2026, 5, 24), "PROD-002", 5m, "PCS")],
+            Details: [new("MAT-002", "Material 002", 5m, "PCS")]));
+
+        var page = await repo.GetPageAsync(new BomProductionListQuery(
+            DocDateFrom: null,
+            DocDateTo: null,
+            DocNo: null,
+            ItemCode: null,
+            PageNumber: 1,
+            PageSize: 1));
+
+        page.TotalCount.Should().Be(2);
+        page.TotalPages.Should().Be(2);
+        page.Items.Should().ContainSingle().Which.DocNo.Should().Be(newer.DocNo);
+    }
+
+    [Fact]
+    public async Task GetPageAsync_WhenFilteringByItemCode_ReturnsFilteredTotalCount()
+    {
+        var repo = new BomProductionRepository(DbContext);
+        var matching = await repo.CreateAsync(new CreateBomProductionInternalCommand(
+            DocDate: new DateOnly(2026, 5, 23),
+            DocTime: new TimeOnly(9, 15, 30),
+            Orders: [new("SI260523-00001", new DateOnly(2026, 5, 23), "PROD-001", 10m, "PCS")],
+            Details: [new("MAT-001", "Material 001", 20m, "KG")]));
+        await repo.CreateAsync(new CreateBomProductionInternalCommand(
+            DocDate: new DateOnly(2026, 5, 24),
+            DocTime: new TimeOnly(9, 15, 30),
+            Orders: [new("SI260524-00001", new DateOnly(2026, 5, 24), "PROD-002", 5m, "PCS")],
+            Details: [new("MAT-002", "Material 002", 5m, "PCS")]));
+
+        var page = await repo.GetPageAsync(new BomProductionListQuery(
+            DocDateFrom: null,
+            DocDateTo: null,
+            DocNo: null,
+            ItemCode: "PROD-001",
+            PageNumber: 1,
+            PageSize: 20));
+
+        page.TotalCount.Should().Be(1);
+        page.Items.Should().ContainSingle().Which.DocNo.Should().Be(matching.DocNo);
+    }
+
+    [Fact]
     public async Task DeleteByDocNoAsync_ShouldDeleteHeaderAndDetails()
     {
         // Arrange

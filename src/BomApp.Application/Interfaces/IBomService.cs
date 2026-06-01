@@ -12,6 +12,11 @@ public interface IBomService
     Task<Result<IReadOnlyList<BomDto>>> GetAllAsync(
         CancellationToken ct = default);
 
+    /// <summary>ดึง BOM แบบแบ่งหน้า พร้อมค้นหาจาก code/name</summary>
+    Task<Result<PagedResult<BomDto>>> GetPageAsync(
+        BomListQuery query,
+        CancellationToken ct = default);
+
     /// <summary>ดึง BOM ตาม Id</summary>
     Task<Result<BomDto>> GetByIdAsync(
         Guid id,

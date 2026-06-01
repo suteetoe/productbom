@@ -38,19 +38,36 @@ public partial class BomListViewModel : ViewModelBase
     [ObservableProperty]
     private string _errorMessage = string.Empty;
 
+    [ObservableProperty]
+    private int _pageNumber = 1;
+
+    [ObservableProperty]
+    private int _pageSize = 20;
+
+    [ObservableProperty]
+    private int _totalCount;
+
+    [ObservableProperty]
+    private int _totalPages = 1;
+
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+
+    public bool HasItems => Items.Count > 0;
+
+    public bool CanGoPrevious => PageNumber > 1 && !IsLoading;
+
+    public bool CanGoNext => PageNumber < TotalPages && !IsLoading;
+
+    public string PageSummary => $"หน้า {PageNumber} / {TotalPages} ({TotalCount} รายการ)";
 
     public ObservableCollection<BomDto> Items { get; } = new();
 
+    public IReadOnlyList<int> PageSizeOptions { get; } = [10, 20, 50, 100];
+
     /// <summary>
-    /// Filtered view — re-evaluated whenever SearchText changes.
-    /// Filters on Code and Name (case-insensitive).
+    /// Current page rows. Search is handled by the repository so the total count stays correct.
     /// </summary>
-    public IEnumerable<BomDto> FilteredItems => string.IsNullOrWhiteSpace(SearchText)
-        ? Items
-        : Items.Where(b =>
-            b.Code.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-            b.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
+    public IEnumerable<BomDto> FilteredItems => Items;
 
     public BomListViewModel(IBomService bomService, INavigationService navigation, IDialogService dialogService)
     {
@@ -59,16 +76,51 @@ public partial class BomListViewModel : ViewModelBase
         _dialogService = dialogService;
     }
 
-    /// <summary>Re-evaluate FilteredItems whenever SearchText changes.</summary>
-    partial void OnSearchTextChanged(string value) => OnPropertyChanged(nameof(FilteredItems));
+    /// <summary>Search starts again from the first page.</summary>
+    partial void OnSearchTextChanged(string value)
+    {
+        PageNumber = 1;
+        _ = LoadAsync();
+    }
 
     partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
+
+    partial void OnIsLoadingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanGoPrevious));
+        OnPropertyChanged(nameof(CanGoNext));
+    }
+
+    partial void OnPageNumberChanged(int value)
+    {
+        OnPropertyChanged(nameof(CanGoPrevious));
+        OnPropertyChanged(nameof(CanGoNext));
+        OnPropertyChanged(nameof(PageSummary));
+    }
+
+    partial void OnPageSizeChanged(int value)
+    {
+        PageNumber = 1;
+        _ = LoadAsync();
+    }
+
+    partial void OnTotalCountChanged(int value)
+    {
+        OnPropertyChanged(nameof(PageSummary));
+    }
+
+    partial void OnTotalPagesChanged(int value)
+    {
+        OnPropertyChanged(nameof(CanGoPrevious));
+        OnPropertyChanged(nameof(CanGoNext));
+        OnPropertyChanged(nameof(PageSummary));
+    }
 
     // ------------------------------------------------------------------ //
     // Commands                                                             //
     // ------------------------------------------------------------------ //
 
-    /// <summary>Load all BOMs from service. Called on View activation.</summary>
+    /// <summary>Load current BOM page from service. Called on View activation.</summary>
     [RelayCommand]
     private async Task LoadAsync()
     {
@@ -76,13 +128,20 @@ public partial class BomListViewModel : ViewModelBase
         ErrorMessage = string.Empty;
         try
         {
-            var result = await _bomService.GetAllAsync();
+            var result = await _bomService.GetPageAsync(new BomListQuery(SearchText, PageNumber, PageSize));
             Items.Clear();
             if (result.IsSuccess)
             {
-                foreach (var bom in result.Value!)
+                var page = result.Value!;
+                TotalCount = page.TotalCount;
+                TotalPages = page.TotalPages;
+                PageNumber = Math.Min(page.PageNumber, TotalPages);
+                PageSize = page.PageSize;
+
+                foreach (var bom in page.Items)
                     Items.Add(bom);
                 OnPropertyChanged(nameof(FilteredItems));
+                OnPropertyChanged(nameof(HasItems));
             }
             else
             {
@@ -123,6 +182,11 @@ public partial class BomListViewModel : ViewModelBase
         {
             Items.Remove(bom);
             OnPropertyChanged(nameof(FilteredItems));
+            OnPropertyChanged(nameof(HasItems));
+            TotalCount = Math.Max(0, TotalCount - 1);
+            if (Items.Count == 0 && PageNumber > 1)
+                PageNumber--;
+            await LoadAsync();
         }
         else
         {
@@ -150,5 +214,25 @@ public partial class BomListViewModel : ViewModelBase
             await LoadAsync();
         else
             ErrorMessage = result.Error ?? "ปิดใช้งานไม่สำเร็จ";
+    }
+
+    [RelayCommand]
+    private async Task PreviousPageAsync()
+    {
+        if (PageNumber <= 1)
+            return;
+
+        PageNumber--;
+        await LoadAsync();
+    }
+
+    [RelayCommand]
+    private async Task NextPageAsync()
+    {
+        if (PageNumber >= TotalPages)
+            return;
+
+        PageNumber++;
+        await LoadAsync();
     }
 }
