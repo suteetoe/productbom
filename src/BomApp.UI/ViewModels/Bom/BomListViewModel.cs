@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using BomApp.Application.Interfaces;
@@ -28,6 +27,7 @@ public partial class BomListViewModel : ViewModelBase
     private readonly IBomService _bomService;
     private readonly INavigationService _navigation;
     private readonly IDialogService _dialogService;
+    private IReadOnlyList<BomDto> _items = [];
 
     [ObservableProperty]
     private string _searchText = string.Empty;
@@ -60,14 +60,14 @@ public partial class BomListViewModel : ViewModelBase
 
     public string PageSummary => $"หน้า {PageNumber} / {TotalPages} ({TotalCount} รายการ)";
 
-    public ObservableCollection<BomDto> Items { get; } = new();
+    public IReadOnlyList<BomDto> Items => _items;
 
     public IReadOnlyList<int> PageSizeOptions { get; } = [10, 20, 50, 100];
 
     /// <summary>
     /// Current page rows. Search is handled by the repository so the total count stays correct.
     /// </summary>
-    public IEnumerable<BomDto> FilteredItems => Items;
+    public IEnumerable<BomDto> FilteredItems => _items;
 
     public BomListViewModel(IBomService bomService, INavigationService navigation, IDialogService dialogService)
     {
@@ -124,12 +124,14 @@ public partial class BomListViewModel : ViewModelBase
     [RelayCommand]
     private async Task LoadAsync()
     {
+        if (IsLoading)
+            return;
+
         IsLoading = true;
         ErrorMessage = string.Empty;
         try
         {
             var result = await _bomService.GetPageAsync(new BomListQuery(SearchText, PageNumber, PageSize));
-            Items.Clear();
             if (result.IsSuccess)
             {
                 var page = result.Value!;
@@ -138,10 +140,7 @@ public partial class BomListViewModel : ViewModelBase
                 PageNumber = Math.Min(page.PageNumber, TotalPages);
                 PageSize = page.PageSize;
 
-                foreach (var bom in page.Items)
-                    Items.Add(bom);
-                OnPropertyChanged(nameof(FilteredItems));
-                OnPropertyChanged(nameof(HasItems));
+                ReplaceItems(page.Items);
             }
             else
             {
@@ -152,6 +151,14 @@ public partial class BomListViewModel : ViewModelBase
         {
             IsLoading = false;
         }
+    }
+
+    private void ReplaceItems(IEnumerable<BomDto> items)
+    {
+        _items = items.ToList();
+        OnPropertyChanged(nameof(Items));
+        OnPropertyChanged(nameof(FilteredItems));
+        OnPropertyChanged(nameof(HasItems));
     }
 
     /// <summary>Navigate to BOM Editor in create-new mode.</summary>
@@ -180,9 +187,7 @@ public partial class BomListViewModel : ViewModelBase
         var result = await _bomService.DeleteAsync(bom.Id);
         if (result.IsSuccess)
         {
-            Items.Remove(bom);
-            OnPropertyChanged(nameof(FilteredItems));
-            OnPropertyChanged(nameof(HasItems));
+            ReplaceItems(_items.Where(item => item.Id != bom.Id));
             TotalCount = Math.Max(0, TotalCount - 1);
             if (Items.Count == 0 && PageNumber > 1)
                 PageNumber--;

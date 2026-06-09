@@ -9,31 +9,18 @@
              x:Class="BomApp.UI.Views.Bom.BomListView"
              x:DataType="vm:BomListViewModel">
 
-    <!-- Converters declared as local resources -->
     <UserControl.Resources>
         <conv:BomStatusToBrushConverter x:Key="StatusToBrush"/>
     </UserControl.Resources>
 
-    <!--
-        Layout:
-          Row 0 — Toolbar (title + "สร้างสูตรใหม่" button)  [Auto]
-          Row 1 — Search + error band                         [Auto]
-          Row 2 — DataGrid / Empty state / Loading overlay    [*]
-    -->
     <Grid RowDefinitions="Auto,Auto,*,Auto">
-
-        <!-- ============================================================ -->
-        <!-- Row 0 — Toolbar                                               -->
-        <!-- ============================================================ -->
         <Border Grid.Row="0"
                 Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1"
                 Padding="{StaticResource PanelPadding}"
                 Height="{StaticResource ToolbarHeight}">
-
             <Grid ColumnDefinitions="*,Auto">
-
                 <TextBlock Grid.Column="0"
                            Text="สูตรการผลิต"
                            FontSize="{StaticResource FontSizeH2}"
@@ -49,19 +36,14 @@
                         FontSize="{StaticResource FontSizeBase}"
                         CornerRadius="{StaticResource RadiusMD}"
                         Padding="{StaticResource SpaceSM}"
-                        VerticalAlignment="Center"></Button>
+                        VerticalAlignment="Center"/>
             </Grid>
         </Border>
 
-        <!-- ============================================================ -->
-        <!-- Row 1 — Search bar + error message                            -->
-        <!-- ============================================================ -->
         <StackPanel Grid.Row="1"
                     Margin="{StaticResource PanelPadding}"
                     Spacing="8">
-
             <Grid ColumnDefinitions="*,Auto,120" ColumnSpacing="8">
-                <!-- Search box -->
                 <TextBox Grid.Column="0"
                          Text="{Binding SearchText, Mode=TwoWay}"
                          PlaceholderText="ค้นหา รหัส / ชื่อสูตร"
@@ -81,7 +63,6 @@
                           CornerRadius="{StaticResource RadiusMD}"/>
             </Grid>
 
-            <!-- Error message — shown only when HasError=true -->
             <Border Background="#FEF2F2"
                     BorderBrush="{StaticResource DangerBrush}"
                     BorderThickness="1"
@@ -95,155 +76,59 @@
             </Border>
         </StackPanel>
 
-        <!-- ============================================================ -->
-        <!-- Row 2 — DataGrid + Empty state + Loading overlay              -->
-        <!-- ============================================================ -->
         <Grid Grid.Row="2" Margin="{StaticResource SpaceLG}">
+            <Border BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusSM}"
+                    Background="{StaticResource SurfaceBrush}">
+                <DockPanel LastChildFill="True">
+                    <Border DockPanel.Dock="Top"
+                            Background="{StaticResource SurfaceSecondaryBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="0,0,0,1"
+                            Padding="8,6">
+                        <Grid ColumnDefinitions="120,*,140,70,100,120,220" ColumnSpacing="8">
+                            <TextBlock Grid.Column="0" Text="รหัสสูตร" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock Grid.Column="1" Text="ชื่อสูตร" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock Grid.Column="2" Text="สินค้า" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock Grid.Column="3" Text="เวอร์ชัน" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock Grid.Column="4" Text="สถานะ" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBlock Grid.Column="5" Text="แก้ไขล่าสุด" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </Grid>
+                    </Border>
 
-            <!-- Empty state — shown when no items after load and not loading -->
-            <StackPanel HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Spacing="8"
-                        IsVisible="{Binding IsLoading, Converter={x:Static BoolConverters.Not}}">
-                <StackPanel.IsVisible>
-                    <!-- Show when NOT loading AND no filtered items -->
-                    <!-- Use a simple binding; we show/hide the DataGrid for items present -->
-                </StackPanel.IsVisible>
-            </StackPanel>
-
-            <!--
-                DataGrid — BOM list
-                Bindings:
-                  ItemsSource  → FilteredItems (computed from Items + SearchText)
-                  RowHeight    → DataGridRowHeight token (36px)
-
-                Action column buttons bind through $parent[UserControl].DataContext
-                to reach BomListViewModel commands from inside DataTemplate scope.
-            -->
-            <DataGrid ItemsSource="{Binding FilteredItems}"
-                      AutoGenerateColumns="False"
-                      CanUserSortColumns="True"
-                      IsReadOnly="True"
-                      RowHeight="{StaticResource DataGridRowHeight}"
-                      GridLinesVisibility="Horizontal"
-                      BorderBrush="{StaticResource BorderBrush}"
-                      BorderThickness="1"
-                      CornerRadius="{StaticResource RadiusSM}"
-                      FontSize="{StaticResource FontSizeBase}"
-                      Background="{StaticResource SurfaceBrush}">
-
-                <DataGrid.Columns>
-
-                    <!-- รหัสสูตร (Code) -->
-                    <DataGridTextColumn Header="รหัสสูตร"
-                                       Binding="{Binding Code}"
-                                       Width="120"/>
-
-                    <!-- ชื่อสูตร (Name) -->
-                    <DataGridTextColumn Header="ชื่อสูตร"
-                                       Binding="{Binding Name}"
-                                       Width="*"/>
-
-                    <!-- สินค้า (ItemCode) -->
-                    <DataGridTextColumn Header="สินค้า"
-                                       Binding="{Binding ItemCode}"
-                                       Width="140"/>
-
-                    <!-- เวอร์ชัน (Version) -->
-                    <DataGridTextColumn Header="เวอร์ชัน"
-                                       Binding="{Binding Version}"
-                                       Width="70"/>
-
-                    <!-- สถานะ — colored badge via BomStatusToBrushConverter -->
-                    <DataGridTemplateColumn Header="สถานะ" Width="100">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate x:DataType="contracts:BomDto">
-                                <Border CornerRadius="{StaticResource RadiusSM}"
-                                        Padding="6,2"
-                                        Background="Transparent"
-                                        HorizontalAlignment="Left"
-                                        VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Status}"
-                                               FontSize="{StaticResource FontSizeSM}"
-                                               FontWeight="SemiBold"
-                                               Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
-                                </Border>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-
-                    <!-- แก้ไขล่าสุด (UpdatedAt) -->
-                    <DataGridTextColumn Header="แก้ไขล่าสุด"
-                                       Binding="{Binding UpdatedAt, StringFormat='{}{0:dd/MM/yyyy}'}"
-                                       Width="120"/>
-
-                    <!-- Actions column — Edit / Activate / Deactivate / Delete -->
-                    <DataGridTemplateColumn Header="" Width="220">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal"
-                                            Spacing="4"
-                                            VerticalAlignment="Center"
-                                            Margin="{StaticResource SpaceXS}">
-
-                                    <!-- แก้ไข -->
-                                    <Button Content="แก้ไข"
-                                            FontSize="{StaticResource FontSizeSM}"
-                                            Padding="6,2"
-                                            CornerRadius="{StaticResource RadiusSM}"
-                                            Command="{Binding $parent[UserControl].((vm:BomListViewModel)DataContext).EditCommand}"
-                                            CommandParameter="{Binding}"/>
-
-                                    <!-- เปิดใช้งาน — shown only for non-Active status -->
-                                    <Button Content="เปิดใช้งาน"
-                                            FontSize="{StaticResource FontSizeSM}"
-                                            Padding="6,2"
-                                            CornerRadius="{StaticResource RadiusSM}"
-                                            Foreground="{StaticResource SuccessBrush}"
-                                            Command="{Binding $parent[UserControl].((vm:BomListViewModel)DataContext).ActivateCommand}"
-                                            CommandParameter="{Binding}"/>
-
-                                    <!-- ปิดใช้งาน — shown only for Active status -->
-                                    <Button Content="ปิดใช้งาน"
-                                            FontSize="{StaticResource FontSizeSM}"
-                                            Padding="6,2"
-                                            CornerRadius="{StaticResource RadiusSM}"
-                                            Foreground="{StaticResource WarningBrush}"
-                                            Command="{Binding $parent[UserControl].((vm:BomListViewModel)DataContext).DeactivateCommand}"
-                                            CommandParameter="{Binding}"/>
-
-                                    <!-- ลบ -->
-                                    <Button Content="ลบ"
-                                            FontSize="{StaticResource FontSizeSM}"
-                                            Padding="6,2"
-                                            CornerRadius="{StaticResource RadiusSM}"
-                                            Foreground="{StaticResource DangerBrush}"
-                                            Command="{Binding $parent[UserControl].((vm:BomListViewModel)DataContext).DeleteCommand}"
-                                            CommandParameter="{Binding}"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-
-                </DataGrid.Columns>
-            </DataGrid>
-
-            <!-- Empty state placeholder — centered when DataGrid is empty and not loading -->
-            <StackPanel HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Spacing="8"
-                        IsVisible="{Binding IsLoading, Converter={x:Static BoolConverters.Not}}">
-                <!-- IsVisible toggled via code-behind is avoided; use simple visibility from Items count.
-                     Avalonia compiled bindings do not support negated collection-count comparisons inline,
-                     so the empty-state overlay relies on the DataGrid being transparent over it.
-                     The DataGrid hides naturally when FilteredItems is empty. -->
-            </StackPanel>
-
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Items}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="contracts:BomDto">
+                                    <Border BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="8,5"
+                                            MinHeight="{StaticResource DataGridRowHeight}">
+                                        <Grid ColumnDefinitions="120,*,140,70,100,120,220" ColumnSpacing="8">
+                                            <TextBlock Grid.Column="0" Text="{Binding Code}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding ItemCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding Version}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="4" Text="{Binding Status}" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{Binding Status, Converter={StaticResource StatusToBrush}}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="5" Text="{Binding UpdatedAt, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                            <StackPanel Grid.Column="6" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <Button Content="แก้ไข" FontSize="{StaticResource FontSizeSM}" Padding="6,2" CornerRadius="{StaticResource RadiusSM}" Command="{Binding ((vm:BomListViewModel)DataContext).EditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <Button Content="เปิดใช้งาน" FontSize="{StaticResource FontSizeSM}" Padding="6,2" CornerRadius="{StaticResource RadiusSM}" Foreground="{StaticResource SuccessBrush}" Command="{Binding ((vm:BomListViewModel)DataContext).ActivateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <Button Content="ปิดใช้งาน" FontSize="{StaticResource FontSizeSM}" Padding="6,2" CornerRadius="{StaticResource RadiusSM}" Foreground="{StaticResource WarningBrush}" Command="{Binding ((vm:BomListViewModel)DataContext).DeactivateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                <Button Content="ลบ" FontSize="{StaticResource FontSizeSM}" Padding="6,2" CornerRadius="{StaticResource RadiusSM}" Foreground="{StaticResource DangerBrush}" Command="{Binding ((vm:BomListViewModel)DataContext).DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
         </Grid>
 
-        <!-- ============================================================ -->
-        <!-- Loading overlay — spans Row 2 only                            -->
-        <!-- ============================================================ -->
         <Border Grid.Row="2"
                 IsVisible="{Binding IsLoading}"
                 Background="#B3FFFFFF">
@@ -291,6 +176,5 @@
                 </StackPanel>
             </Grid>
         </Border>
-
     </Grid>
 </UserControl>
