@@ -175,17 +175,18 @@
                                                 Padding="6,2"
                                                 HorizontalAlignment="Left"
                                                 VerticalAlignment="Center">
-                                            <TextBlock FontSize="{StaticResource FontSizeSM}"
-                                                       FontWeight="SemiBold">
-                                                <!-- "มี BOM" when assigned -->
-                                                <TextBlock.IsVisible>
-                                                    <!-- relies on DataGrid row context -->
-                                                </TextBlock.IsVisible>
-                                                <Run Text="{Binding IsAssigned, StringFormat={}{0}}"
-                                                     Foreground="{Binding IsAssigned,
-                                                         Converter={x:Static BoolConverters.Not},
-                                                         ConverterParameter=NA}"/>
-                                            </TextBlock>
+                                            <Grid>
+                                                <TextBlock Text="มี BOM"
+                                                           FontSize="{StaticResource FontSizeSM}"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{StaticResource SuccessBrush}"
+                                                           IsVisible="{Binding IsAssigned}"/>
+                                                <TextBlock Text="-"
+                                                           FontSize="{StaticResource FontSizeSM}"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{StaticResource TextMutedBrush}"
+                                                           IsVisible="{Binding IsAssigned, Converter={x:Static BoolConverters.Not}}"/>
+                                            </Grid>
                                         </Border>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -278,7 +279,7 @@
                             CornerRadius="{StaticResource RadiusMD}"
                             Padding="{StaticResource SpaceMD}"
                             IsVisible="{Binding HasAssignment}">
-                        <StackPanel Spacing="6">
+                        <StackPanel Spacing="10">
 
                             <TextBlock Text="สูตรการผลิตที่กำหนด"
                                        FontSize="{StaticResource FontSizeSM}"
@@ -288,18 +289,110 @@
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource TextPrimaryBrush}">
                                 <Run Text="{Binding AssignedBom.Code}"/>
-                                <Run Text=" — "/>
-                                <Run Text="{Binding AssignedBom.Name}"/>
-                            </TextBlock>
+                                 <Run Text=" — "/>
+                                 <Run Text="{Binding AssignedBom.Name}"/>
+                             </TextBlock>
 
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="สถานะ:"
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                                  ColumnDefinitions="120,*"
+                                  RowSpacing="6"
+                                  ColumnSpacing="8">
+                                <TextBlock Grid.Row="0"
+                                           Grid.Column="0"
+                                           Text="สถานะ"
                                            FontSize="{StaticResource FontSizeSM}"
                                            Foreground="{StaticResource TextSecondaryBrush}"/>
-                                <TextBlock Text="{Binding AssignedBom.Status}"
+                                <TextBlock Grid.Row="0"
+                                           Grid.Column="1"
+                                           Text="{Binding AssignedBom.Status}"
                                            FontSize="{StaticResource FontSizeSM}"
                                            FontWeight="SemiBold"
                                            Foreground="{StaticResource SuccessBrush}"/>
+
+                                <TextBlock Grid.Row="1"
+                                           Grid.Column="0"
+                                           Text="เวอร์ชัน"
+                                           FontSize="{StaticResource FontSizeSM}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Row="1"
+                                           Grid.Column="1"
+                                           Text="{Binding AssignedBom.Version}"
+                                           FontSize="{StaticResource FontSizeSM}"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                                <TextBlock Grid.Row="2"
+                                           Grid.Column="0"
+                                           Text="ผลิตได้"
+                                           FontSize="{StaticResource FontSizeSM}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Row="2"
+                                           Grid.Column="1"
+                                           FontSize="{StaticResource FontSizeSM}"
+                                           Foreground="{StaticResource TextPrimaryBrush}">
+                                    <Run Text="{Binding AssignedBom.YieldQuantity}"/>
+                                    <Run Text=" "/>
+                                    <Run Text="{Binding AssignedBom.YieldUnit}"/>
+                                </TextBlock>
+
+                                <TextBlock Grid.Row="3"
+                                           Grid.Column="0"
+                                           Text="สินค้าที่ผลิต"
+                                           FontSize="{StaticResource FontSizeSM}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Row="3"
+                                           Grid.Column="1"
+                                           FontSize="{StaticResource FontSizeSM}"
+                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           TextWrapping="Wrap">
+                                    <Run Text="{Binding AssignedBom.ItemCode}"/>
+                                    <Run Text=" — "/>
+                                    <Run Text="{Binding AssignedBom.ItemName}"/>
+                                </TextBlock>
+
+                                <TextBlock Grid.Row="4"
+                                           Grid.Column="0"
+                                           Text="คำอธิบาย"
+                                           FontSize="{StaticResource FontSizeSM}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Row="4"
+                                           Grid.Column="1"
+                                           Text="{Binding AssignedBom.Description}"
+                                           FontSize="{StaticResource FontSizeSM}"
+                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           TextWrapping="Wrap"/>
+                            </Grid>
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="รายการวัตถุดิบในสูตร"
+                                           FontSize="{StaticResource FontSizeSM}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                                <ItemsControl ItemsSource="{Binding AssignedBom.Lines}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid ColumnDefinitions="*,Auto"
+                                                  ColumnSpacing="8"
+                                                  Margin="0,0,0,4">
+                                                <TextBlock Grid.Column="0"
+                                                           FontSize="{StaticResource FontSizeSM}"
+                                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                                           TextWrapping="Wrap">
+                                                    <Run Text="{Binding MaterialCode}"/>
+                                                    <Run Text=" — "/>
+                                                    <Run Text="{Binding MaterialName}"/>
+                                                </TextBlock>
+                                                <TextBlock Grid.Column="1"
+                                                           FontSize="{StaticResource FontSizeSM}"
+                                                           Foreground="{StaticResource TextSecondaryBrush}">
+                                                    <Run Text="{Binding Quantity}"/>
+                                                    <Run Text=" "/>
+                                                    <Run Text="{Binding Unit}"/>
+                                                </TextBlock>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </StackPanel>
                     </Border>

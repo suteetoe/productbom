@@ -31,6 +31,14 @@ public class BomAssignmentService(
         return Result<BomDto?>.Success(bom);
     }
 
+    public async Task<Result<IReadOnlyDictionary<string, Guid>>> GetAssignedItemCodesAsync(
+        IReadOnlyList<string> itemCodes,
+        CancellationToken ct = default)
+    {
+        var assignments = await assignmentRepository.GetAssignedItemCodesAsync(itemCodes, ct);
+        return Result<IReadOnlyDictionary<string, Guid>>.Success(assignments);
+    }
+
     /// <summary>
     /// ผูก bomId กับ itemCode — ตรวจสอบว่า BOM status = Active ก่อน assign
     /// Override assignment เดิม (UPSERT)

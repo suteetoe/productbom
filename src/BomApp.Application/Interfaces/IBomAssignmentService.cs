@@ -15,6 +15,11 @@ public interface IBomAssignmentService
     /// <summary>Returns the BOM currently assigned to itemCode, or null if none assigned</summary>
     Task<Result<BomDto?>> GetAssignedBomAsync(string itemCode, CancellationToken ct = default);
 
+    /// <summary>Returns assigned BOM ids for the requested item codes.</summary>
+    Task<Result<IReadOnlyDictionary<string, Guid>>> GetAssignedItemCodesAsync(
+        IReadOnlyList<string> itemCodes,
+        CancellationToken ct = default);
+
     /// <summary>
     /// Assigns bomId to itemCode — validates BOM status = Active before assigning.
     /// Overrides any existing assignment (UPSERT via IBomAssignmentRepository.AssignAsync).

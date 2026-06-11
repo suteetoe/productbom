@@ -164,7 +164,9 @@ public partial class BomAssignmentViewModel : ViewModelBase
         }
 
         var result = await _assignmentService.GetAssignedBomAsync(row.ItemCode);
-        AssignedBom = result.IsSuccess ? result.Value : null;
+        AssignedBom = result.IsSuccess && result.Value is not null
+            ? await HydrateBomLineMaterialNamesAsync(result.Value)
+            : null;
 
         SelectedBomToAssign = AssignedBom is not null
             ? ActiveBoms.FirstOrDefault(b => b.Id == AssignedBom.Id)
@@ -174,6 +176,30 @@ public partial class BomAssignmentViewModel : ViewModelBase
         // never loses the selected item reference and focus stays put.
         row.IsAssigned = AssignedBom is not null;
         row.AssignedBomId = AssignedBom?.Id;
+    }
+
+    private async Task<BomDto> HydrateBomLineMaterialNamesAsync(BomDto bom)
+    {
+        if (bom.Lines.All(line => !string.IsNullOrWhiteSpace(line.MaterialName)))
+            return bom;
+
+        var hydratedLines = new List<BomLineDto>(bom.Lines.Count);
+        foreach (var line in bom.Lines)
+        {
+            if (!string.IsNullOrWhiteSpace(line.MaterialName))
+            {
+                hydratedLines.Add(line);
+                continue;
+            }
+
+            var erpItem = await _erpItemRepository.GetItemByCodeAsync(line.MaterialCode);
+            hydratedLines.Add(line with
+            {
+                MaterialName = erpItem?.Name ?? line.MaterialCode
+            });
+        }
+
+        return bom with { Lines = hydratedLines };
     }
 
     // ── Commands ─────────────────────────────────────────────────────────────
@@ -195,6 +221,11 @@ public partial class BomAssignmentViewModel : ViewModelBase
 
             var erpItemsPage = await itemsTask;
             var bomsResult = await bomsTask;
+            var itemCodes = erpItemsPage.Items.Select(item => item.Code).ToList();
+            var assignmentsResult = await _assignmentService.GetAssignedItemCodesAsync(itemCodes);
+            var assignmentMap = assignmentsResult.IsSuccess && assignmentsResult.Value is not null
+                ? assignmentsResult.Value
+                : new Dictionary<string, Guid>();
 
             // Populate Active BOMs dropdown
             ActiveBoms.Clear();
@@ -206,13 +237,20 @@ public partial class BomAssignmentViewModel : ViewModelBase
             PageNumber = Math.Min(erpItemsPage.PageNumber, TotalPages);
             PageSize = erpItemsPage.PageSize;
 
-            // Populate ERP items list; assignment status starts unknown (false)
-            // and is resolved lazily when the user selects a row.
+            // Populate ERP items list with the current assignment status for the page.
             var previousItemCode = SelectedItem?.ItemCode;
             SelectedItem = null;
             ErpItems.Clear();
             foreach (var item in erpItemsPage.Items)
-                ErpItems.Add(new ErpItemRow(item.Code, item.Name, null, false, null));
+            {
+                assignmentMap.TryGetValue(item.Code, out var assignedBomId);
+                ErpItems.Add(new ErpItemRow(
+                    item.Code,
+                    item.Name,
+                    null,
+                    assignedBomId != Guid.Empty,
+                    assignedBomId == Guid.Empty ? null : assignedBomId));
+            }
 
             SelectedItem = ErpItems.FirstOrDefault(i => i.ItemCode == previousItemCode);
             OnPropertyChanged(nameof(FilteredItems));

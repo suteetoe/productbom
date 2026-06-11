@@ -34,6 +34,34 @@ public class BomAssignmentViewModelTests
     }
 
     [Fact]
+    public async Task LoadCommand_WhenItemHasAssignment_MarksItemAsAssigned()
+    {
+        var bomId = Guid.NewGuid();
+        var item = new ErpItemDto("ITEM-001", "Item 001", "0");
+        var erpRepo = new Mock<IErpItemRepository>();
+        erpRepo
+            .Setup(r => r.GetItemsPageAsync(
+                It.IsAny<ErpItemListQuery>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResult<ErpItemDto>([item], 1, 1, 20));
+        var assignmentService = BuildAssignmentService();
+        assignmentService
+            .Setup(s => s.GetAssignedItemCodesAsync(
+                It.Is<IReadOnlyList<string>>(codes => codes.SequenceEqual(new[] { "ITEM-001" })),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyDictionary<string, Guid>>.Success(
+                new Dictionary<string, Guid> { ["ITEM-001"] = bomId }));
+
+        var vm = new BomAssignmentViewModel(assignmentService.Object, erpRepo.Object);
+
+        await vm.LoadCommand.ExecuteAsync(null);
+
+        var row = vm.ErpItems.Should().ContainSingle().Subject;
+        row.IsAssigned.Should().BeTrue();
+        row.AssignedBomId.Should().Be(bomId);
+    }
+
+    [Fact]
     public async Task NextPageCommand_WhenMorePages_LoadsNextErpItemPage()
     {
         var firstPageItem = new ErpItemDto("ITEM-001", "Item 001", "0");
@@ -83,12 +111,71 @@ public class BomAssignmentViewModelTests
         vm.ErpItems.Should().ContainSingle().Which.ItemCode.Should().Be("FILTERED-001");
     }
 
+    [Fact]
+    public async Task AssignBomCommand_WhenBomLineMaterialNameIsBlank_LoadsMaterialNameFromErp()
+    {
+        var bomId = Guid.NewGuid();
+        var assignedBom = new BomDto(
+            Id: bomId,
+            Code: "BOM-001",
+            Name: "Formula 001",
+            Description: null,
+            ItemCode: "ITEM-001",
+            ItemName: "Item 001",
+            YieldQuantity: 1m,
+            YieldUnit: "PCS",
+            Version: 1,
+            Status: "Active",
+            CreatedAt: DateTime.UtcNow,
+            UpdatedAt: DateTime.UtcNow,
+            CreatedBy: "test",
+            Lines:
+            [
+                new BomLineDto(
+                    Id: Guid.NewGuid(),
+                    MaterialCode: "MAT-001",
+                    MaterialName: string.Empty,
+                    Quantity: 2m,
+                    Unit: "KG",
+                    SubBomId: null,
+                    SortOrder: 1,
+                    Notes: null)
+            ]);
+        var erpRepo = new Mock<IErpItemRepository>();
+        erpRepo
+            .Setup(r => r.GetItemByCodeAsync("MAT-001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ErpItemDto("MAT-001", "Material 001", "0"));
+        var assignmentService = BuildAssignmentService();
+        assignmentService
+            .Setup(s => s.AssignAsync("ITEM-001", "Item 001", bomId, "current-user", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+        assignmentService
+            .Setup(s => s.GetAssignedBomAsync("ITEM-001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<BomDto?>.Success(assignedBom));
+        var vm = new BomAssignmentViewModel(assignmentService.Object, erpRepo.Object)
+        {
+            SelectedItem = new ErpItemRow("ITEM-001", "Item 001", null, false, null),
+            SelectedBomToAssign = assignedBom
+        };
+
+        await vm.AssignBomCommand.ExecuteAsync(null);
+
+        vm.AssignedBom.Should().NotBeNull();
+        vm.AssignedBom!.Lines.Single().MaterialName.Should().Be("Material 001");
+    }
+
     private static Mock<IBomAssignmentService> BuildAssignmentService()
     {
         var assignmentService = new Mock<IBomAssignmentService>();
         assignmentService
             .Setup(s => s.GetActiveBomsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<IReadOnlyList<BomDto>>.Success([]));
+        assignmentService
+            .Setup(s => s.GetAssignedItemCodesAsync(
+                It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<IReadOnlyDictionary<string, Guid>>.Success(
+                new Dictionary<string, Guid>()));
         return assignmentService;
     }
 }
