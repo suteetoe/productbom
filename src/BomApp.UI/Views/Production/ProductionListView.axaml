@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:BomApp.UI.ViewModels.Production"
+             xmlns:contracts="using:BomApp.Shared.Contracts"
              x:Class="BomApp.UI.Views.Production.ProductionListView"
              x:DataType="vm:ProductionListViewModel">
 
@@ -91,28 +92,44 @@
                     BorderThickness="1"
                     CornerRadius="{StaticResource RadiusMD}">
                 <Grid RowDefinitions="*,Auto">
-                    <DataGrid Grid.Row="0"
-                              ItemsSource="{Binding Documents}"
-                              SelectedItem="{Binding SelectedDocument, Mode=TwoWay}"
-                              AutoGenerateColumns="False"
-                              CanUserSortColumns="True"
-                              IsReadOnly="True"
-                              SelectionMode="Single"
-                              GridLinesVisibility="Horizontal"
-                              HeadersVisibility="Column"
-                              BorderThickness="0"
-                              Background="{StaticResource SurfaceBrush}"
-                              RowHeight="{StaticResource DataGridRowHeight}"
-                              FontSize="{StaticResource FontSizeBase}">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="วันที่"
-                                                Binding="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}"
-                                                Width="160"/>
-                            <DataGridTextColumn Header="เลขที่เอกสาร"
-                                                Binding="{Binding DocNo}"
-                                                Width="*"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <DockPanel Grid.Row="0" LastChildFill="True">
+                        <Border DockPanel.Dock="Top"
+                                Background="{StaticResource SurfaceSecondaryBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="0,0,0,1"
+                                Padding="8,6">
+                            <Grid ColumnDefinitions="160,*" ColumnSpacing="8">
+                                <TextBlock Grid.Column="0" Text="&#x0E27;&#x0E31;&#x0E19;&#x0E17;&#x0E35;&#x0E48;" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="1" Text="&#x0E40;&#x0E25;&#x0E02;&#x0E17;&#x0E35;&#x0E48;&#x0E40;&#x0E2D;&#x0E01;&#x0E2A;&#x0E32;&#x0E23;" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </Grid>
+                        </Border>
+
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding Documents}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="contracts:BomProductionDto">
+                                        <Button Command="{Binding ((vm:ProductionListViewModel)DataContext).SelectDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="0"
+                                                HorizontalContentAlignment="Stretch">
+                                            <Border BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="0,0,0,1"
+                                                    Padding="8,5"
+                                                    MinHeight="{StaticResource DataGridRowHeight}">
+                                                <Grid ColumnDefinitions="160,*" ColumnSpacing="8">
+                                                    <TextBlock Grid.Column="0" Text="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding DocNo}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
 
                     <Border Grid.Row="1"
                             BorderBrush="{StaticResource BorderBrush}"
@@ -224,54 +241,54 @@
                                FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimaryBrush}"
                                Margin="0,0,0,6"/>
-                    <DataGrid Grid.Row="1"
-                              ItemsSource="{Binding SelectedDocumentDetails}"
-                              AutoGenerateColumns="False"
-                              CanUserSortColumns="False"
-                              IsReadOnly="True"
-                              GridLinesVisibility="Horizontal"
-                              HeadersVisibility="Column"
-                              BorderBrush="{StaticResource BorderBrush}"
-                              BorderThickness="1"
-                              CornerRadius="{StaticResource RadiusSM}"
-                              Background="{StaticResource SurfaceBrush}"
-                              RowHeight="{StaticResource DataGridRowHeight}"
-                              FontSize="{StaticResource FontSizeBase}"
-                              MinHeight="145">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="รหัสสินค้า"
-                                                Binding="{Binding ItemCode}"
-                                                Width="150"/>
-                            <DataGridTextColumn Header="บิลขาย"
-                                                Binding="{Binding RefDocNo}"
-                                                Width="150"/>
-                            <DataGridTextColumn Header="วันที่บิล"
-                                                Binding="{Binding RefDocDate, StringFormat='{}{0:dd/MM/yyyy}'}"
-                                                Width="120"/>
-                            <DataGridTemplateColumn Header="ชื่อสินค้า"
-                                                    Width="*">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="หน่วยนับ"
-                                                Binding="{Binding UnitCode}"
-                                                Width="120"/>
-                            <DataGridTextColumn Header="จำนวน"
-                                                Binding="{Binding Qty, StringFormat='{}{0:N2}'}"
-                                                Width="120"/>
-                            <DataGridTemplateColumn Header="สูตร"
-                                                    Width="100">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <Border Grid.Row="1"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusSM}"
+                            Background="{StaticResource SurfaceBrush}"
+                            MinHeight="145">
+                        <DockPanel LastChildFill="True">
+                            <Border DockPanel.Dock="Top"
+                                    Background="{StaticResource SurfaceSecondaryBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="0,0,0,1"
+                                    Padding="8,6">
+                                <Grid ColumnDefinitions="150,150,120,*,120,120,100" ColumnSpacing="8">
+                                    <TextBlock Grid.Column="0" Text="&#x0E23;&#x0E2B;&#x0E31;&#x0E2A;&#x0E2A;&#x0E34;&#x0E19;&#x0E04;&#x0E49;&#x0E32;" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="1" Text="&#x0E1A;&#x0E34;&#x0E25;&#x0E02;&#x0E32;&#x0E22;" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="2" Text="&#x0E27;&#x0E31;&#x0E19;&#x0E17;&#x0E35;&#x0E48;&#x0E1A;&#x0E34;&#x0E25;" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="3" Text="&#x0E0A;&#x0E37;&#x0E48;&#x0E2D;&#x0E2A;&#x0E34;&#x0E19;&#x0E04;&#x0E49;&#x0E32;" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="4" Text="&#x0E2B;&#x0E19;&#x0E48;&#x0E27;&#x0E22;&#x0E19;&#x0E31;&#x0E1A;" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="5" Text="&#x0E08;&#x0E33;&#x0E19;&#x0E27;&#x0E19;" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="6" Text="&#x0E2A;&#x0E39;&#x0E15;&#x0E23;" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </Grid>
+                            </Border>
+
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                          VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding SelectedDocumentDetails}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="contracts:BomProductionOrderDto">
+                                            <Border BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="0,0,0,1"
+                                                    Padding="8,5"
+                                                    MinHeight="{StaticResource DataGridRowHeight}">
+                                                <Grid ColumnDefinitions="150,150,120,*,120,120,100" ColumnSpacing="8">
+                                                    <TextBlock Grid.Column="0" Text="{Binding ItemCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding RefDocNo}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding RefDocDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="3" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="4" Text="{Binding UnitCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="5" Text="{Binding Qty, StringFormat='{}{0:N2}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="6" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
                 </Grid>
 
                 <Grid Grid.Row="8"
@@ -282,35 +299,48 @@
                                FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimaryBrush}"
                                Margin="0,0,0,6"/>
-                    <DataGrid Grid.Row="1"
-                              ItemsSource="{Binding MaterialUsageRows}"
-                              AutoGenerateColumns="False"
-                              CanUserSortColumns="False"
-                              IsReadOnly="True"
-                              GridLinesVisibility="Horizontal"
-                              HeadersVisibility="Column"
-                              BorderBrush="{StaticResource BorderBrush}"
-                              BorderThickness="1"
-                              CornerRadius="{StaticResource RadiusSM}"
-                              Background="{StaticResource SurfaceBrush}"
-                              RowHeight="{StaticResource DataGridRowHeight}"
-                              FontSize="{StaticResource FontSizeBase}"
-                              MinHeight="230">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="รหัสสินค้า"
-                                                Binding="{Binding ItemCode}"
-                                                Width="150"/>
-                            <DataGridTextColumn Header="ชื่อสินค้า"
-                                                Binding="{Binding ItemName}"
-                                                Width="*"/>
-                            <DataGridTextColumn Header="หน่วยนับ"
-                                                Binding="{Binding UnitCode}"
-                                                Width="120"/>
-                            <DataGridTextColumn Header="จำนวน"
-                                                Binding="{Binding Qty, StringFormat='{}{0:N2}'}"
-                                                Width="120"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <Border Grid.Row="1"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusSM}"
+                            Background="{StaticResource SurfaceBrush}"
+                            MinHeight="230">
+                        <DockPanel LastChildFill="True">
+                            <Border DockPanel.Dock="Top"
+                                    Background="{StaticResource SurfaceSecondaryBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="0,0,0,1"
+                                    Padding="8,6">
+                                <Grid ColumnDefinitions="150,*,120,120" ColumnSpacing="8">
+                                    <TextBlock Grid.Column="0" Text="&#x0E23;&#x0E2B;&#x0E31;&#x0E2A;&#x0E2A;&#x0E34;&#x0E19;&#x0E04;&#x0E49;&#x0E32;" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="1" Text="&#x0E0A;&#x0E37;&#x0E48;&#x0E2D;&#x0E2A;&#x0E34;&#x0E19;&#x0E04;&#x0E49;&#x0E32;" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="2" Text="&#x0E2B;&#x0E19;&#x0E48;&#x0E27;&#x0E22;&#x0E19;&#x0E31;&#x0E1A;" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="3" Text="&#x0E08;&#x0E33;&#x0E19;&#x0E27;&#x0E19;" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </Grid>
+                            </Border>
+
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                          VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding MaterialUsageRows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="contracts:BomProductionDetailDto">
+                                            <Border BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="0,0,0,1"
+                                                    Padding="8,5"
+                                                    MinHeight="{StaticResource DataGridRowHeight}">
+                                                <Grid ColumnDefinitions="150,*,120,120" ColumnSpacing="8">
+                                                    <TextBlock Grid.Column="0" Text="{Binding ItemCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding ItemName}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding UnitCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding Qty, StringFormat='{}{0:N2}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
                 </Grid>
             </Grid>
             </Border>

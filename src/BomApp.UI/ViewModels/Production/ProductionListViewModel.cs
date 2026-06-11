@@ -143,6 +143,12 @@ public partial class ProductionListViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void SelectDocument(BomProductionDto document)
+    {
+        SelectedDocument = document;
+    }
+
+    [RelayCommand]
     private void ExportCsv(BomProductionDto document)
     {
         _ = document;
