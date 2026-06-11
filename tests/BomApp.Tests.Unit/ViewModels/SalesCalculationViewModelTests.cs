@@ -12,6 +12,59 @@ namespace BomApp.Tests.Unit.ViewModels;
 public class SalesCalculationViewModelTests
 {
     [Fact]
+    public async Task LoadSalesCommand_WhenDateRangeSelected_ReplacesSalesTransactions()
+    {
+        var transaction = new ErpSalesTransactionDto(
+            DocDate: new DateOnly(2026, 5, 1),
+            DocNo: "SI2605-00001",
+            ItemCode: "FG-001",
+            Qty: 5m,
+            UnitCode: "PCS",
+            StandValue: 1m,
+            DivideValue: 1m);
+        var salesRepo = new Mock<IErpSalesOrderRepository>();
+        salesRepo
+            .Setup(r => r.GetSalesTransactionsByDateRangeAsync(
+                new DateOnly(2026, 5, 1),
+                new DateOnly(2026, 5, 25),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([transaction]);
+
+        var vm = new SalesCalculationViewModel(
+            Mock.Of<ICalculateSalesProductionUseCase>(),
+            salesRepo.Object,
+            Mock.Of<IDialogService>())
+        {
+            DateFrom = new DateTimeOffset(2026, 5, 1, 0, 0, 0, TimeSpan.Zero),
+            DateTo = new DateTimeOffset(2026, 5, 25, 0, 0, 0, TimeSpan.Zero),
+            HasCalculationResult = true,
+            MaterialRequirements = [new MaterialRequirementDto("MAT-001", "Material 001", 3m, "KG")]
+        };
+
+        await vm.LoadSalesCommand.ExecuteAsync(null);
+
+        vm.SalesTransactions.Should().ContainSingle().Which.Should().Be(transaction);
+        vm.HasSalesTransactions.Should().BeTrue();
+        vm.HasCalculationResult.Should().BeFalse();
+        vm.MaterialRequirements.Should().BeEmpty();
+        salesRepo.VerifyAll();
+    }
+
+    [Fact]
+    public void IsPerDocument_WhenSelected_UpdatesSaveModeWithoutBindingInversion()
+    {
+        var vm = new SalesCalculationViewModel(
+            Mock.Of<ICalculateSalesProductionUseCase>(),
+            Mock.Of<IErpSalesOrderRepository>(),
+            Mock.Of<IDialogService>());
+
+        vm.IsPerDocument = true;
+
+        vm.IsDaily.Should().BeFalse();
+        vm.IsPerDocument.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task SaveDocumentsCommand_WhenSaveSucceeds_ShowsDocumentNumberAndClearsScreen()
     {
         var savedDocument = new BomProductionDto(
@@ -51,19 +104,19 @@ public class SalesCalculationViewModelTests
             ShowOnlyWithBom = true,
             ItemsWithoutBomCount = 2
         };
-        vm.SalesTransactions.Add(new ErpSalesTransactionDto(
+        vm.SalesTransactions = [new ErpSalesTransactionDto(
             DocDate: new DateOnly(2026, 5, 1),
             DocNo: "SI2605-00001",
             ItemCode: "FG-001",
             Qty: 5m,
             UnitCode: "PCS",
             StandValue: 1m,
-            DivideValue: 1m));
-        vm.MaterialRequirements.Add(new MaterialRequirementDto(
+            DivideValue: 1m)];
+        vm.MaterialRequirements = [new MaterialRequirementDto(
             MaterialCode: "MAT-001",
             MaterialName: "Material 001",
             RequiredQty: 3m,
-            Unit: "KG"));
+            Unit: "KG")];
 
         await vm.SaveDocumentsCommand.ExecuteAsync(null);
 

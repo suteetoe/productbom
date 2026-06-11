@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using BomApp.Application.Interfaces;
@@ -39,7 +38,22 @@ public partial class SalesCalculationViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty] private bool _isDaily = true;
 
-    /// <summary>Toggles "show only items with BOM" filter in the sales DataGrid.</summary>
+    public bool IsPerDocument
+    {
+        get => !IsDaily;
+        set
+        {
+            if (value)
+            {
+                IsDaily = false;
+            }
+        }
+    }
+
+    partial void OnIsDailyChanged(bool value)
+        => OnPropertyChanged(nameof(IsPerDocument));
+
+    /// <summary>Toggles "show only items with BOM" filter in the sales table.</summary>
     [ObservableProperty] private bool _showOnlyWithBom;
 
     /// <summary>Number of items skipped in the last calculation due to missing BOM.</summary>
@@ -53,13 +67,13 @@ public partial class SalesCalculationViewModel : ViewModelBase
     // ── Data ─────────────────────────────────────────────────────────────────
 
     /// <summary>Raw ERP sales transactions loaded by LoadSalesAsync.</summary>
-    public ObservableCollection<ErpSalesTransactionDto> SalesTransactions { get; } = new();
+    [ObservableProperty] private IReadOnlyList<ErpSalesTransactionDto> _salesTransactions = [];
 
-    /// <summary>True when SalesTransactions has entries — shows DataGrid, hides empty state.</summary>
+    /// <summary>True when SalesTransactions has entries — shows the sales table, hides empty state.</summary>
     public bool HasSalesTransactions => SalesTransactions.Count > 0;
 
     /// <summary>Material requirements produced by the last CalculateAsync call.</summary>
-    public ObservableCollection<MaterialRequirementDto> MaterialRequirements { get; } = new();
+    [ObservableProperty] private IReadOnlyList<MaterialRequirementDto> _materialRequirements = [];
 
     /// <summary>
     /// Becomes true after a successful CalculateAsync.
@@ -69,6 +83,9 @@ public partial class SalesCalculationViewModel : ViewModelBase
 
     partial void OnHasCalculationResultChanged(bool value)
         => SaveDocumentsCommand.NotifyCanExecuteChanged();
+
+    partial void OnSalesTransactionsChanged(IReadOnlyList<ErpSalesTransactionDto> value)
+        => OnPropertyChanged(nameof(HasSalesTransactions));
 
     // ── Constructor ──────────────────────────────────────────────────────────
 
@@ -106,13 +123,11 @@ public partial class SalesCalculationViewModel : ViewModelBase
 
             var txns = await _salesRepo.GetSalesTransactionsByDateRangeAsync(from, to);
 
-            SalesTransactions.Clear();
-            foreach (var t in txns) SalesTransactions.Add(t);
-            OnPropertyChanged(nameof(HasSalesTransactions));
+            SalesTransactions = txns.ToList();
 
             // Reset calculation state so Save is disabled until CalculateAsync runs again
             HasCalculationResult = false;
-            MaterialRequirements.Clear();
+            MaterialRequirements = [];
         }
         finally
         {
@@ -149,8 +164,7 @@ public partial class SalesCalculationViewModel : ViewModelBase
             var dto = result.Value!;
             ItemsWithoutBomCount = dto.SkippedItemCount;
 
-            MaterialRequirements.Clear();
-            foreach (var m in dto.Materials) MaterialRequirements.Add(m);
+            MaterialRequirements = dto.Materials.ToList();
 
             HasCalculationResult = true;
         }
@@ -224,8 +238,7 @@ public partial class SalesCalculationViewModel : ViewModelBase
         ErrorMessage = string.Empty;
         HasCalculationResult = false;
 
-        SalesTransactions.Clear();
-        MaterialRequirements.Clear();
-        OnPropertyChanged(nameof(HasSalesTransactions));
+        SalesTransactions = [];
+        MaterialRequirements = [];
     }
 }

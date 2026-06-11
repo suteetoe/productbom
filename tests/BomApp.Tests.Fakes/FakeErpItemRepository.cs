@@ -9,6 +9,7 @@ public class FakeErpItemRepository : IErpItemRepository
     {
         SeedData.ItemWithBom1,
         SeedData.ItemWithBom2,
+        SeedData.MaterialA,
         SeedData.ItemWithoutBom
     };
 

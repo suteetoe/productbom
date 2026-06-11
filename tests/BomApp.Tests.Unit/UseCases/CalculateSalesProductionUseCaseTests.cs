@@ -180,6 +180,51 @@ public class CalculateSalesProductionUseCaseTests
     }
 
     [Fact]
+    public async Task CalculateAsync_WhenBomLineMaterialNameIsBlank_ShouldUseErpItemName()
+    {
+        var bomId = Guid.NewGuid();
+        var bom = new BomDto(
+            Id: bomId,
+            Code: "BOM-001",
+            Name: "สูตร สินค้า A",
+            Description: null,
+            ItemCode: "PROD-001",
+            ItemName: "สินค้า A (มี BOM)",
+            YieldQuantity: 1m,
+            YieldUnit: "PCS",
+            Version: 1,
+            Status: "Active",
+            CreatedAt: DateTime.UtcNow,
+            UpdatedAt: DateTime.UtcNow,
+            CreatedBy: "seed",
+            Lines:
+            [
+                new(Guid.NewGuid(), "MAT-A", string.Empty, 2m, "KG", null, 1, null)
+            ]);
+
+        _assignmentRepoMock
+            .Setup(r => r.GetAssignedItemCodesAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, Guid> { ["PROD-001"] = bomId });
+
+        _bomRepoMock
+            .Setup(r => r.GetByIdAsync(bomId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(bom);
+
+        var request = new CalculateSalesProductionRequest(
+            DateFrom: new DateOnly(2024, 1, 15),
+            DateTo: new DateOnly(2024, 1, 15),
+            Mode: SaveMode.Daily,
+            DryRun: true,
+            CreatedBy: "test-user",
+            CreatedVia: "UI");
+
+        var result = await BuildUseCase().CalculateAsync(request);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.Materials.Single(m => m.MaterialCode == "MAT-A").MaterialName.Should().Be(SeedData.MaterialA.Name);
+    }
+
+    [Fact]
     public async Task CalculateAsync_WhenModeIsDaily_ShouldGroupByDocDate()
     {
         // Arrange
@@ -541,6 +586,7 @@ public class CalculateSalesProductionUseCaseTests
             _assignmentRepoMock.Object,
             _bomProductionRepoMock.Object,
             _erpProductionRepoMock.Object,
+            _fakeItemRepo,
             _erpStockRequestProcessorMock.Object
         );
     }

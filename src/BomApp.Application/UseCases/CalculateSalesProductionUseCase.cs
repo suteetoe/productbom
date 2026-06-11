@@ -15,6 +15,7 @@ public class CalculateSalesProductionUseCase(
     IBomAssignmentRepository bomAssignmentRepository,
     IBomProductionRepository bomProductionRepository,
     IErpProductionRepository erpProductionRepository,
+    IErpItemRepository erpItemRepository,
     IErpStockRequestProcessor erpStockRequestProcessor)
     : ICalculateSalesProductionUseCase
 {
@@ -57,6 +58,7 @@ public class CalculateSalesProductionUseCase(
 
         // aggregate materials ทั้งหมด (key = MaterialCode)
         var aggregatedMaterials = new Dictionary<string, (string Name, decimal Qty, string Unit)>();
+        var materialNameCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var resultItems = new List<ProductionResultItemDto>();
 
         foreach (var (itemCode, itemTransactions) in transactionsByItem)
@@ -75,7 +77,7 @@ public class CalculateSalesProductionUseCase(
 
             // Step 4: expand BOM และคำนวณ material requirements
             var itemMaterials = new Dictionary<string, (string Name, decimal Qty, string Unit)>();
-            await ExpandBomAsync(bom, totalQtyBase, itemMaterials, new HashSet<Guid>(), depth: 0, ct);
+            await ExpandBomAsync(bom, totalQtyBase, itemMaterials, materialNameCache, new HashSet<Guid>(), depth: 0, ct);
 
             var materialReqs = itemMaterials
                 .Select(kv => new MaterialRequirementDto(kv.Key, kv.Value.Name, kv.Value.Qty, kv.Value.Unit))
@@ -94,7 +96,7 @@ public class CalculateSalesProductionUseCase(
             foreach (var (matCode, (matName, matQty, matUnit)) in itemMaterials)
             {
                 if (aggregatedMaterials.TryGetValue(matCode, out var existing))
-                    aggregatedMaterials[matCode] = (matName, existing.Qty + matQty, matUnit);
+                    aggregatedMaterials[matCode] = (PreferName(existing.Name, matName), existing.Qty + matQty, matUnit);
                 else
                     aggregatedMaterials[matCode] = (matName, matQty, matUnit);
             }
@@ -199,6 +201,7 @@ public class CalculateSalesProductionUseCase(
     {
         var orders = new List<CreateBomProductionOrderInternalCommand>();
         var materialTotals = new Dictionary<(string Code, string Unit, string WhCode, string ShelfCode), (string Name, decimal Qty)>();
+        var materialNameCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         // Store the selected sales items with a back-reference to the source sales bill.
         var bySalesItem = groupTransactions.GroupBy(t => new
@@ -234,13 +237,13 @@ public class CalculateSalesProductionUseCase(
 
             var qtyInBaseUnit = itemGroup.Sum(t => t.QtyInBaseUnit);
             var itemMaterials = new Dictionary<string, (string Name, decimal Qty, string Unit)>();
-            await ExpandBomAsync(bom, qtyInBaseUnit, itemMaterials, new HashSet<Guid>(), depth: 0, ct);
+            await ExpandBomAsync(bom, qtyInBaseUnit, itemMaterials, materialNameCache, new HashSet<Guid>(), depth: 0, ct);
 
             foreach (var (materialCode, (materialName, requiredQty, unit)) in itemMaterials)
             {
                 var key = (materialCode, unit, itemGroup.Key.WhCode, itemGroup.Key.ShelfCode);
                 if (materialTotals.TryGetValue(key, out var existing))
-                    materialTotals[key] = (materialName, existing.Qty + requiredQty);
+                    materialTotals[key] = (PreferName(existing.Name, materialName), existing.Qty + requiredQty);
                 else
                     materialTotals[key] = (materialName, requiredQty);
             }
@@ -287,6 +290,7 @@ public class CalculateSalesProductionUseCase(
         BomDto bom,
         decimal totalQtyInBaseUnit,
         Dictionary<string, (string Name, decimal Qty, string Unit)> materials,
+        Dictionary<string, string> materialNameCache,
         HashSet<Guid> visited,
         int depth,
         CancellationToken ct)
@@ -310,18 +314,39 @@ public class CalculateSalesProductionUseCase(
                 var subBom = await bomRepository.GetByIdAsync(line.SubBomId.Value, ct);
                 if (subBom is not null && subBom.Status == "Active")
                 {
-                    await ExpandBomAsync(subBom, requiredQty, materials, new HashSet<Guid>(visited), depth + 1, ct);
+                    await ExpandBomAsync(subBom, requiredQty, materials, materialNameCache, new HashSet<Guid>(visited), depth + 1, ct);
                     continue;
                 }
             }
 
             // Raw material: บันทึก material requirement
+            var materialName = await ResolveMaterialNameAsync(line, materialNameCache, ct);
             if (materials.TryGetValue(line.MaterialCode, out var existing))
-                materials[line.MaterialCode] = (line.MaterialName, existing.Qty + requiredQty, line.Unit);
+                materials[line.MaterialCode] = (PreferName(existing.Name, materialName), existing.Qty + requiredQty, line.Unit);
             else
-                materials[line.MaterialCode] = (line.MaterialName, requiredQty, line.Unit);
+                materials[line.MaterialCode] = (materialName, requiredQty, line.Unit);
         }
 
         visited.Remove(bom.Id);
     }
+
+    private async Task<string> ResolveMaterialNameAsync(
+        BomLineDto line,
+        Dictionary<string, string> materialNameCache,
+        CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(line.MaterialName))
+            return line.MaterialName;
+
+        if (materialNameCache.TryGetValue(line.MaterialCode, out var cachedName))
+            return cachedName;
+
+        var item = await erpItemRepository.GetItemByCodeAsync(line.MaterialCode, ct);
+        var name = string.IsNullOrWhiteSpace(item?.Name) ? line.MaterialCode : item.Name;
+        materialNameCache[line.MaterialCode] = name;
+        return name;
+    }
+
+    private static string PreferName(string currentName, string candidateName)
+        => string.IsNullOrWhiteSpace(currentName) ? candidateName : currentName;
 }

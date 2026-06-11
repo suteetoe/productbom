@@ -8,6 +8,7 @@ public static class SeedData
     // Items WITH BOM assignment (happy path)
     public static readonly ErpItemDto ItemWithBom1 = new("PROD-001", "สินค้า A (มี BOM)", "PCS");
     public static readonly ErpItemDto ItemWithBom2 = new("PROD-002", "สินค้า B (มี BOM)", "KG");
+    public static readonly ErpItemDto MaterialA = new("MAT-A", "วัตถุดิบ A", "KG");
 
     // Item WITHOUT BOM (triggers warning path)
     public static readonly ErpItemDto ItemWithoutBom = new("PROD-999", "สินค้าไม่มี BOM", "PCS");

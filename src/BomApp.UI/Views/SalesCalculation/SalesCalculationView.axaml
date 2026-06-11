@@ -12,7 +12,7 @@
         Layout:
           Row 0 — Toolbar "คำนวณจากการขาย"                          [Auto]
           Row 1 — Section 1: date pickers + options + Load button    [Auto]
-          Row 2 — Section 2: sales DataGrid                          [*]
+          Row 2 — Section 2: sales table                             [*]
           Row 3 — Section 3: material result + save mode + actions   [Auto]
           Loading overlay spans all 4 rows.
 
@@ -24,9 +24,9 @@
           HasWarning             → warning badge IsVisible
           ItemsWithoutBomCount   → warning badge text
           IsDaily                → RadioButton.IsChecked (TwoWay)
-          SalesTransactions      → Section 2 DataGrid ItemsSource
+          SalesTransactions      → Section 2 table ItemsSource
           CalculateCommand       → "คำนวณ" button
-          MaterialRequirements   → Section 3 DataGrid ItemsSource
+          MaterialRequirements   → Section 3 table ItemsSource
           HasCalculationResult   → Save button IsEnabled
           SaveDocumentsCommand   → "บันทึกเอกสาร" button
           ExportCsvCommand       → "Export CSV" button
@@ -119,7 +119,7 @@
         </Border>
 
         <!-- ============================================================ -->
-        <!-- Row 2 — Section 2: Sales transactions DataGrid                -->
+        <!-- Row 2 — Section 2: Sales transactions table                   -->
         <!-- ============================================================ -->
         <Border Grid.Row="2"
                 Margin="{StaticResource SpaceLG}"
@@ -138,52 +138,51 @@
                            Foreground="{StaticResource TextPrimaryBrush}"
                            Margin="{StaticResource SpaceSM}"/>
 
-                <!--
-                    Sales DataGrid.
-                    ItemsSource → SalesTransactions (ObservableCollection<ErpSalesTransactionDto>)
-                    Columns: DocNo, DocDate, ItemCode, Qty, UnitCode
-                    (ErpSalesTransactionDto has no ItemName; UnitCode used for unit column)
-                -->
-                <DataGrid Grid.Row="1"
-                          ItemsSource="{Binding SalesTransactions}"
-                          AutoGenerateColumns="False"
-                          CanUserSortColumns="True"
-                          IsReadOnly="True"
-                          RowHeight="{StaticResource DataGridRowHeight}"
-                          GridLinesVisibility="Horizontal"
-                          BorderBrush="{StaticResource BorderBrush}"
-                          BorderThickness="0"
-                          FontSize="{StaticResource FontSizeBase}"
-                          Background="{StaticResource SurfaceBrush}">
+                <Border Grid.Row="1"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource RadiusSM}"
+                        Background="{StaticResource SurfaceBrush}">
+                    <DockPanel LastChildFill="True">
+                        <Border DockPanel.Dock="Top"
+                                Background="{StaticResource SurfaceSecondaryBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="0,0,0,1"
+                                Padding="8,6">
+                            <Grid ColumnDefinitions="140,100,120,90,80,120" ColumnSpacing="8">
+                                <TextBlock Grid.Column="0" Text="เลขที่เอกสาร" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="1" Text="วันที่" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="2" Text="รหัสสินค้า" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="3" Text="จำนวน" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="4" Text="หน่วย" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="5" Text="จำนวนหน่วยหลัก" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </Grid>
+                        </Border>
 
-                    <DataGrid.Columns>
-
-                        <DataGridTextColumn Header="เลขที่เอกสาร"
-                                           Binding="{Binding DocNo}"
-                                           Width="140"/>
-
-                        <DataGridTextColumn Header="วันที่"
-                                           Binding="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}"
-                                           Width="100"/>
-
-                        <DataGridTextColumn Header="รหัสสินค้า"
-                                           Binding="{Binding ItemCode}"
-                                           Width="120"/>
-
-                        <DataGridTextColumn Header="จำนวน"
-                                           Binding="{Binding Qty, StringFormat='{}{0:N2}'}"
-                                           Width="90"/>
-
-                        <DataGridTextColumn Header="หน่วย"
-                                           Binding="{Binding UnitCode}"
-                                           Width="80"/>
-
-                        <DataGridTextColumn Header="จำนวนหน่วยหลัก"
-                                           Binding="{Binding QtyInBaseUnit, StringFormat='{}{0:N4}'}"
-                                           Width="120"/>
-
-                    </DataGrid.Columns>
-                </DataGrid>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                      VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding SalesTransactions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="contracts:ErpSalesTransactionDto">
+                                        <Border BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="0,0,0,1"
+                                                Padding="8,5"
+                                                MinHeight="{StaticResource DataGridRowHeight}">
+                                            <Grid ColumnDefinitions="140,100,120,90,80,120" ColumnSpacing="8">
+                                                <TextBlock Grid.Column="0" Text="{Binding DocNo}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding ItemCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="3" Text="{Binding Qty, StringFormat='{}{0:N2}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="4" Text="{Binding UnitCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="5" Text="{Binding QtyInBaseUnit, StringFormat='{}{0:N4}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
             </Grid>
         </Border>
 
@@ -200,7 +199,7 @@
 
             <Grid ColumnDefinitions="*,Auto">
 
-                <!-- Left: material requirements DataGrid -->
+                <!-- Left: material requirements table -->
                 <Grid Grid.Column="0" RowDefinitions="Auto,*">
 
                     <TextBlock Grid.Row="0"
@@ -210,44 +209,48 @@
                                Foreground="{StaticResource TextPrimaryBrush}"
                                Margin="{StaticResource SpaceSM}"/>
 
-                    <!--
-                        Material requirements DataGrid.
-                        ItemsSource → MaterialRequirements (ObservableCollection<MaterialRequirementDto>)
-                        Populated after CalculateAsync succeeds.
-                        Columns: MaterialCode, MaterialName, RequiredQty, Unit
-                    -->
-                    <DataGrid Grid.Row="1"
-                              ItemsSource="{Binding MaterialRequirements}"
-                              AutoGenerateColumns="False"
-                              CanUserSortColumns="True"
-                              IsReadOnly="True"
-                              RowHeight="{StaticResource DataGridRowHeight}"
-                              GridLinesVisibility="Horizontal"
-                              BorderBrush="{StaticResource BorderBrush}"
-                              BorderThickness="0"
-                              FontSize="{StaticResource FontSizeBase}"
-                              Background="{StaticResource SurfaceBrush}"
-                              Height="180">
+                    <Border Grid.Row="1"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusSM}"
+                            Background="{StaticResource SurfaceBrush}"
+                            Height="180">
+                        <DockPanel LastChildFill="True">
+                            <Border DockPanel.Dock="Top"
+                                    Background="{StaticResource SurfaceSecondaryBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="0,0,0,1"
+                                    Padding="8,6">
+                                <Grid ColumnDefinitions="130,*,120,80" ColumnSpacing="8">
+                                    <TextBlock Grid.Column="0" Text="รหัสวัตถุดิบ" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="1" Text="ชื่อวัตถุดิบ" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="2" Text="จำนวนที่ต้องการ" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Grid.Column="3" Text="หน่วย" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </Grid>
+                            </Border>
 
-                        <DataGrid.Columns>
-
-                            <DataGridTextColumn Header="รหัสวัตถุดิบ"
-                                               Binding="{Binding MaterialCode}"
-                                               Width="130"/>
-
-                            <DataGridTextColumn Header="ชื่อวัตถุดิบ"
-                                               Binding="{Binding MaterialName}"
-                                               Width="*"/>
-
-                            <DataGridTextColumn Header="จำนวนที่ต้องการ"
-                                               Binding="{Binding RequiredQty, StringFormat='{}{0:N2}'}"
-                                               Width="120"/>
-
-                            <DataGridTextColumn Header="หน่วย"
-                                               Binding="{Binding Unit}"
-                                               Width="80"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                          VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding MaterialRequirements}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="contracts:MaterialRequirementDto">
+                                            <Border BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="0,0,0,1"
+                                                    Padding="8,5"
+                                                    MinHeight="{StaticResource DataGridRowHeight}">
+                                                <Grid ColumnDefinitions="130,*,120,80" ColumnSpacing="8">
+                                                    <TextBlock Grid.Column="0" Text="{Binding MaterialCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding MaterialName}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding RequiredQty, StringFormat='{}{0:N2}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="3" Text="{Binding Unit}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
                 </Grid>
 
                 <!-- Right: save mode radio + action buttons -->
@@ -273,7 +276,7 @@
                                  Foreground="{StaticResource TextSecondaryBrush}"/>
 
                     <RadioButton Content="แยกตามเลขที่เอกสารขาย"
-                                 IsChecked="{Binding !IsDaily, Mode=TwoWay}"
+                                 IsChecked="{Binding IsPerDocument, Mode=TwoWay}"
                                  FontSize="{StaticResource FontSizeBase}"
                                  Foreground="{StaticResource TextSecondaryBrush}"/>
 
