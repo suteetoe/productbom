@@ -120,6 +120,8 @@ public partial class BomEditorViewModel : ViewModelBase
 
     partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
 
+    public ObservableCollection<BomSelectionOption> AvailableSubBoms { get; } = new();
+
     // ------------------------------------------------------------------ //
     // Edit mode tracking                                                   //
     // ------------------------------------------------------------------ //
@@ -166,23 +168,29 @@ public partial class BomEditorViewModel : ViewModelBase
             RefreshItemSearchText();
             Status      = bom.Status;
             Version     = bom.Version;
+            await LoadSubBomOptionsAsync();
             Lines.Clear();
             foreach (var l in bom.Lines)
             {
+                var materialItem = string.IsNullOrWhiteSpace(l.MaterialName)
+                    ? await _erpRepo.GetItemByCodeAsync(l.MaterialCode)
+                    : null;
+                var materialName = string.IsNullOrWhiteSpace(l.MaterialName)
+                    ? materialItem?.Name ?? string.Empty
+                    : l.MaterialName;
                 var lineUnits = await _erpRepo.GetUnitsByItemCodeAsync(l.MaterialCode);
-                var editLine = new BomLineEditModel
-                {
-                    SortOrder    = l.SortOrder,
-                    MaterialCode = l.MaterialCode,
-                    MaterialName = l.MaterialName,
-                    Quantity     = l.Quantity,
-                    Unit         = l.Unit,
-                    SubBomId     = l.SubBomId,
-                    Notes        = l.Notes ?? string.Empty,
-                };
+                var editLine = CreateLineModel();
+                editLine.SortOrder = l.SortOrder;
+                editLine.MaterialCode = l.MaterialCode;
+                editLine.MaterialName = materialName;
+                editLine.Quantity = l.Quantity;
+                editLine.Unit = l.Unit;
+                editLine.SubBomId = l.SubBomId;
+                editLine.Notes = l.Notes ?? string.Empty;
                 foreach (var u in lineUnits)
                     editLine.AvailableUnits.Add(u);
                 editLine.SelectedUnit = editLine.AvailableUnits.FirstOrDefault(u => u.Code == l.Unit);
+                editLine.RefreshSelectedSubBom();
                 Lines.Add(editLine);
             }
         }
@@ -212,6 +220,7 @@ public partial class BomEditorViewModel : ViewModelBase
         _bomService = bomService;
         _navigation = navigation;
         _erpRepo = erpRepo;
+        AvailableSubBoms.Add(BomSelectionOption.None);
     }
 
     // Called by View code-behind to provide the search function to the dialog
@@ -233,13 +242,13 @@ public partial class BomEditorViewModel : ViewModelBase
         if (item is null) return;
 
         var units = await _erpRepo.GetUnitsByItemCodeAsync(item.Code);
-        var line = new BomLineEditModel
-        {
-            SortOrder    = Lines.Count + 1,
-            MaterialCode = item.Code,
-            MaterialName = item.Name,
-            Unit         = item.UnitCost,   // default unit code
-        };
+        await EnsureSubBomOptionsLoadedAsync();
+        var line = CreateLineModel();
+        line.SortOrder = Lines.Count + 1;
+        line.MaterialCode = item.Code;
+        line.MaterialName = item.Name;
+        line.Unit = item.UnitCost;   // default unit code
+        line.SelectedSubBom = BomSelectionOption.None;
         foreach (var u in units)
             line.AvailableUnits.Add(u);
         line.SelectedUnit = line.AvailableUnits.FirstOrDefault(u => u.Code == item.UnitCost);
@@ -363,13 +372,48 @@ public partial class BomEditorViewModel : ViewModelBase
         ErrorMessage = string.Empty;
         return true;
     }
+
+    private BomLineEditModel CreateLineModel() => new(AvailableSubBoms);
+
+    private async Task EnsureSubBomOptionsLoadedAsync()
+    {
+        if (AvailableSubBoms.Count <= 1)
+            await LoadSubBomOptionsAsync();
+    }
+
+    private async Task LoadSubBomOptionsAsync()
+    {
+        var result = await _bomService.GetAllAsync();
+        if (!result.IsSuccess || result.Value is null)
+            return;
+
+        AvailableSubBoms.Clear();
+        AvailableSubBoms.Add(BomSelectionOption.None);
+
+        foreach (var bom in result.Value
+                     .Where(b => b.Id != EditingId)
+                     .OrderBy(b => b.Code))
+        {
+            AvailableSubBoms.Add(new BomSelectionOption(
+                bom.Id,
+                $"{bom.Code} - {bom.Name} ({bom.Status})"));
+        }
+
+        foreach (var line in Lines)
+            line.RefreshSelectedSubBom();
+    }
+}
+
+public sealed record BomSelectionOption(Guid? Id, string DisplayName)
+{
+    public static BomSelectionOption None { get; } = new(null, "ไม่ใช้สูตรย่อย");
 }
 
 /// <summary>
 /// Editable row model for BOM Line inline DataGrid.
 /// Each instance represents one material line in the BOM editor.
 /// </summary>
-public partial class BomLineEditModel : ObservableObject
+public partial class BomLineEditModel(ObservableCollection<BomSelectionOption> availableSubBoms) : ObservableObject
 {
     [ObservableProperty] private string _materialCode = string.Empty;
     [ObservableProperty] private string _materialName = string.Empty;
@@ -382,15 +426,33 @@ public partial class BomLineEditModel : ObservableObject
     /// <summary>Units available for this material, fetched from ERP on row creation.</summary>
     public ObservableCollection<ErpUnitDto> AvailableUnits { get; } = new();
 
+    public ObservableCollection<BomSelectionOption> AvailableSubBoms { get; } = availableSubBoms;
+
     /// <summary>
     /// The unit selected in the ComboBox. Setting this syncs <see cref="Unit"/>
     /// so SaveAsync sees the correct code without any extra wiring.
     /// </summary>
     [ObservableProperty] private ErpUnitDto? _selectedUnit;
+    [ObservableProperty] private BomSelectionOption? _selectedSubBom = BomSelectionOption.None;
 
     partial void OnSelectedUnitChanged(ErpUnitDto? value)
     {
         if (value is not null)
             Unit = value.Code;
+    }
+
+    partial void OnSubBomIdChanged(Guid? value)
+    {
+        SelectedSubBom = AvailableSubBoms.FirstOrDefault(b => b.Id == value) ?? BomSelectionOption.None;
+    }
+
+    partial void OnSelectedSubBomChanged(BomSelectionOption? value)
+    {
+        SubBomId = value?.Id;
+    }
+
+    public void RefreshSelectedSubBom()
+    {
+        SelectedSubBom = AvailableSubBoms.FirstOrDefault(b => b.Id == SubBomId) ?? BomSelectionOption.None;
     }
 }

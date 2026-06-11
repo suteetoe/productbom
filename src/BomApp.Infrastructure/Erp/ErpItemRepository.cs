@@ -8,11 +8,26 @@ namespace BomApp.Infrastructure.Erp;
 /// EF Core implementation ของ IErpItemRepository
 /// อ่านข้อมูลจาก erp-database (ic_inventory, ic_unit_use, ic_unit) — read-only
 /// </summary>
-public class ErpItemRepository(ErpDbContext context) : IErpItemRepository
+public class ErpItemRepository : IErpItemRepository
 {
+    private readonly ErpDbContext? _context;
+    private readonly IDbContextFactory<ErpDbContext>? _contextFactory;
+
+    public ErpItemRepository(ErpDbContext context)
+    {
+        _context = context;
+    }
+
+    public ErpItemRepository(IDbContextFactory<ErpDbContext> contextFactory)
+    {
+        _contextFactory = contextFactory;
+    }
+
     /// <summary>ดึงสินค้าทั้งหมดจาก ic_inventory</summary>
     public async Task<IReadOnlyList<ErpItemDto>> GetAllItemsAsync(CancellationToken ct = default)
     {
+        await using var lease = await CreateContextLeaseAsync(ct);
+        var context = lease.Context;
         var rows = await context.IcInventories
             .AsNoTracking()
             .OrderBy(i => i.Code)
@@ -27,6 +42,8 @@ public class ErpItemRepository(ErpDbContext context) : IErpItemRepository
         ErpItemListQuery query,
         CancellationToken ct = default)
     {
+        await using var lease = await CreateContextLeaseAsync(ct);
+        var context = lease.Context;
         var pageNumber = Math.Max(1, query.PageNumber);
         var pageSize = Math.Max(1, query.PageSize);
 
@@ -59,6 +76,8 @@ public class ErpItemRepository(ErpDbContext context) : IErpItemRepository
         string keyword,
         CancellationToken ct = default)
     {
+        await using var lease = await CreateContextLeaseAsync(ct);
+        var context = lease.Context;
         var lower = keyword.ToLower();
         var rows = await context.IcInventories
             .AsNoTracking()
@@ -75,6 +94,8 @@ public class ErpItemRepository(ErpDbContext context) : IErpItemRepository
     /// <summary>ดึงสินค้าตาม code — คืน null ถ้าไม่พบ</summary>
     public async Task<ErpItemDto?> GetItemByCodeAsync(string code, CancellationToken ct = default)
     {
+        await using var lease = await CreateContextLeaseAsync(ct);
+        var context = lease.Context;
         var row = await context.IcInventories
             .AsNoTracking()
             .Where(i => i.Code == code)
@@ -89,6 +110,8 @@ public class ErpItemRepository(ErpDbContext context) : IErpItemRepository
         string icCode,
         CancellationToken ct = default)
     {
+        await using var lease = await CreateContextLeaseAsync(ct);
+        var context = lease.Context;
         var units = await context.Database
             .SqlQuery<ErpUnitRaw>($"""
                 SELECT
@@ -120,6 +143,8 @@ public class ErpItemRepository(ErpDbContext context) : IErpItemRepository
     /// <summary>ดึงหน่วยนับทั้งหมดจาก ic_unit (master)</summary>
     public async Task<IReadOnlyList<ErpUnitDto>> GetAllUnitsAsync(CancellationToken ct = default)
     {
+        await using var lease = await CreateContextLeaseAsync(ct);
+        var context = lease.Context;
         var units = await context.Database
             .SqlQuery<ErpUnitRaw>($"""
                 SELECT
@@ -145,6 +170,25 @@ public class ErpItemRepository(ErpDbContext context) : IErpItemRepository
             DivideValue: r.DivideValue,
             Ratio: r.Ratio,
             LineNumber: r.LineNumber)).ToList();
+    }
+
+    private async ValueTask<ContextLease> CreateContextLeaseAsync(CancellationToken ct)
+    {
+        if (_contextFactory is null)
+            return new ContextLease(_context!, ownsContext: false);
+
+        var context = await _contextFactory.CreateDbContextAsync(ct);
+        return new ContextLease(context, ownsContext: true);
+    }
+
+    private sealed class ContextLease(ErpDbContext context, bool ownsContext) : IAsyncDisposable
+    {
+        public ErpDbContext Context { get; } = context;
+
+        public ValueTask DisposeAsync()
+        {
+            return ownsContext ? Context.DisposeAsync() : ValueTask.CompletedTask;
+        }
     }
 
     // Internal projection type สำหรับ raw SQL query

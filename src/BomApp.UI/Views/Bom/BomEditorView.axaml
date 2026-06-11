@@ -292,6 +292,7 @@
                           AutoGenerateColumns="False"
                           CanUserSortColumns="False"
                           IsReadOnly="False"
+                          HorizontalScrollBarVisibility="Auto"
                           RowHeight="{StaticResource DataGridRowHeight}"
                           GridLinesVisibility="Horizontal"
                           BorderBrush="{StaticResource BorderBrush}"
@@ -305,27 +306,27 @@
                         <!-- # — SortOrder -->
                         <DataGridTextColumn Header="#"
                                             Binding="{Binding SortOrder}"
-                                            Width="45"
+                                            Width="36"
                                             IsReadOnly="True"/>
 
                         <!-- รหัสวัตถุดิบ — MaterialCode -->
                         <DataGridTextColumn Header="รหัสวัตถุดิบ *"
                                             Binding="{Binding MaterialCode}"
-                                            Width="140"/>
+                                            Width="120"/>
 
                         <!-- ชื่อวัตถุดิบ — MaterialName (auto-filled, read-only) -->
                         <DataGridTextColumn Header="ชื่อวัตถุดิบ"
                                             Binding="{Binding MaterialName}"
-                                            Width="*"
+                                            Width="180"
                                             IsReadOnly="True"/>
 
                         <!-- จำนวน — Quantity -->
                         <DataGridTextColumn Header="จำนวน *"
                                             Binding="{Binding Quantity, StringFormat='{}{0:0.######}'}"
-                                            Width="100"/>
+                                            Width="90"/>
 
                         <!-- หน่วย — Unit (ComboBox always visible; no edit-mode required) -->
-                        <DataGridTemplateColumn Header="หน่วย *" Width="120">
+                        <DataGridTemplateColumn Header="หน่วย *" Width="92">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <ComboBox ItemsSource="{Binding AvailableUnits}"
@@ -344,10 +345,27 @@
                         <!-- หมายเหตุ — Notes -->
                         <DataGridTextColumn Header="หมายเหตุ"
                                             Binding="{Binding Notes}"
-                                            Width="160"/>
+                                            Width="140"/>
+
+                        <DataGridTemplateColumn Header="สูตรย่อย" Width="190">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <ComboBox ItemsSource="{Binding AvailableSubBoms}"
+                                              SelectedItem="{Binding SelectedSubBom, Mode=TwoWay}"
+                                              HorizontalAlignment="Stretch">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding DisplayName}"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
                         <!-- ลบ — RemoveLineCommand -->
-                        <DataGridTemplateColumn Header="" Width="60">
+                        <DataGridTemplateColumn Header="" Width="52">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Button Content="ลบ"

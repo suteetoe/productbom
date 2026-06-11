@@ -41,6 +41,8 @@ public static class DependencyInjection
 
         services.AddDbContext<ErpDbContext>((sp, options) =>
             options.UseNpgsql(sp.GetRequiredService<IRuntimeConfigurationService>().GetConnectionString("erp-database")));
+        services.AddDbContextFactory<ErpDbContext>((sp, options) =>
+            options.UseNpgsql(sp.GetRequiredService<IRuntimeConfigurationService>().GetConnectionString("erp-database")));
 
         services.AddScoped<IBomRepository, BomRepository>();
         services.AddScoped<IBomAssignmentRepository, BomAssignmentRepository>();
@@ -49,7 +51,8 @@ public static class DependencyInjection
 
         services.AddScoped<IAuthRepository, AuthRepository>();
 
-        services.AddScoped<IErpItemRepository, ErpItemRepository>();
+        services.AddScoped<IErpItemRepository>(sp =>
+            new ErpItemRepository(sp.GetRequiredService<IDbContextFactory<ErpDbContext>>()));
         services.AddScoped<IErpSalesOrderRepository, ErpSalesOrderRepository>();
         services.AddScoped<IErpProductionRepository, ErpProductionRepository>();
         services.AddSingleton<HttpClient>();
