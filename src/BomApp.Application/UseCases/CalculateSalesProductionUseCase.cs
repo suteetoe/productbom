@@ -314,7 +314,13 @@ public class CalculateSalesProductionUseCase(
                 var subBom = await bomRepository.GetByIdAsync(line.SubBomId.Value, ct);
                 if (subBom is not null && subBom.Status == "Active")
                 {
-                    await ExpandBomAsync(subBom, requiredQty, materials, materialNameCache, new HashSet<Guid>(visited), depth + 1, ct);
+                    var subBomQty = await ConvertQuantityForSubBomAsync(
+                        requiredQty,
+                        line.Unit,
+                        subBom.ItemCode,
+                        subBom.YieldUnit,
+                        ct);
+                    await ExpandBomAsync(subBom, subBomQty, materials, materialNameCache, new HashSet<Guid>(visited), depth + 1, ct);
                     continue;
                 }
             }
@@ -328,6 +334,27 @@ public class CalculateSalesProductionUseCase(
         }
 
         visited.Remove(bom.Id);
+    }
+
+    private async Task<decimal> ConvertQuantityForSubBomAsync(
+        decimal quantity,
+        string fromUnit,
+        string itemCode,
+        string toUnit,
+        CancellationToken ct)
+    {
+        if (string.Equals(fromUnit, toUnit, StringComparison.OrdinalIgnoreCase))
+            return quantity;
+
+        var units = await erpItemRepository.GetUnitsByItemCodeAsync(itemCode, ct);
+        var source = units.FirstOrDefault(u => string.Equals(u.Code, fromUnit, StringComparison.OrdinalIgnoreCase));
+        var target = units.FirstOrDefault(u => string.Equals(u.Code, toUnit, StringComparison.OrdinalIgnoreCase));
+
+        if (source is null || target is null || target.StandValue == 0)
+            return quantity;
+
+        var quantityInBaseUnit = source.ToBaseUnit(quantity);
+        return quantityInBaseUnit * target.DivideValue / target.StandValue;
     }
 
     private async Task<string> ResolveMaterialNameAsync(

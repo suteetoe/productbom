@@ -575,18 +575,189 @@ public class CalculateSalesProductionUseCaseTests
             d.ShelfCode == "SH-02");
     }
 
-    private ICalculateSalesProductionUseCase BuildUseCase()
+    [Fact]
+    public async Task CalculateAsync_WhenBomLineReferencesSubBom_ShouldExplodeToChildMaterials()
+    {
+        var noodleBomId = Guid.NewGuid();
+        var meatballBomId = Guid.NewGuid();
+
+        var salesRepo = new Mock<IErpSalesOrderRepository>();
+        salesRepo
+            .Setup(r => r.GetSalesTransactionsByDateRangeAsync(
+                It.IsAny<DateOnly>(),
+                It.IsAny<DateOnly>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new ErpSalesTransactionDto(
+                    new DateOnly(2024, 1, 20),
+                    "SO-NOODLE-001",
+                    "NOODLE",
+                    3m,
+                    "DISH",
+                    1m,
+                    1m)
+            ]);
+
+        var itemRepo = new Mock<IErpItemRepository>();
+        itemRepo
+            .Setup(r => r.GetUnitsByItemCodeAsync("MEATBALL", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new ErpUnitDto("G", "Gram", "MEATBALL", 1m, 1m, 1, 1),
+                new ErpUnitDto("KG", "Kilogram", "MEATBALL", 1000m, 1m, 1000, 2)
+            ]);
+
+        _assignmentRepoMock
+            .Setup(r => r.GetAssignedItemCodesAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, Guid> { ["NOODLE"] = noodleBomId });
+
+        var noodleBom = new BomDto(
+            Id: noodleBomId,
+            Code: "BOM-NOODLE",
+            Name: "Noodle",
+            Description: null,
+            ItemCode: "NOODLE",
+            ItemName: "Noodle",
+            YieldQuantity: 1m,
+            YieldUnit: "DISH",
+            Version: 1,
+            Status: "Active",
+            CreatedAt: DateTime.UtcNow,
+            UpdatedAt: DateTime.UtcNow,
+            CreatedBy: "seed",
+            Lines: new List<BomLineDto>
+            {
+                new(Guid.NewGuid(), "NOODLE-STRAND", "Noodle strand", 300m, "G", null, 1, null),
+                new(Guid.NewGuid(), "MEATBALL", "Meatball", 300m, "G", meatballBomId, 2, null)
+            });
+
+        var meatballBom = new BomDto(
+            Id: meatballBomId,
+            Code: "BOM-MEATBALL",
+            Name: "Meatball",
+            Description: null,
+            ItemCode: "MEATBALL",
+            ItemName: "Meatball",
+            YieldQuantity: 1m,
+            YieldUnit: "KG",
+            Version: 1,
+            Status: "Active",
+            CreatedAt: DateTime.UtcNow,
+            UpdatedAt: DateTime.UtcNow,
+            CreatedBy: "seed",
+            Lines: new List<BomLineDto>
+            {
+                new(Guid.NewGuid(), "PORK", "Pork", 600m, "G", null, 1, null),
+                new(Guid.NewGuid(), "FLOUR", "Flour", 200m, "G", null, 2, null)
+            });
+
+        _bomRepoMock
+            .Setup(r => r.GetByIdAsync(noodleBomId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(noodleBom);
+        _bomRepoMock
+            .Setup(r => r.GetByIdAsync(meatballBomId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(meatballBom);
+
+        var request = new CalculateSalesProductionRequest(
+            DateFrom: new DateOnly(2024, 1, 20),
+            DateTo: new DateOnly(2024, 1, 20),
+            Mode: SaveMode.Daily,
+            DryRun: true,
+            CreatedBy: "test-user",
+            CreatedVia: "UI");
+
+        var result = await BuildUseCase(salesRepo.Object, itemRepo.Object).CalculateAsync(request);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.Materials.Should().BeEquivalentTo([
+            new MaterialRequirementDto("NOODLE-STRAND", "Noodle strand", 900m, "G"),
+            new MaterialRequirementDto("PORK", "Pork", 540m, "G"),
+            new MaterialRequirementDto("FLOUR", "Flour", 180m, "G")
+        ]);
+        result.Value.Materials.Should().NotContain(m => m.MaterialCode == "MEATBALL");
+    }
+
+    [Fact]
+    public async Task CalculateAsync_WhenBomLineDoesNotReferenceSubBom_ShouldKeepMaterialItself()
+    {
+        var noodleBomId = Guid.NewGuid();
+
+        var salesRepo = new Mock<IErpSalesOrderRepository>();
+        salesRepo
+            .Setup(r => r.GetSalesTransactionsByDateRangeAsync(
+                It.IsAny<DateOnly>(),
+                It.IsAny<DateOnly>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new ErpSalesTransactionDto(
+                    new DateOnly(2024, 1, 20),
+                    "SO-NOODLE-002",
+                    "NOODLE",
+                    3m,
+                    "DISH",
+                    1m,
+                    1m)
+            ]);
+
+        _assignmentRepoMock
+            .Setup(r => r.GetAssignedItemCodesAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, Guid> { ["NOODLE"] = noodleBomId });
+
+        var noodleBom = new BomDto(
+            Id: noodleBomId,
+            Code: "BOM-NOODLE-PLAIN",
+            Name: "Noodle without sub-BOM",
+            Description: null,
+            ItemCode: "NOODLE",
+            ItemName: "Noodle",
+            YieldQuantity: 1m,
+            YieldUnit: "DISH",
+            Version: 1,
+            Status: "Active",
+            CreatedAt: DateTime.UtcNow,
+            UpdatedAt: DateTime.UtcNow,
+            CreatedBy: "seed",
+            Lines: new List<BomLineDto>
+            {
+                new(Guid.NewGuid(), "NOODLE-STRAND", "Noodle strand", 300m, "G", null, 1, null),
+                new(Guid.NewGuid(), "MEATBALL", "Meatball", 300m, "G", null, 2, null)
+            });
+
+        _bomRepoMock
+            .Setup(r => r.GetByIdAsync(noodleBomId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(noodleBom);
+
+        var request = new CalculateSalesProductionRequest(
+            DateFrom: new DateOnly(2024, 1, 20),
+            DateTo: new DateOnly(2024, 1, 20),
+            Mode: SaveMode.Daily,
+            DryRun: true,
+            CreatedBy: "test-user",
+            CreatedVia: "UI");
+
+        var result = await BuildUseCase(salesRepo.Object).CalculateAsync(request);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.Materials.Should().BeEquivalentTo([
+            new MaterialRequirementDto("NOODLE-STRAND", "Noodle strand", 900m, "G"),
+            new MaterialRequirementDto("MEATBALL", "Meatball", 900m, "G")
+        ]);
+        result.Value.Materials.Should().NotContain(m => m.MaterialCode == "PORK" || m.MaterialCode == "FLOUR");
+    }
+
+    private ICalculateSalesProductionUseCase BuildUseCase(
+        IErpSalesOrderRepository? salesRepo = null,
+        IErpItemRepository? itemRepo = null)
     {
         // Team A will implement CalculateSalesProductionUseCase.
         // Constructor is expected to accept the four repositories below.
         // This stub creates the concrete class once team-a merges their implementation.
         return new CalculateSalesProductionUseCase(
-            _fakeSalesRepo,
+            salesRepo ?? _fakeSalesRepo,
             _bomRepoMock.Object,
             _assignmentRepoMock.Object,
             _bomProductionRepoMock.Object,
             _erpProductionRepoMock.Object,
-            _fakeItemRepo,
+            itemRepo ?? _fakeItemRepo,
             _erpStockRequestProcessorMock.Object
         );
     }
