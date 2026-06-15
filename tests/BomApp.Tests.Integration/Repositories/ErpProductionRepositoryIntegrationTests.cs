@@ -110,6 +110,38 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
     }
 
     [Fact]
+    public async Task SaveProductionDocumentAsync_WhenInventoryNameIsMissing_KeepsDocumentDetailName()
+    {
+        var repo = new ErpProductionRepository(DbContext);
+        var document = new BomProductionDto(
+            Id: Guid.NewGuid(),
+            DocDate: new DateOnly(2024, 1, 15),
+            DocNo: "BP-20240115-00003",
+            DocTime: new TimeOnly(9, 30, 0),
+            Orders: [],
+            Details:
+            [
+                new BomProductionDetailDto(
+                    Guid.NewGuid(),
+                    "BP-20240115-00003",
+                    "MAT-NO-MASTER",
+                    "Document Material Name",
+                    12.5m,
+                    "KG",
+                    "WH-A",
+                    "SH-01")
+            ]);
+
+        await repo.SaveProductionDocumentAsync(document);
+
+        var detailName = await DbContext.Database
+            .SqlQueryRaw<string>("SELECT item_name AS \"Value\" FROM ic_trans_detail WHERE doc_no = 'BP-20240115-00003' AND line_number = 1")
+            .SingleAsync();
+
+        detailName.Should().Be("Document Material Name");
+    }
+
+    [Fact]
     public async Task DeleteProductionDocumentAsync_RemovesIcTransAndIcTransDetailForProductionDocument()
     {
         await DbContext.Database.ExecuteSqlRawAsync("""

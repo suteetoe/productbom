@@ -11,7 +11,8 @@ namespace BomApp.Application.Services;
 public class ProductionService(
     IProductionOrderRepository productionOrderRepository,
     IBomProductionRepository bomProductionRepository,
-    IErpProductionRepository erpProductionRepository) : IProductionService
+    IErpProductionRepository erpProductionRepository,
+    IErpItemRepository erpItemRepository) : IProductionService
 {
     /// <summary>ดึงเอกสารผลิตจากรายการขายใน bom_production_orders ตาม filter</summary>
     public async Task<Result<IReadOnlyList<BomProductionDto>>> GetDocumentsAsync(
@@ -64,6 +65,7 @@ public class ProductionService(
                 $"ไม่พบเอกสารผลิตเลขที่: {docNo}");
 
         var orders = await bomProductionRepository.GetOrdersByDocNoAsync(docNo, ct);
+        orders = await HydrateOrderItemNamesAsync(orders, ct);
         return Result<IReadOnlyList<BomProductionOrderDto>>.Success(orders);
     }
 
@@ -78,7 +80,73 @@ public class ProductionService(
                 $"ไม่พบเอกสารผลิตเลขที่: {docNo}");
 
         var details = await bomProductionRepository.GetDetailsByDocNoAsync(docNo, ct);
+        details = await HydrateDetailItemNamesAsync(details, ct);
         return Result<IReadOnlyList<BomProductionDetailDto>>.Success(details);
+    }
+
+    private async Task<IReadOnlyList<BomProductionDetailDto>> HydrateDetailItemNamesAsync(
+        IReadOnlyList<BomProductionDetailDto> details,
+        CancellationToken ct)
+    {
+        var itemNameCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var hydrated = new List<BomProductionDetailDto>(details.Count);
+
+        foreach (var detail in details)
+        {
+            if (!NeedsItemNameLookup(detail))
+            {
+                hydrated.Add(detail);
+                continue;
+            }
+
+            var itemName = await LookupItemNameAsync(detail.ItemCode, itemNameCache, ct);
+            hydrated.Add(detail with { ItemName = itemName });
+        }
+
+        return hydrated;
+    }
+
+    private async Task<IReadOnlyList<BomProductionOrderDto>> HydrateOrderItemNamesAsync(
+        IReadOnlyList<BomProductionOrderDto> orders,
+        CancellationToken ct)
+    {
+        var itemNameCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var hydrated = new List<BomProductionOrderDto>(orders.Count);
+
+        foreach (var order in orders)
+        {
+            if (!NeedsItemNameLookup(order.ItemCode, order.ItemName))
+            {
+                hydrated.Add(order);
+                continue;
+            }
+
+            var itemName = await LookupItemNameAsync(order.ItemCode, itemNameCache, ct);
+            hydrated.Add(order with { ItemName = itemName });
+        }
+
+        return hydrated;
+    }
+
+    private static bool NeedsItemNameLookup(BomProductionDetailDto detail) =>
+        NeedsItemNameLookup(detail.ItemCode, detail.ItemName);
+
+    private static bool NeedsItemNameLookup(string itemCode, string itemName) =>
+        string.IsNullOrWhiteSpace(itemName) ||
+        string.Equals(itemName, itemCode, StringComparison.OrdinalIgnoreCase);
+
+    private async Task<string> LookupItemNameAsync(
+        string itemCode,
+        Dictionary<string, string> itemNameCache,
+        CancellationToken ct)
+    {
+        if (itemNameCache.TryGetValue(itemCode, out var cachedName))
+            return cachedName;
+
+        var item = await erpItemRepository.GetItemByCodeAsync(itemCode, ct);
+        var itemName = string.IsNullOrWhiteSpace(item?.Name) ? itemCode : item.Name;
+        itemNameCache[itemCode] = itemName;
+        return itemName;
     }
 
     /// <summary>ลบรายการขายใน bom_production_orders ตามเลขที่เอกสารผลิต</summary>

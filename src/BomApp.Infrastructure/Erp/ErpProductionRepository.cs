@@ -98,10 +98,14 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
         await context.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE ic_trans_detail
             SET
-                item_name = (
-                    SELECT name_1
-                    FROM ic_inventory
-                    WHERE ic_inventory.code = ic_trans_detail.item_code
+                item_name = COALESCE(
+                    NULLIF((
+                        SELECT name_1
+                        FROM ic_inventory
+                        WHERE ic_inventory.code = ic_trans_detail.item_code
+                    ), ''),
+                    NULLIF(item_name, ''),
+                    item_code
                 ),
                 stand_value = (
                     SELECT stand_value
