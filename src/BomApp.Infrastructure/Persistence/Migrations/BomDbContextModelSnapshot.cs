@@ -392,6 +392,12 @@ namespace BomApp.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("item_code");
 
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("item_name");
+
                     b.Property<decimal>("Qty")
                         .HasColumnType("decimal(18,6)")
                         .HasColumnName("qty");

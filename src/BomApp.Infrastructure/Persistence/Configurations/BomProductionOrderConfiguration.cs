@@ -43,6 +43,11 @@ public class BomProductionOrderConfiguration : IEntityTypeConfiguration<BomProdu
             .HasMaxLength(50)
             .IsRequired();
 
+        builder.Property(o => o.ItemName)
+            .HasColumnName("item_name")
+            .HasMaxLength(255)
+            .IsRequired();
+
         builder.Property(o => o.Qty)
             .HasColumnName("qty")
             .HasColumnType("decimal(18,6)")

@@ -232,6 +232,7 @@ public class CalculateSalesProductionUseCase(
                 RefDocNo: itemGroup.Key.DocNo,
                 RefDocDate: itemGroup.Key.DocDate,
                 ItemCode: itemCode,
+                ItemName: bom.ItemName,
                 Qty: saleQty,
                 UnitCode: itemGroup.Key.UnitCode));
 

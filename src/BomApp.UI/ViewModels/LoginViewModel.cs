@@ -1,3 +1,4 @@
+using BomApp.Application.Interfaces;
 using BomApp.Application.Interfaces.Repositories;
 using BomApp.UI.Services;
 using BomApp.UI.ViewModels.Bom;
@@ -65,6 +66,9 @@ public partial class LoginViewModel : ViewModelBase
                 ErrorMessage = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
                 return;
             }
+
+            var bomDatabaseInitializer = scope.ServiceProvider.GetRequiredService<IBomDatabaseInitializer>();
+            await bomDatabaseInitializer.EnsureReadyAsync();
 
             _navigation.NavigateTo<BomListViewModel>();
         }

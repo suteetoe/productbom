@@ -16,8 +16,8 @@ public class BomProductionRepositoryIntegrationTests : BomDbIntegrationTestBase
             DocTime: new TimeOnly(9, 15, 30),
             Orders:
             [
-                new("SI260523-00001", new DateOnly(2026, 5, 23), "PROD-001", 10m, "PCS"),
-                new("SI260523-00002", new DateOnly(2026, 5, 23), "PROD-002", 2.5m, "BOX")
+                new("SI260523-00001", new DateOnly(2026, 5, 23), "PROD-001", "Product 001", 10m, "PCS"),
+                new("SI260523-00002", new DateOnly(2026, 5, 23), "PROD-002", "Product 002", 2.5m, "BOX")
             ],
             Details:
             [
@@ -39,6 +39,7 @@ public class BomProductionRepositoryIntegrationTests : BomDbIntegrationTestBase
             o.RefDocNo == "SI260523-00001" &&
             o.RefDocDate == new DateOnly(2026, 5, 23) &&
             o.ItemCode == "PROD-001" &&
+            o.ItemName == "Product 001" &&
             o.Qty == 10m &&
             o.UnitCode == "PCS");
         created.Details.Should().HaveCount(2);
@@ -64,13 +65,13 @@ public class BomProductionRepositoryIntegrationTests : BomDbIntegrationTestBase
         var matching = await repo.CreateAsync(new CreateBomProductionInternalCommand(
             DocDate: new DateOnly(2026, 5, 23),
             DocTime: new TimeOnly(9, 15, 30),
-            Orders: [new("SI260523-00001", new DateOnly(2026, 5, 23), "PROD-001", 10m, "PCS")],
+            Orders: [new("SI260523-00001", new DateOnly(2026, 5, 23), "PROD-001", "Product 001", 10m, "PCS")],
             Details: [new("MAT-001", "Material 001", 20m, "KG")]));
 
         await repo.CreateAsync(new CreateBomProductionInternalCommand(
             DocDate: new DateOnly(2026, 5, 24),
             DocTime: new TimeOnly(9, 15, 30),
-            Orders: [new("SI260524-00001", new DateOnly(2026, 5, 24), "PROD-002", 5m, "PCS")],
+            Orders: [new("SI260524-00001", new DateOnly(2026, 5, 24), "PROD-002", "Product 002", 5m, "PCS")],
             Details: [new("MAT-002", "Material 002", 5m, "PCS")]));
 
         // Act
@@ -84,6 +85,7 @@ public class BomProductionRepositoryIntegrationTests : BomDbIntegrationTestBase
             o.DocNo == matching.DocNo &&
             o.RefDocNo == "SI260523-00001" &&
             o.ItemCode == "PROD-001" &&
+            o.ItemName == "Product 001" &&
             o.Qty == 10m &&
             o.UnitCode == "PCS");
         details.Should().ContainSingle(d =>
@@ -100,12 +102,12 @@ public class BomProductionRepositoryIntegrationTests : BomDbIntegrationTestBase
         await repo.CreateAsync(new CreateBomProductionInternalCommand(
             DocDate: new DateOnly(2026, 5, 23),
             DocTime: new TimeOnly(9, 15, 30),
-            Orders: [new("SI260523-00001", new DateOnly(2026, 5, 23), "PROD-001", 10m, "PCS")],
+            Orders: [new("SI260523-00001", new DateOnly(2026, 5, 23), "PROD-001", "Product 001", 10m, "PCS")],
             Details: [new("MAT-001", "Material 001", 20m, "KG")]));
         var newer = await repo.CreateAsync(new CreateBomProductionInternalCommand(
             DocDate: new DateOnly(2026, 5, 24),
             DocTime: new TimeOnly(9, 15, 30),
-            Orders: [new("SI260524-00001", new DateOnly(2026, 5, 24), "PROD-002", 5m, "PCS")],
+            Orders: [new("SI260524-00001", new DateOnly(2026, 5, 24), "PROD-002", "Product 002", 5m, "PCS")],
             Details: [new("MAT-002", "Material 002", 5m, "PCS")]));
 
         var page = await repo.GetPageAsync(new BomProductionListQuery(
@@ -128,12 +130,12 @@ public class BomProductionRepositoryIntegrationTests : BomDbIntegrationTestBase
         var matching = await repo.CreateAsync(new CreateBomProductionInternalCommand(
             DocDate: new DateOnly(2026, 5, 23),
             DocTime: new TimeOnly(9, 15, 30),
-            Orders: [new("SI260523-00001", new DateOnly(2026, 5, 23), "PROD-001", 10m, "PCS")],
+            Orders: [new("SI260523-00001", new DateOnly(2026, 5, 23), "PROD-001", "Product 001", 10m, "PCS")],
             Details: [new("MAT-001", "Material 001", 20m, "KG")]));
         await repo.CreateAsync(new CreateBomProductionInternalCommand(
             DocDate: new DateOnly(2026, 5, 24),
             DocTime: new TimeOnly(9, 15, 30),
-            Orders: [new("SI260524-00001", new DateOnly(2026, 5, 24), "PROD-002", 5m, "PCS")],
+            Orders: [new("SI260524-00001", new DateOnly(2026, 5, 24), "PROD-002", "Product 002", 5m, "PCS")],
             Details: [new("MAT-002", "Material 002", 5m, "PCS")]));
 
         var page = await repo.GetPageAsync(new BomProductionListQuery(
@@ -158,8 +160,8 @@ public class BomProductionRepositoryIntegrationTests : BomDbIntegrationTestBase
             DocTime: new TimeOnly(9, 15, 30),
             Orders:
             [
-                new("SI260523-00001", new DateOnly(2026, 5, 23), "PROD-001", 10m, "PCS"),
-                new("SI260523-00002", new DateOnly(2026, 5, 23), "PROD-002", 5m, "PCS")
+                new("SI260523-00001", new DateOnly(2026, 5, 23), "PROD-001", "Product 001", 10m, "PCS"),
+                new("SI260523-00002", new DateOnly(2026, 5, 23), "PROD-002", "Product 002", 5m, "PCS")
             ],
             Details:
             [

@@ -18,6 +18,8 @@ public class BomProductionOrder
 
     public string ItemCode { get; set; } = string.Empty;
 
+    public string ItemName { get; set; } = string.Empty;
+
     public decimal Qty { get; set; }
 
     public string UnitCode { get; set; } = string.Empty;

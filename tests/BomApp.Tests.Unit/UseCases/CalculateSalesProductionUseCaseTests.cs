@@ -265,6 +265,7 @@ public class CalculateSalesProductionUseCaseTests
                     RefDocNo: o.RefDocNo,
                     RefDocDate: o.RefDocDate,
                     ItemCode: o.ItemCode,
+                    ItemName: o.ItemName,
                     Qty: o.Qty,
                     UnitCode: o.UnitCode)).ToList(),
                 Details: cmd.Details.Select(d => new BomProductionDetailDto(
@@ -330,6 +331,7 @@ public class CalculateSalesProductionUseCaseTests
                     RefDocNo: o.RefDocNo,
                     RefDocDate: o.RefDocDate,
                     ItemCode: o.ItemCode,
+                    ItemName: o.ItemName,
                     Qty: o.Qty,
                     UnitCode: o.UnitCode)).ToList(),
                 Details: cmd.Details.Select(d => new BomProductionDetailDto(

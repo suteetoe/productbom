@@ -106,6 +106,7 @@ public class ProductionListViewModelTests
             RefDocNo: "SO-20260523-00001",
             RefDocDate: document.DocDate,
             ItemCode: "FG-001",
+            ItemName: "Finished Good 001",
             Qty: 12m,
             UnitCode: "PCS");
         var detail = new BomProductionDetailDto(
@@ -135,6 +136,7 @@ public class ProductionListViewModelTests
         vm.HasSelectedDocument.Should().BeTrue();
         vm.DocumentListColumnSpan.Should().Be(1);
         vm.SelectedDocumentDetails.Should().ContainSingle().Which.Should().Be(order);
+        vm.SelectedDocumentDetails.Single().ItemName.Should().Be("Finished Good 001");
         vm.MaterialUsageRows.Should().ContainSingle().Which.Should().Be(detail);
         service.Verify(s => s.GetDocumentOrdersAsync(document.DocNo, It.IsAny<CancellationToken>()), Times.Once);
         service.Verify(s => s.GetDocumentDetailsAsync(document.DocNo, It.IsAny<CancellationToken>()), Times.Once);

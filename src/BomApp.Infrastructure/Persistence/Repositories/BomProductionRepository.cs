@@ -152,6 +152,7 @@ public class BomProductionRepository(BomDbContext context) : IBomProductionRepos
                 RefDocNo = o.RefDocNo,
                 RefDocDate = o.RefDocDate,
                 ItemCode = o.ItemCode,
+                ItemName = o.ItemName,
                 Qty = o.Qty,
                 UnitCode = o.UnitCode
             }).ToList(),
@@ -235,6 +236,7 @@ public class BomProductionRepository(BomDbContext context) : IBomProductionRepos
         RefDocNo: order.RefDocNo,
         RefDocDate: order.RefDocDate,
         ItemCode: order.ItemCode,
+        ItemName: string.IsNullOrWhiteSpace(order.ItemName) ? order.ItemCode : order.ItemName,
         Qty: order.Qty,
         UnitCode: order.UnitCode);
 
@@ -242,7 +244,7 @@ public class BomProductionRepository(BomDbContext context) : IBomProductionRepos
         Id: detail.Id,
         DocNo: detail.DocNo,
         ItemCode: detail.ItemCode,
-        ItemName: detail.ItemName,
+        ItemName: string.IsNullOrWhiteSpace(detail.ItemName) ? detail.ItemCode : detail.ItemName,
         Qty: detail.Qty,
         UnitCode: detail.UnitCode,
         WhCode: detail.WhCode,

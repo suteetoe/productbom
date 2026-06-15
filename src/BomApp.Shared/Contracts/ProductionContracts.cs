@@ -55,6 +55,7 @@ public record BomProductionOrderDto(
     string  RefDocNo,
     DateOnly RefDocDate,
     string  ItemCode,
+    string  ItemName,
     decimal Qty,
     string  UnitCode
 );
@@ -139,6 +140,7 @@ public record CreateBomProductionOrderInternalCommand(
     string RefDocNo,
     DateOnly RefDocDate,
     string ItemCode,
+    string ItemName,
     decimal Qty,
     string UnitCode
 );
