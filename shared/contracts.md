@@ -243,6 +243,7 @@ public record ErpSalesTransactionDto(
     DateOnly  DocDate,
     string    DocNo,
     string    ItemCode,
+    string    ItemName,
     decimal   Qty,
     string    UnitCode,
     decimal   StandValue,

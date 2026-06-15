@@ -54,6 +54,7 @@ public class ErpDbContext(DbContextOptions<ErpDbContext> options) : DbContext(op
             entity.Property(e => e.TransFlag).HasColumnName("trans_flag");
             entity.Property(e => e.LastStatus).HasColumnName("last_status");
             entity.Property(e => e.ItemCode).HasColumnName("item_code").HasMaxLength(50);
+            entity.Property(e => e.ItemName).HasColumnName("item_name").HasMaxLength(255);
             entity.Property(e => e.Qty).HasColumnName("qty");
             entity.Property(e => e.UnitCode).HasColumnName("unit_code").HasMaxLength(50);
             entity.Property(e => e.StandValue).HasColumnName("stand_value");
@@ -92,6 +93,7 @@ public class IcTransDetail
     public short TransFlag { get; set; }
     public short LastStatus { get; set; }
     public string ItemCode { get; set; } = string.Empty;
+    public string ItemName { get; set; } = string.Empty;
     public decimal Qty { get; set; }
     public string UnitCode { get; set; } = string.Empty;
     public decimal StandValue { get; set; }

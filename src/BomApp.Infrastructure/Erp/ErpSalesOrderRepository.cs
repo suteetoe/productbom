@@ -37,6 +37,7 @@ public class ErpSalesOrderRepository(ErpDbContext context) : IErpSalesOrderRepos
             DocDate: t.DocDate,
             DocNo: t.DocNo,
             ItemCode: t.ItemCode,
+            ItemName: string.IsNullOrWhiteSpace(t.ItemName) ? t.ItemCode : t.ItemName,
             Qty: t.Qty,
             UnitCode: t.UnitCode,
             StandValue: t.StandValue,

@@ -149,13 +149,14 @@
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="0,0,0,1"
                                 Padding="8,6">
-                            <Grid ColumnDefinitions="140,100,120,90,80,120" ColumnSpacing="8">
+                            <Grid ColumnDefinitions="140,100,120,*,90,80,120" ColumnSpacing="8">
                                 <TextBlock Grid.Column="0" Text="เลขที่เอกสาร" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 <TextBlock Grid.Column="1" Text="วันที่" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 <TextBlock Grid.Column="2" Text="รหัสสินค้า" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                <TextBlock Grid.Column="3" Text="จำนวน" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                <TextBlock Grid.Column="4" Text="หน่วย" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                <TextBlock Grid.Column="5" Text="จำนวนหน่วยหลัก" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="3" Text="ชื่อสินค้า" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="4" Text="จำนวน" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="5" Text="หน่วย" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="6" Text="จำนวนหน่วยหลัก" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                             </Grid>
                         </Border>
 
@@ -168,13 +169,14 @@
                                                 BorderThickness="0,0,0,1"
                                                 Padding="8,5"
                                                 MinHeight="{StaticResource DataGridRowHeight}">
-                                            <Grid ColumnDefinitions="140,100,120,90,80,120" ColumnSpacing="8">
+                                            <Grid ColumnDefinitions="140,100,120,*,90,80,120" ColumnSpacing="8">
                                                 <TextBlock Grid.Column="0" Text="{Binding DocNo}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Column="1" Text="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Column="2" Text="{Binding ItemCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Column="3" Text="{Binding Qty, StringFormat='{}{0:N2}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Column="4" Text="{Binding UnitCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Column="5" Text="{Binding QtyInBaseUnit, StringFormat='{}{0:N4}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="3" Text="{Binding ItemName}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="4" Text="{Binding Qty, StringFormat='{}{0:N2}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="5" Text="{Binding UnitCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="6" Text="{Binding QtyInBaseUnit, StringFormat='{}{0:N4}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
