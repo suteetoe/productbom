@@ -18,6 +18,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IBomService, BomService>();
         services.AddScoped<IProductionService, ProductionService>();
+        services.AddScoped<IProductDestructionService, ProductDestructionService>();
         services.AddScoped<ICalculateSalesProductionUseCase, CalculateSalesProductionUseCase>();
         services.AddScoped<IBomAssignmentService, BomAssignmentService>();
         return services;
