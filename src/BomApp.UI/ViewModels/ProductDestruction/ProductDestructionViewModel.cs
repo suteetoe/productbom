@@ -45,6 +45,18 @@ public partial class ProductDestructionViewModel : ViewModelBase
     public bool CanGoPrevious => PageNumber > 1 && !IsLoading;
     public bool CanGoNext => PageNumber < TotalPages && !IsLoading;
     public bool IsDocNoEditable => !IsExistingDocument;
+    public DateTime? CalendarDocDate
+    {
+        get => DocDate.Date;
+        set
+        {
+            if (value is null)
+                return;
+
+            DocDate = new DateTimeOffset(value.Value.Date, DocDate.Offset);
+        }
+    }
+
     public string PageSummary => $"หน้า {PageNumber} / {TotalPages} ({TotalCount} รายการ)";
     public string EditorTitle => IsExistingDocument ? "แก้ไขรายการของเสีย" : "เพิ่มรายการของเสีย";
 
@@ -57,6 +69,8 @@ public partial class ProductDestructionViewModel : ViewModelBase
     }
 
     partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
+
+    partial void OnDocDateChanged(DateTimeOffset value) => OnPropertyChanged(nameof(CalendarDocDate));
 
     partial void OnIsLoadingChanged(bool value)
     {
@@ -394,7 +408,19 @@ public partial class ProductDestructionPictureEditModel : ObservableObject
     partial void OnImageFileChanged(byte[] value)
     {
         OnPropertyChanged(nameof(SizeText));
-        PreviewImage = value.Length == 0 ? null : new Bitmap(new MemoryStream(value));
+        PreviewImage = null;
+
+        if (value.Length == 0)
+            return;
+
+        try
+        {
+            PreviewImage = new Bitmap(new MemoryStream(value));
+        }
+        catch (InvalidOperationException)
+        {
+            PreviewImage = null;
+        }
     }
 }
 

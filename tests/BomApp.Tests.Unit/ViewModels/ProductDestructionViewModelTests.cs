@@ -100,4 +100,18 @@ public class ProductDestructionViewModelTests
         captured.Pictures.Should().ContainSingle().Which.ImageFile.Should().Equal(1, 2, 3);
         vm.IsEditing.Should().BeFalse();
     }
+
+    [Fact]
+    public void CalendarDocDate_WhenChanged_UpdatesDocDateWithoutTimeConversionError()
+    {
+        var vm = new ProductDestructionViewModel(Mock.Of<IProductDestructionService>(), Mock.Of<IErpItemRepository>())
+        {
+            DocDate = new DateTimeOffset(2026, 6, 16, 10, 30, 0, TimeSpan.FromHours(7))
+        };
+
+        vm.CalendarDocDate = new DateTime(2026, 6, 17);
+
+        vm.DocDate.Should().Be(new DateTimeOffset(2026, 6, 17, 0, 0, 0, TimeSpan.FromHours(7)));
+        vm.CalendarDocDate.Should().Be(new DateTime(2026, 6, 17));
+    }
 }
