@@ -8,7 +8,7 @@ public class ProductDestructionConfiguration : IEntityTypeConfiguration<ProductD
 {
     public void Configure(EntityTypeBuilder<ProductDestruction> builder)
     {
-        builder.ToTable("product_destruction");
+        builder.ToTable("bom_product_destruction");
 
         builder.HasKey(d => d.DocNo);
 
@@ -38,7 +38,7 @@ public class ProductDestructionConfiguration : IEntityTypeConfiguration<ProductD
             .IsRequired();
 
         builder.HasIndex(d => d.DocDate)
-            .HasDatabaseName("idx_product_destruction_doc_date");
+            .HasDatabaseName("idx_bom_product_destruction_doc_date");
 
         builder.HasMany(d => d.Pictures)
             .WithOne(p => p.ProductDestruction)

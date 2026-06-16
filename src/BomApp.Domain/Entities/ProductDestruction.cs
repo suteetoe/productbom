@@ -2,7 +2,7 @@ namespace BomApp.Domain.Entities;
 
 /// <summary>
 /// Product destruction document header.
-/// Maps to public.product_destruction.
+/// Maps to public.bom_product_destruction.
 /// </summary>
 public class ProductDestruction
 {

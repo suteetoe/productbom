@@ -2,7 +2,7 @@ namespace BomApp.Domain.Entities;
 
 /// <summary>
 /// Item line for a product destruction document.
-/// Maps to public.product_destruction_detail.
+/// Maps to public.bom_product_destruction_detail.
 /// </summary>
 public class ProductDestructionDetail
 {

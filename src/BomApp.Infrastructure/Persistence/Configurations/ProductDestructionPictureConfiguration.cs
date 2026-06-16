@@ -8,7 +8,7 @@ public class ProductDestructionPictureConfiguration : IEntityTypeConfiguration<P
 {
     public void Configure(EntityTypeBuilder<ProductDestructionPicture> builder)
     {
-        builder.ToTable("product_destruction_pictures");
+        builder.ToTable("bom_product_destruction_pictures");
 
         builder.HasKey(p => new { p.DocNo, p.LineNumber });
 
@@ -33,6 +33,6 @@ public class ProductDestructionPictureConfiguration : IEntityTypeConfiguration<P
             .IsRequired();
 
         builder.HasIndex(p => p.DocNo)
-            .HasDatabaseName("idx_product_destruction_pictures_doc_no");
+            .HasDatabaseName("idx_bom_product_destruction_pictures_doc_no");
     }
 }

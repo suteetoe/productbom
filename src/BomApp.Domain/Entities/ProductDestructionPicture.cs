@@ -2,7 +2,7 @@ namespace BomApp.Domain.Entities;
 
 /// <summary>
 /// Image attached to a product destruction document.
-/// Maps to public.product_destruction_pictures.
+/// Maps to public.bom_product_destruction_pictures.
 /// </summary>
 public class ProductDestructionPicture
 {
