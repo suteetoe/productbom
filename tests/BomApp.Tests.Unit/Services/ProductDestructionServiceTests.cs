@@ -105,4 +105,86 @@ public class ProductDestructionServiceTests
             r => r.SaveProductDestructionDocumentAsync(It.IsAny<ProductDestructionDto>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task DeleteAsync_WhenDocumentExists_DeletesLocalThenErpAndProcessesStock()
+    {
+        const string docNo = "PD-20260616-00001";
+        var document = new ProductDestructionDto(
+            DocNo: docNo,
+            DocDate: new DateOnly(2026, 6, 16),
+            WhCode: "WH01",
+            ShelfCode: "A01",
+            Remark: "damaged",
+            Pictures: [],
+            Details:
+            [
+                new ProductDestructionDetailDto(docNo, "FG-001", "Finished Good", 2m, "PCS", "WH01", "A01", 1),
+                new ProductDestructionDetailDto(docNo, "FG-001", "Finished Good", 1m, "PCS", "WH01", "A01", 2),
+                new ProductDestructionDetailDto(docNo, "RM-001", "Raw Material", 1m, "KG", "WH01", "A01", 3)
+            ]);
+
+        var repository = new Mock<IProductDestructionRepository>();
+        var erpProductionRepository = new Mock<IErpProductionRepository>();
+        var stockRequestProcessor = new Mock<IErpStockRequestProcessor>();
+        var sequence = new MockSequence();
+
+        repository
+            .Setup(r => r.GetByDocNoAsync(docNo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(document);
+        repository
+            .InSequence(sequence)
+            .Setup(r => r.DeleteAsync(docNo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        erpProductionRepository
+            .InSequence(sequence)
+            .Setup(r => r.DeleteProductDestructionDocumentAsync(docNo, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        stockRequestProcessor
+            .InSequence(sequence)
+            .Setup(r => r.ProcessStockRequestAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var service = new ProductDestructionService(
+            repository.Object,
+            Mock.Of<IErpItemRepository>(),
+            erpProductionRepository.Object,
+            stockRequestProcessor.Object);
+
+        var result = await service.DeleteAsync(docNo);
+
+        result.IsSuccess.Should().BeTrue();
+        stockRequestProcessor.Verify(
+            r => r.ProcessStockRequestAsync(
+                It.Is<IReadOnlyList<string>>(codes => codes.SequenceEqual(new[] { "FG-001", "RM-001" })),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenDocumentDoesNotExist_DoesNotDeleteErp()
+    {
+        const string docNo = "PD-20260616-99999";
+        var erpProductionRepository = new Mock<IErpProductionRepository>();
+        var repository = new Mock<IProductDestructionRepository>();
+        repository
+            .Setup(r => r.GetByDocNoAsync(docNo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ProductDestructionDto?)null);
+
+        var service = new ProductDestructionService(
+            repository.Object,
+            Mock.Of<IErpItemRepository>(),
+            erpProductionRepository.Object,
+            Mock.Of<IErpStockRequestProcessor>());
+
+        var result = await service.DeleteAsync(docNo);
+
+        result.IsSuccess.Should().BeFalse();
+        repository.Verify(
+            r => r.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        erpProductionRepository.Verify(
+            r => r.DeleteProductDestructionDocumentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 }

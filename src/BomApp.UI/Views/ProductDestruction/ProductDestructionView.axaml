@@ -94,7 +94,7 @@
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="0,0,0,1"
                                 Padding="8,6">
-                            <Grid ColumnDefinitions="130,*,90,90" ColumnSpacing="8">
+                            <Grid ColumnDefinitions="130,*,90,90,56" ColumnSpacing="8">
                                 <TextBlock Grid.Column="0" Text="วันที่" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 <TextBlock Grid.Column="1" Text="เลขที่เอกสาร" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 <TextBlock Grid.Column="2" Text="คลัง" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
@@ -107,24 +107,34 @@
                             <ItemsControl ItemsSource="{Binding Documents}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="contracts:ProductDestructionDto">
-                                        <Button Command="{Binding ((vm:ProductDestructionViewModel)DataContext).SelectDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}"
-                                                Background="Transparent"
-                                                BorderThickness="0"
+                                        <Border BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="0,0,0,1"
                                                 Padding="0"
-                                                HorizontalContentAlignment="Stretch">
-                                            <Border BorderBrush="{StaticResource BorderBrush}"
-                                                    BorderThickness="0,0,0,1"
-                                                    Padding="8,5"
-                                                    MinHeight="{StaticResource DataGridRowHeight}">
-                                                <Grid ColumnDefinitions="130,*,90,90" ColumnSpacing="8">
-                                                    <TextBlock Grid.Column="0" Text="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="1" Text="{Binding DocNo}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="2" Text="{Binding WhCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                                                    <TextBlock Grid.Column="3" Text="{Binding ShelfCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                                                </Grid>
-                                            </Border>
-                                        </Button>
+                                                MinHeight="{StaticResource DataGridRowHeight}">
+                                            <Grid ColumnDefinitions="*,56">
+                                                <Button Grid.Column="0"
+                                                        Command="{Binding ((vm:ProductDestructionViewModel)DataContext).SelectDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Padding="8,5"
+                                                        HorizontalContentAlignment="Stretch">
+                                                    <Grid ColumnDefinitions="130,*,90,90" ColumnSpacing="8">
+                                                        <TextBlock Grid.Column="0" Text="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding DocNo}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding WhCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="3" Text="{Binding ShelfCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                </Button>
+                                                <Button Grid.Column="1"
+                                                        Content="Delete"
+                                                        Command="{Binding ((vm:ProductDestructionViewModel)DataContext).DeleteDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Margin="4"
+                                                        Padding="8,3"
+                                                        CornerRadius="{StaticResource RadiusSM}"/>
+                                            </Grid>
+                                        </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>

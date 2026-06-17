@@ -1,7 +1,7 @@
 # Shared Interfaces
 > ไฟล์นี้ CTO approve เท่านั้น — ห้าม agent ไหน modify โดยไม่ผ่าน CTO
 > DTOs อยู่ที่ `shared/contracts.md`
-> Last updated: 2026-04-17
+> Last updated: 2026-06-17
 
 ---
 
@@ -81,6 +81,36 @@ public interface IProductionService
 
     Task<Result> CancelOrderAsync(
         CancelProductionOrderCommand cmd,
+        CancellationToken ct = default);
+}
+```
+
+---
+
+### `IProductDestructionService`
+
+```csharp
+public interface IProductDestructionService
+{
+    Task<Result<PagedResult<ProductDestructionDto>>> GetDocumentsPageAsync(
+        ProductDestructionListQuery query,
+        CancellationToken ct = default);
+
+    Task<Result<ProductDestructionDto>> GetDocumentByDocNoAsync(
+        string docNo,
+        CancellationToken ct = default);
+
+    Task<Result<ProductDestructionDto>> CreateAsync(
+        CreateProductDestructionCommand command,
+        CancellationToken ct = default);
+
+    Task<Result<ProductDestructionDto>> UpdateAsync(
+        string docNo,
+        UpdateProductDestructionCommand command,
+        CancellationToken ct = default);
+
+    Task<Result> DeleteAsync(
+        string docNo,
         CancellationToken ct = default);
 }
 ```
@@ -224,6 +254,36 @@ public interface IBomProductionRepository
 
 ## Infrastructure Layer — Authentication Database
 
+### `IProductDestructionRepository`
+
+```csharp
+public interface IProductDestructionRepository
+{
+    Task<PagedResult<ProductDestructionDto>> GetPageAsync(
+        ProductDestructionListQuery query,
+        CancellationToken ct = default);
+
+    Task<ProductDestructionDto?> GetByDocNoAsync(
+        string docNo,
+        CancellationToken ct = default);
+
+    Task<ProductDestructionDto> CreateAsync(
+        CreateProductDestructionCommand command,
+        CancellationToken ct = default);
+
+    Task<ProductDestructionDto?> UpdateAsync(
+        string docNo,
+        UpdateProductDestructionCommand command,
+        CancellationToken ct = default);
+
+    Task<bool> DeleteAsync(
+        string docNo,
+        CancellationToken ct = default);
+}
+```
+
+---
+
 ### `IAuthRepository`
 
 > Connection: `authentication-database` — อ่านอย่างเดียว
@@ -319,6 +379,31 @@ public interface IErpStockRequestProcessor
 
 ---
 
+### `IErpProductionRepository`
+
+```csharp
+public interface IErpProductionRepository
+{
+    Task SaveProductionDocumentAsync(
+        BomProductionDto document,
+        CancellationToken ct = default);
+
+    Task SaveProductDestructionDocumentAsync(
+        ProductDestructionDto document,
+        CancellationToken ct = default);
+
+    Task DeleteProductionDocumentAsync(
+        string docNo,
+        CancellationToken ct = default);
+
+    Task DeleteProductDestructionDocumentAsync(
+        string docNo,
+        CancellationToken ct = default);
+}
+```
+
+---
+
 ## Fake Implementations (team-c-integration — สำหรับ unit test)
 
 ```csharp
@@ -346,3 +431,4 @@ public class FakeErpSalesOrderRepository : IErpSalesOrderRepository { ... }
 | 2026-04-17 | เพิ่ม `IAuthRepository` | team-a implement |
 | 2026-04-17 | เพิ่ม `IBomAssignmentRepository`, `IProductionOrderRepository` | team-a implement |
 | 2026-06-01 | เพิ่ม `IErpStockRequestProcessor` สำหรับเรียก ERP `processstockrequest` หลัง save production document | team-c implement, team-a เรียกจาก use case |
+| 2026-06-17 | Add product destruction delete flow through local repository, ERP delete, and stock request processor | team-a/team-c implement |

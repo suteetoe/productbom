@@ -2,6 +2,7 @@ using BomApp.Application.Interfaces;
 using BomApp.Application.Interfaces.Repositories;
 using BomApp.Domain.Common;
 using BomApp.Shared.Contracts;
+using BomApp.UI.Services;
 using BomApp.UI.ViewModels.ProductDestruction;
 using FluentAssertions;
 using Moq;
@@ -34,7 +35,7 @@ public class ProductDestructionViewModelTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<PagedResult<ProductDestructionDto>>.Success(new PagedResult<ProductDestructionDto>([document], 21, 1, 20)));
 
-        var vm = new ProductDestructionViewModel(service.Object, Mock.Of<IErpItemRepository>());
+        var vm = new ProductDestructionViewModel(service.Object, Mock.Of<IErpItemRepository>(), Mock.Of<IDialogService>());
 
         await vm.LoadInitialCommand.ExecuteAsync(null);
 
@@ -67,7 +68,7 @@ public class ProductDestructionViewModelTests
             .Setup(s => s.GetDocumentsPageAsync(It.IsAny<ProductDestructionListQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<PagedResult<ProductDestructionDto>>.Success(new PagedResult<ProductDestructionDto>([saved], 1, 1, 20)));
 
-        var vm = new ProductDestructionViewModel(service.Object, Mock.Of<IErpItemRepository>());
+        var vm = new ProductDestructionViewModel(service.Object, Mock.Of<IErpItemRepository>(), Mock.Of<IDialogService>());
         vm.NewDocumentCommand.Execute(null);
         vm.DocDate = new DateTimeOffset(2026, 6, 16, 0, 0, 0, TimeSpan.Zero);
         vm.DocNo = saved.DocNo;
@@ -104,7 +105,7 @@ public class ProductDestructionViewModelTests
     [Fact]
     public void CalendarDocDate_WhenChanged_UpdatesDocDateWithoutTimeConversionError()
     {
-        var vm = new ProductDestructionViewModel(Mock.Of<IProductDestructionService>(), Mock.Of<IErpItemRepository>())
+        var vm = new ProductDestructionViewModel(Mock.Of<IProductDestructionService>(), Mock.Of<IErpItemRepository>(), Mock.Of<IDialogService>())
         {
             DocDate = new DateTimeOffset(2026, 6, 16, 10, 30, 0, TimeSpan.FromHours(7))
         };
@@ -113,5 +114,68 @@ public class ProductDestructionViewModelTests
 
         vm.DocDate.Should().Be(new DateTimeOffset(2026, 6, 17, 0, 0, 0, TimeSpan.FromHours(7)));
         vm.CalendarDocDate.Should().Be(new DateTime(2026, 6, 17));
+    }
+
+    [Fact]
+    public async Task DeleteDocumentCommand_WhenConfirmed_DeletesDocumentAndReloadsPage()
+    {
+        var document = new ProductDestructionDto(
+            DocNo: "PD-20260616-00001",
+            DocDate: new DateOnly(2026, 6, 16),
+            WhCode: "WH01",
+            ShelfCode: "A01",
+            Remark: "damaged",
+            Pictures: [],
+            Details: []);
+
+        var service = new Mock<IProductDestructionService>();
+        service
+            .Setup(s => s.DeleteAsync(document.DocNo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+        service
+            .Setup(s => s.GetDocumentsPageAsync(It.IsAny<ProductDestructionListQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<PagedResult<ProductDestructionDto>>.Success(new PagedResult<ProductDestructionDto>([], 0, 1, 20)));
+
+        var dialogService = new Mock<IDialogService>();
+        dialogService
+            .Setup(s => s.ConfirmAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        var vm = new ProductDestructionViewModel(service.Object, Mock.Of<IErpItemRepository>(), dialogService.Object);
+        vm.Documents.Add(document);
+        vm.TotalCount = 1;
+
+        await vm.DeleteDocumentCommand.ExecuteAsync(document);
+
+        vm.Documents.Should().BeEmpty();
+        vm.TotalCount.Should().Be(0);
+        service.Verify(s => s.DeleteAsync(document.DocNo, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteDocumentCommand_WhenConfirmationIsRejected_DoesNotDeleteDocument()
+    {
+        var document = new ProductDestructionDto(
+            DocNo: "PD-20260616-00001",
+            DocDate: new DateOnly(2026, 6, 16),
+            WhCode: "WH01",
+            ShelfCode: "A01",
+            Remark: "damaged",
+            Pictures: [],
+            Details: []);
+
+        var service = new Mock<IProductDestructionService>();
+        var dialogService = new Mock<IDialogService>();
+        dialogService
+            .Setup(s => s.ConfirmAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(false);
+
+        var vm = new ProductDestructionViewModel(service.Object, Mock.Of<IErpItemRepository>(), dialogService.Object);
+        vm.Documents.Add(document);
+
+        await vm.DeleteDocumentCommand.ExecuteAsync(document);
+
+        vm.Documents.Should().ContainSingle().Which.Should().Be(document);
+        service.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

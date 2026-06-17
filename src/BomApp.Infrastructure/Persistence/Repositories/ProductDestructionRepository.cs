@@ -141,6 +141,23 @@ public class ProductDestructionRepository(BomDbContext context) : IProductDestru
         return MapToDto(document);
     }
 
+    public async Task<bool> DeleteAsync(
+        string docNo,
+        CancellationToken ct = default)
+    {
+        var document = await context.ProductDestructions
+            .Include(d => d.Pictures)
+            .Include(d => d.Details)
+            .FirstOrDefaultAsync(d => d.DocNo == docNo, ct);
+
+        if (document is null)
+            return false;
+
+        context.ProductDestructions.Remove(document);
+        await context.SaveChangesAsync(ct);
+        return true;
+    }
+
     private static IQueryable<ProductDestruction> ApplyFilters(
         IQueryable<ProductDestruction> query,
         DateOnly? docDateFrom,

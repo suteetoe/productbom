@@ -20,4 +20,8 @@ public interface IProductDestructionRepository
         string docNo,
         UpdateProductDestructionCommand command,
         CancellationToken ct = default);
+
+    Task<bool> DeleteAsync(
+        string docNo,
+        CancellationToken ct = default);
 }

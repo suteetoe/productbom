@@ -248,4 +248,67 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
         targetDetailCount.Should().Be(0);
         untouchedCount.Should().Be(2);
     }
+
+    [Fact]
+    public async Task DeleteProductDestructionDocumentAsync_RemovesIcTransIcTransDetailAndImages()
+    {
+        await DbContext.Database.ExecuteSqlRawAsync("""
+            INSERT INTO ic_trans (trans_type, trans_flag, doc_date, doc_time, doc_no)
+            VALUES (3, 56, DATE '2026-06-16', '09:30', 'PD-20260616-00001'),
+                   (3, 56, DATE '2026-06-16', '09:30', 'PD-20260616-00002')
+            """);
+
+        await DbContext.Database.ExecuteSqlRawAsync("""
+            INSERT INTO ic_trans_detail (
+                trans_type,
+                trans_flag,
+                doc_date,
+                doc_time,
+                doc_date_calc,
+                doc_time_calc,
+                calc_flag,
+                doc_no,
+                item_code,
+                item_name,
+                unit_code,
+                qty,
+                wh_code,
+                shelf_code,
+                stand_value,
+                divide_value,
+                tax_type,
+                line_number
+            )
+            VALUES (3, 56, DATE '2026-06-16', '09:30', DATE '2026-06-16', '09:30', 1, 'PD-20260616-00001', 'MAT-A', 'Material A', 'KG', 12.5, 'WH-A', 'SH-01', 1, 1, 0, 1),
+                   (3, 56, DATE '2026-06-16', '09:30', DATE '2026-06-16', '09:30', 1, 'PD-20260616-00002', 'MAT-B', 'Material B', 'PCS', 3, 'WH-B', 'SH-02', 1, 1, 0, 1)
+            """);
+
+        await DbContext.Database.ExecuteSqlRawAsync("""
+            INSERT INTO sml_doc_images (image_id, image_file, guid_code)
+            VALUES ('PD-20260616-00001', '\x010203', '11111111-1111-1111-1111-111111111111'),
+                   ('PD-20260616-00002', '\x010203', '22222222-2222-2222-2222-222222222222')
+            """);
+
+        var repo = new ErpProductionRepository(DbContext);
+
+        await repo.DeleteProductDestructionDocumentAsync("PD-20260616-00001");
+
+        var targetHeaderCount = await DbContext.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS \"Value\" FROM ic_trans WHERE trans_type = 3 AND trans_flag = 56 AND doc_no = 'PD-20260616-00001'")
+            .SingleAsync();
+        var targetDetailCount = await DbContext.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS \"Value\" FROM ic_trans_detail WHERE trans_type = 3 AND trans_flag = 56 AND doc_no = 'PD-20260616-00001'")
+            .SingleAsync();
+        var targetImageCount = await DbContext.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS \"Value\" FROM sml_doc_images WHERE image_id = 'PD-20260616-00001'")
+            .SingleAsync();
+        var untouchedCount = await DbContext.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS \"Value\" FROM ic_trans WHERE doc_no = 'PD-20260616-00002'")
+            .SingleAsync();
+
+        targetHeaderCount.Should().Be(0);
+        targetDetailCount.Should().Be(0);
+        targetImageCount.Should().Be(0);
+        untouchedCount.Should().Be(1);
+    }
 }

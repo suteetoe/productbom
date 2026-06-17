@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using BomApp.Application.Interfaces;
 using BomApp.Application.Interfaces.Repositories;
 using BomApp.Shared.Contracts;
+using BomApp.UI.Services;
 
 namespace BomApp.UI.ViewModels.ProductDestruction;
 
@@ -12,6 +13,7 @@ public partial class ProductDestructionViewModel : ViewModelBase
 {
     private readonly IProductDestructionService _service;
     private readonly IErpItemRepository _erpItemRepository;
+    private readonly IDialogService _dialogService;
     private bool _hasLoadedInitialDocuments;
 
     public Func<Task<ProductDestructionPictureEditModel?>>? ShowPicturePicker { get; set; }
@@ -62,10 +64,12 @@ public partial class ProductDestructionViewModel : ViewModelBase
 
     public ProductDestructionViewModel(
         IProductDestructionService service,
-        IErpItemRepository erpItemRepository)
+        IErpItemRepository erpItemRepository,
+        IDialogService dialogService)
     {
         _service = service;
         _erpItemRepository = erpItemRepository;
+        _dialogService = dialogService;
     }
 
     partial void OnErrorMessageChanged(string value) => OnPropertyChanged(nameof(HasError));
@@ -266,6 +270,50 @@ public partial class ProductDestructionViewModel : ViewModelBase
 
         picture.LineNumber = (short)(Pictures.Count + 1);
         Pictures.Add(picture);
+    }
+
+    [RelayCommand]
+    private async Task DeleteDocumentAsync(ProductDestructionDto document)
+    {
+        var confirmed = await _dialogService.ConfirmAsync(
+            "Confirm delete",
+            $"Delete product destruction document '{document.DocNo}'?");
+        if (!confirmed)
+            return;
+
+        IsLoading = true;
+        ErrorMessage = string.Empty;
+
+        try
+        {
+            var result = await _service.DeleteAsync(document.DocNo);
+            if (!result.IsSuccess)
+            {
+                ErrorMessage = result.Error ?? "Unable to delete product destruction document.";
+                return;
+            }
+
+            Documents.Remove(document);
+            if (SelectedDocument?.DocNo == document.DocNo)
+            {
+                SelectedDocument = null;
+                IsEditing = false;
+                IsExistingDocument = false;
+                Pictures.Clear();
+                Details.Clear();
+            }
+
+            OnPropertyChanged(nameof(HasDocuments));
+            TotalCount = Math.Max(0, TotalCount - 1);
+            if (Documents.Count == 0 && PageNumber > 1)
+                PageNumber--;
+
+            await LoadPageAsync();
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     [RelayCommand]

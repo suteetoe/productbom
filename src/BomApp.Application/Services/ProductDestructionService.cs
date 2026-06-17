@@ -108,6 +108,39 @@ public class ProductDestructionService(
         }
     }
 
+    public async Task<Result> DeleteAsync(
+        string docNo,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(docNo))
+            return Result.Failure("Document number is required.");
+
+        var trimmedDocNo = docNo.Trim();
+        var document = await repository.GetByDocNoAsync(trimmedDocNo, ct);
+        if (document is null)
+            return Result.Failure($"Product destruction document not found: {docNo}");
+
+        var stockProcessItemCodes = GetStockProcessItemCodes(document);
+        var deleted = await repository.DeleteAsync(trimmedDocNo, ct);
+        if (!deleted)
+            return Result.Failure($"Product destruction document not found: {docNo}");
+
+        try
+        {
+            await erpProductionRepository.DeleteProductDestructionDocumentAsync(trimmedDocNo, ct);
+            await erpStockRequestProcessor.ProcessStockRequestAsync(stockProcessItemCodes, ct);
+            return Result.Success();
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to delete product destruction from ERP: {ex.Message}");
+        }
+    }
+
     private static string? Validate(
         string docNo,
         string whCode,

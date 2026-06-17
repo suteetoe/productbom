@@ -136,7 +136,8 @@ public partial class App : Avalonia.Application
             var scope = scopeFactory.CreateScope();
             return new ProductDestructionViewModel(
                 scope.ServiceProvider.GetRequiredService<IProductDestructionService>(),
-                scope.ServiceProvider.GetRequiredService<IErpItemRepository>());
+                scope.ServiceProvider.GetRequiredService<IErpItemRepository>(),
+                dialogService);
         });
 
         nav.Register<SalesCalculationViewModel>(() =>
