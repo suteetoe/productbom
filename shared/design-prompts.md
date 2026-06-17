@@ -251,6 +251,49 @@ Show the result section in a "after calculation" state with 3 sample material ro
 
 ---
 
+## Screen 6 — Product Destruction (2.6)
+
+```
+Design a desktop Product Destruction screen for a Thai ERP plugin used to record damaged or destroyed stock.
+
+Left sidebar navigation same as Screen 2a. "เบิกของเสีย" menu item is active.
+
+Main content uses a two-panel work layout:
+
+LEFT DOCUMENT LIST:
+  - Compact filter row: date range, document number search, Search button
+  - Document list with rows showing DocNo, DocDate, item count, picture count
+  - Row actions: select/view and delete
+  - Pagination at the bottom
+
+RIGHT DETAIL/EDITOR PANEL:
+The detail panel is always visible, even when no document is selected.
+
+Header form:
+  - DocNo text input
+  - DocDate date picker
+  - WhCode text input
+  - ShelfCode text input
+  - Remark text input
+  - Actions: New, Save
+
+Pictures section:
+  - Thumbnail grid of attached images
+  - Add picture button
+  - Remove picture icon per image
+
+Item lines section:
+  - Editable item table/list with ItemCode, ItemName, Qty, UnitCode, WhCode, ShelfCode
+  - Add item button
+  - Remove item icon per row
+  - Qty is right-aligned and must visually reject zero or negative values
+
+Show an example selected document with 2 pictures and 3 item lines.
+Use a practical ERP operations style: dense, readable, and calm; avoid marketing-style hero layout.
+```
+
+---
+
 ## ลำดับการ Implement แนะนำ (สำหรับ team-b)
 
 | ลำดับ | Screen | เหตุผล |
@@ -261,5 +304,6 @@ Show the result section in a "after calculation" state with 3 sample material ro
 | 4 | Screen 5 — Sales Calculation | หน้าจอหลัก, 3 sections |
 | 5 | Screen 2b — BOM Editor | Form + inline DataGrid |
 | 6 | Screen 3 — BOM Assignment | Split panel |
+| 7 | Screen 6 — Product Destruction | เอกสารทำลายสินค้า + รูปภาพ + editable item lines |
 
 > หลัง implement Screen 2a ให้อัปเดต `shared/design-tokens.md` ก่อน implement screen ถัดไป

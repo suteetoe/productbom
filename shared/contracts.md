@@ -1,7 +1,7 @@
 # Shared Contracts — DTOs
 > ไฟล์นี้ CTO approve เท่านั้น — ห้าม agent ไหน modify โดยไม่ผ่าน CTO
 > Interface definitions แยกอยู่ที่ `shared/interfaces.md`
-> Last updated: 2026-04-17
+> Last updated: 2026-06-17
 
 ---
 
@@ -199,6 +199,84 @@ public record CreateBomProductionDetailInternalCommand(
 
 ---
 
+## Product Destruction DTOs
+
+```csharp
+/// <summary>Product destruction document header, pictures, and item lines.</summary>
+public record ProductDestructionDto(
+    string DocNo,
+    DateOnly DocDate,
+    string WhCode,
+    string ShelfCode,
+    string Remark,
+    IReadOnlyList<ProductDestructionPictureDto> Pictures,
+    IReadOnlyList<ProductDestructionDetailDto> Details
+);
+
+/// <summary>Query for paged product destruction document list.</summary>
+public record ProductDestructionListQuery(
+    DateOnly? DocDateFrom,
+    DateOnly? DocDateTo,
+    string? DocNo,
+    int PageNumber,
+    int PageSize
+);
+
+public record ProductDestructionPictureDto(
+    string DocNo,
+    short LineNumber,
+    string ImageGuid,
+    byte[] ImageFile
+);
+
+public record ProductDestructionDetailDto(
+    string DocNo,
+    string ItemCode,
+    string ItemName,
+    decimal Qty,
+    string UnitCode,
+    string WhCode,
+    string ShelfCode,
+    int LineNumber
+);
+
+public record CreateProductDestructionCommand(
+    string DocNo,
+    DateOnly DocDate,
+    string WhCode,
+    string ShelfCode,
+    string Remark,
+    IReadOnlyList<CreateProductDestructionPictureCommand> Pictures,
+    IReadOnlyList<CreateProductDestructionDetailCommand> Details
+);
+
+public record UpdateProductDestructionCommand(
+    DateOnly DocDate,
+    string WhCode,
+    string ShelfCode,
+    string Remark,
+    IReadOnlyList<CreateProductDestructionPictureCommand> Pictures,
+    IReadOnlyList<CreateProductDestructionDetailCommand> Details
+);
+
+public record CreateProductDestructionPictureCommand(
+    string ImageGuid,
+    byte[] ImageFile,
+    short LineNumber
+);
+
+public record CreateProductDestructionDetailCommand(
+    string ItemCode,
+    decimal Qty,
+    string UnitCode,
+    string WhCode,
+    string ShelfCode,
+    int LineNumber
+);
+```
+
+---
+
 ## Auth DTO
 
 ```csharp
@@ -268,3 +346,4 @@ public record ErpSalesTransactionDto(
 | 2026-04-17 | เพิ่ม CalculateSalesProductionRequest, SaveMode | team-a + CLI project | CTO |
 | 2026-04-17 | เพิ่ม ErpSalesTransactionDto, ErpUnitDto, AuthUserDto | team-c + team-a | CTO |
 | 2026-04-17 | แยก Interface ออกไป shared/interfaces.md | ทุกทีมอ่าน interfaces.md แทน | CTO |
+| 2026-06-17 | เพิ่ม Product Destruction DTOs และ commands | team-a/team-b/team-c ใช้ contract เดียวกับ screen 2.6 | CTO |

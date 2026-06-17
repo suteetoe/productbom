@@ -12,8 +12,10 @@
 | `IBomRepository` | Infrastructure | team-a-backend | |
 | `IBomAssignmentRepository` | Infrastructure | team-a-backend | |
 | `IProductionOrderRepository` | Infrastructure | team-a-backend | |
+| `IProductDestructionRepository` | Infrastructure | team-a-backend | local product destruction BOM tables |
 | `IBomService` | Application | team-a-backend | |
 | `IProductionService` | Application | team-a-backend | |
+| `IProductDestructionService` | Application | team-a-backend | create/update/delete product destruction and coordinate ERP write |
 | `ICalculateSalesProductionUseCase` | Application | team-a-backend | ใช้ทั้ง UI และ CLI |
 | `IAuthRepository` | Infrastructure | team-a-backend | อ่านจาก authentication-database |
 | `IErpItemRepository` | Infrastructure | team-c-integration | อ่านจาก erp-database |
@@ -252,7 +254,7 @@ public interface IBomProductionRepository
 
 ---
 
-## Infrastructure Layer — Authentication Database
+## Infrastructure Layer — BOM Database
 
 ### `IProductDestructionRepository`
 
@@ -283,6 +285,8 @@ public interface IProductDestructionRepository
 ```
 
 ---
+
+## Infrastructure Layer — Authentication Database
 
 ### `IAuthRepository`
 

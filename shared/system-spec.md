@@ -7,11 +7,12 @@
 ## 1. ภาพรวมระบบ
 
 โปรแกรม **Smart BOM** เป็น Avalonia desktop plugin
-ที่ embed อยู่ใน ERP โดยมีหน้าที่หลัก 3 อย่าง:
+ที่ embed อยู่ใน ERP โดยมีหน้าที่หลัก 4 อย่าง:
 
 1. **จัดการสูตรการผลิต (BOM)** — กำหนดว่าผลิตสินค้าหนึ่งชิ้นต้องใช้วัตถุดิบอะไร เท่าไหร่
 2. **เชื่อมสูตรกับสินค้า** — ผูก BOM เข้ากับ product item ที่มีอยู่ใน ERP
 3. **คำนวณจำนวนสินค้าที่ต้องเบิกผลิต จากรายการขาย** — เลือกเอกสารขายตามช่วงวันที่ รวบรวมสินค้าที่ขายได้ แล้วแตกสูตร BOM เพื่อคำนวณวัตถุดิบที่ต้องตัดเบิกสำหรับการผลิต
+4. **เบิกของเสีย / Product Destruction** — บันทึกเอกสารทำลายสินค้าแนบรูปภาพ เก็บประวัติใน BOM domain tables และส่งเอกสารตัดสต็อกเข้า ERP
 
 ข้อมูลหลักเก็บใน **PostgreSQL schema `public`** ซึ่งอยู่บนฐานข้อมูลเดียวกับ ERP โดย BOM tables ทุกตารางขึ้นต้นด้วย `bom_`
 ข้อมูล Items และ Sales Orders ดึงมาจาก **ERP** ผ่าน adapter
@@ -331,6 +332,60 @@ CLI (BomApp.Cli calculate)       ─┘        └─→ IErpSalesOrderRepositor
 
 ---
 
+### 2.6 เบิกของเสีย (Product Destruction)
+**วัตถุประสงค์**: สร้าง/แก้ไข/ลบเอกสารทำลายสินค้า พร้อมแนบรูปภาพและรายการสินค้าที่ต้องตัดออกจาก stock ผ่าน ERP
+
+#### UI Elements
+
+| Element | รายละเอียด |
+|---|---|
+| List panel | แสดงเอกสาร `DocNo`, `DocDate`, จำนวนรายการสินค้า, จำนวนรูปภาพ พร้อม search/filter ตามวันที่และเลขเอกสาร |
+| Detail panel | แสดงตลอดเวลา มี header form, รูปภาพแนบ, และรายการสินค้าในเอกสาร |
+| Header form | `DocNo`, `DocDate`, `WhCode`, `ShelfCode`, `Remark` |
+| Pictures | แนบรูปภาพหลายรูป เก็บ `ImageGuid`, `ImageFile`, `LineNumber`; รูปต้องมี GUID ถูกต้องและข้อมูลรูปไม่ว่าง |
+| Details | รายการสินค้า `ItemCode`, `ItemName`, `Qty`, `UnitCode`, `WhCode`, `ShelfCode`, `LineNumber` |
+| Actions | New, Save, Delete, Add picture, Remove picture, Add item, Remove item |
+
+#### Processing Flow
+
+```
+1. User creates or edits product destruction document
+   -> ProductDestructionViewModel builds CreateProductDestructionCommand or UpdateProductDestructionCommand
+
+2. ProductDestructionService validates
+   -> DocNo, WhCode, ShelfCode required
+   -> at least one detail line
+   -> every detail ItemCode required and Qty > 0
+   -> every picture has image data and valid ImageGuid
+
+3. Save local BOM domain document
+   -> bom_product_destruction
+   -> bom_product_destruction_pictures
+   -> bom_product_destruction_detail
+
+4. Hydrate detail ItemName from ERP ic_inventory
+
+5. Save ERP document through ErpProductionRepository
+   -> delete old rows for same DocNo from sml_doc_images, ic_trans_detail, ic_trans
+   -> insert ic_trans header
+   -> insert ic_trans_detail rows with trans_type=3, trans_flag=56, calc_flag=-1
+   -> insert sml_doc_images rows with image_id = DocNo
+
+6. POST ERP processstockrequest
+   -> itemCode[] = distinct item codes from product destruction details
+
+7. Delete flow
+   -> delete local BOM document
+   -> delete ERP sml_doc_images, ic_trans_detail, ic_trans rows
+   -> POST processstockrequest with deleted document item codes
+```
+
+**ViewModel**: `ProductDestructionViewModel`
+**Service**: `IProductDestructionService`
+**Agent**: team-b-frontend (UI), team-a-backend (service/domain), team-c-integration (ERP write + stock process)
+
+---
+
 ## 3. Database Tables (PostgreSQL — schema `public`)
 
 > ตาราง ERP (Items, SalesOrders) อยู่ใน `public` schema เช่นกัน — ไม่ได้เก็บในนี้
@@ -456,6 +511,49 @@ CLI (BomApp.Cli calculate)       ─┘        └─→ IErpSalesOrderRepositor
 
 ---
 
+### 3.8 `bom_product_destruction` — Header เอกสารทำลายสินค้า
+
+| Column | Type | Constraint | หมายเหตุ |
+|---|---|---|---|
+| `doc_no` | VARCHAR(50) | PK | เลขที่เอกสารทำลายสินค้า เช่น PD-YYYYMMDD-NNNNN |
+| `doc_date` | DATE | NOT NULL | วันที่เอกสาร |
+| `wh_code` | VARCHAR(50) | NOT NULL | warehouse หลักของเอกสาร |
+| `shelf_code` | VARCHAR(50) | NOT NULL | shelf/location หลักของเอกสาร |
+| `remark` | VARCHAR(255) | NOT NULL DEFAULT '' | หมายเหตุ |
+
+**Index**: `idx_bom_product_destruction_doc_date` (doc_date DESC)
+
+---
+
+### 3.9 `bom_product_destruction_pictures` — รูปภาพแนบเอกสารทำลายสินค้า
+
+| Column | Type | Constraint | หมายเหตุ |
+|---|---|---|---|
+| `doc_no` | VARCHAR(50) | PK, FK -> bom_product_destruction.doc_no, NOT NULL | CASCADE DELETE |
+| `line_number` | SMALLINT | PK | ลำดับรูปในเอกสาร |
+| `image_guid` | VARCHAR(50) | NOT NULL | GUID ของรูปภาพ ต้อง parse เป็น UUID ได้ก่อนเขียน ERP |
+| `image_file` | BYTEA | NOT NULL | binary image |
+
+**Index**: `idx_bom_product_destruction_pictures_doc_no` (doc_no)
+
+---
+
+### 3.10 `bom_product_destruction_detail` — รายการสินค้าที่ทำลาย
+
+| Column | Type | Constraint | หมายเหตุ |
+|---|---|---|---|
+| `doc_no` | VARCHAR(50) | PK, FK -> bom_product_destruction.doc_no, NOT NULL | CASCADE DELETE |
+| `item_code` | VARCHAR(50) | NOT NULL | รหัสสินค้าจาก ERP `ic_inventory.code` |
+| `qty` | NUMERIC | NOT NULL CHECK (> 0) | จำนวนสินค้าที่ทำลาย |
+| `unit_code` | VARCHAR(50) | NOT NULL | หน่วยนับ |
+| `wh_code` | VARCHAR(50) | NOT NULL | warehouse ของรายการ |
+| `shelf_code` | VARCHAR(50) | NOT NULL | shelf/location ของรายการ |
+| `line_number` | INTEGER | PK | ลำดับรายการในเอกสาร |
+
+**Index**: `idx_bom_product_destruction_detail_doc_no` (doc_no), `idx_bom_product_destruction_detail_item_code` (item_code)
+
+---
+
 ## 4. Entity Relationship (สรุป)
 
 ```
@@ -469,10 +567,15 @@ bom_boms (1) ──────────── (N) bom_lines
                                       ├── (1) ── (N) bom_production_orders
                                       └── (1) ── (N) bom_production_details
 
+bom_product_destruction (1) ── (N) bom_product_destruction_pictures
+                         └── (1) ── (N) bom_product_destruction_detail
+
 [ERP] ic_inventory ──── item_code ──────── bom_assignments
 [ERP] ic_trans_detail ─ doc_no ─────────── bom_production_orders.ref_doc_no
                       (trans_flag=44,
                        last_status=0)
+[ERP] ic_trans + ic_trans_detail + sml_doc_images <- Product Destruction
+      (trans_type=3, trans_flag=56, calc_flag=-1)
 ```
 
 ---
@@ -486,6 +589,8 @@ bom_boms (1) ──────────── (N) bom_lines
 | Circular reference | ตรวจด้วย DFS ก่อน save bom_line ที่มี sub_bom_id |
 | 1 item = 1 BOM | UNIQUE constraint บน bom_assignments.item_code |
 | Production save process | เมื่อบันทึกผลการประมวลผลการขาย ให้สร้าง `bom_productions` header, เก็บรายการขายใน `bom_production_orders`, และเก็บรายการสินค้าที่ต้องใช้ใน `bom_production_details`; หลังบันทึกเอกสารเข้า ERP แล้วต้อง POST ไปที่ ERP `processstockrequest` ด้วย item codes จาก `bom_production_details` |
+| Product destruction save process | เมื่อ create/update ให้บันทึก local tables ก่อน จากนั้นเขียน ERP `ic_trans`, `ic_trans_detail`, `sml_doc_images` ด้วย `trans_type=3`, `trans_flag=56`, `calc_flag=-1` แล้ว POST `processstockrequest` ด้วย distinct item codes จาก detail |
+| Product destruction delete process | เมื่อลบเอกสาร ให้ลบ local document, ลบ ERP rows ใน `sml_doc_images`, `ic_trans_detail`, `ic_trans`, แล้ว POST `processstockrequest` ด้วย item codes ของเอกสารที่ถูกลบ |
 | Quantity > 0 | ทุก bom_line และ production_order ต้องมี quantity > 0 |
 
 ---
@@ -529,6 +634,23 @@ bom_boms (1) ──────────── (N) bom_lines
         payload = providerCode + databaseName + itemCode[] จาก material/detail item codes
 ```
 
+### Product Destruction Data Flow
+
+```
+[ProductDestructionViewModel]
+        ↓ create/update/delete command
+[ProductDestructionService]
+        ↓ validate doc fields, detail qty, picture GUID/image data
+[IProductDestructionRepository]
+        ↓ save/delete local BOM domain tables
+[IErpItemRepository]
+        ↓ hydrate detail ItemName from ic_inventory
+[IErpProductionRepository]
+        ↓ write/delete ERP ic_trans + ic_trans_detail + sml_doc_images
+[IErpStockRequestProcessor]
+        ↓ POST processstockrequest with distinct detail item codes
+```
+
 ---
 
 ## 7. Screen → Table Mapping
@@ -540,3 +662,4 @@ bom_boms (1) ──────────── (N) bom_lines
 | BOM Assignment | `bom_assignments`, [ERP items] | `bom_assignments`, `audit_logs` |
 | Production List | `bom_productions`, `bom_production_orders`, `bom_production_details` | `bom_productions` (delete cascade) |
 | Sales Calculation | `boms`, `bom_lines`, `bom_assignments`, [`ic_trans_detail`, `ic_inventory`] | `bom_productions`, `bom_production_orders`, `bom_production_details`, `audit_logs` |
+| Product Destruction | `bom_product_destruction`, `bom_product_destruction_pictures`, `bom_product_destruction_detail`, [`ic_inventory`] | `bom_product_destruction`, `bom_product_destruction_pictures`, `bom_product_destruction_detail`, ERP `ic_trans`, `ic_trans_detail`, `sml_doc_images` |

@@ -1,12 +1,12 @@
 # ERP Database Specification
-> Reference tables จาก `erp-database` — **อ่านอย่างเดียว** ห้าม write หรือ migrate
+> Reference tables จาก `erp-database` — อ่านผ่าน repository เท่านั้น; ERP document writes ทำได้เฉพาะผ่าน `IErpProductionRepository`
 > อัปเดตเมื่อ ERP schema เปลี่ยน — ต้องผ่าน CTO approve
 
 ---
 
 ## Connection
 - **Connection name**: `erp-database`
-- **เข้าถึงผ่าน**: Infrastructure layer เท่านั้น — ผ่าน `IErpItemRepository`, `IErpSalesOrderRepository`, `IErpStockRequestProcessor`
+- **เข้าถึงผ่าน**: Infrastructure layer เท่านั้น — ผ่าน `IErpItemRepository`, `IErpSalesOrderRepository`, `IErpProductionRepository`, `IErpStockRequestProcessor`
 - **ห้าม**: Domain / Application layer reference connection นี้โดยตรง
 
 ---
@@ -15,8 +15,8 @@
 
 ### Process Stock Request
 
-ใช้หลังจากระบบบันทึก production issue document เข้า ERP แล้ว เพื่อสั่งให้ ERP ประมวลผล stock request ของรายการสินค้าที่เกี่ยวข้อง
-ก่อนเรียก endpoint นี้ `ErpProductionRepository` ต้องบันทึกเอกสารผลิตลง ERP tables `ic_trans` และ `ic_trans_detail` ให้สำเร็จก่อน โดยรายการใน `ic_trans_detail` ใช้ `trans_type = 3`, `trans_flag = 56`, และ `calc_flag = -1`
+ใช้หลังจากระบบบันทึก production issue document หรือ product destruction document เข้า ERP แล้ว เพื่อสั่งให้ ERP ประมวลผล stock request ของรายการสินค้าที่เกี่ยวข้อง
+ก่อนเรียก endpoint นี้ `ErpProductionRepository` ต้องบันทึกเอกสารลง ERP tables ให้สำเร็จก่อน โดยรายการใน `ic_trans_detail` ใช้ `trans_type = 3`, `trans_flag = 56`, และ `calc_flag = -1`
 
 ```http
 POST {ERP Web Service URL}/SMLJavaWebService/rest/v1/processstockrequest
@@ -29,7 +29,7 @@ Runtime settings ที่ใช้:
 |---|---|
 | `providerCode` | `RuntimeAppSettings.ProviderCode` |
 | `databaseName` | `RuntimeAppSettings.DatabaseConnection.DatabaseName` |
-| `itemCode` | distinct `BomProductionDto.Details[].ItemCode` หลังบันทึกเอกสาร |
+| `itemCode` | distinct item codes จาก `BomProductionDto.Details[]` หรือ `ProductDestructionDto.Details[]` หลังบันทึก/ลบเอกสาร |
 
 Payload:
 
@@ -48,6 +48,17 @@ Implementation contract:
 - Application layer เรียกผ่าน `IErpStockRequestProcessor` เท่านั้น
 - Infrastructure layer เป็นผู้ประกอบ URL, payload, และ HTTP POST
 - ถ้า ERP web service ตอบ non-success ให้ `SaveAsync` คืน `Result.Failure` เพื่อไม่ให้ plugin crash ERP host
+
+### ERP Document Writes
+
+`ErpProductionRepository` เป็น boundary เดียวที่เขียน ERP stock documents:
+
+| Application document | ERP tables | Constants | Extra rules |
+|---|---|---|---|
+| Production issue (`BomProductionDto`) | `ic_trans`, `ic_trans_detail` | `trans_type=3`, `trans_flag=56`, `calc_flag=-1` | detail rows come from `BomProductionDto.Details` |
+| Product destruction (`ProductDestructionDto`) | `ic_trans`, `ic_trans_detail`, `sml_doc_images` | `trans_type=3`, `trans_flag=56`, `calc_flag=-1` | replace existing ERP rows for the same `DocNo`; images use `sml_doc_images.image_id = DocNo` |
+
+For product destruction delete, remove rows from `sml_doc_images`, `ic_trans_detail`, and `ic_trans` for the same `DocNo`, then call `processstockrequest` with the deleted document item codes.
 
 ---
 
@@ -197,6 +208,23 @@ public record ErpSalesTransactionDto(
 
 ---
 
+### `sml_doc_images` — รูปภาพเอกสาร ERP
+
+> ใช้สำหรับ: Product Destruction แนบรูปภาพเข้าเอกสาร ERP หลังบันทึก local `bom_product_destruction_pictures`
+
+| Column | Type | หมายเหตุ |
+|---|---|---|
+| `image_id` | VARCHAR | ใช้ `ProductDestructionDto.DocNo` |
+| `image_file` | BYTEA | binary image จาก `ProductDestructionPictureDto.ImageFile` |
+| `guid_code` | UUID | parse จาก `ProductDestructionPictureDto.ImageGuid`; ต้องเป็น GUID ที่ถูกต้อง |
+
+Write rule:
+- ก่อน insert รูปของเอกสารเดิม ให้ delete `sml_doc_images WHERE image_id = @DocNo`
+- insert รูปตาม `LineNumber` เพื่อรักษาลำดับที่ผู้ใช้แนบ
+- Delete product destruction ต้องลบ `sml_doc_images` ของ `DocNo` เดียวกันด้วย
+
+---
+
 ## Mapping — ERP field → BOM Domain
 
 | ERP Field | BOM Usage | หมายเหตุ |
@@ -210,6 +238,10 @@ public record ErpSalesTransactionDto(
 | `ic_trans_detail.doc_no` | `production_orders.source_so_numbers[]` | อ้างอิงย้อนกลับ |
 | `ic_trans_detail.item_code` | ใช้ lookup `bom_assignments` | หา BOM ที่ผูกกับสินค้าที่ขาย |
 | `ic_trans_detail.qty * stand_value / divide_value` | `production_order_lines.required_quantity` | แปลงหน่วยก่อนคูณ BOM quantity |
+| `ic_inventory.name_1` | `ProductDestructionDetailDto.ItemName` | hydrate ชื่อสินค้าก่อนเขียน ERP detail |
+| `ProductDestructionDto.DocNo` | `ic_trans.doc_no`, `ic_trans_detail.doc_no`, `sml_doc_images.image_id` | เอกสารทำลายสินค้าใช้เลขเดียวกันทั้ง local และ ERP |
+| `ProductDestructionDetailDto` | ERP `ic_trans_detail` rows | ใช้ `trans_type=3`, `trans_flag=56`, `calc_flag=-1`, `stand_value=1`, `divide_value=1` ก่อน update master data |
+| `ProductDestructionPictureDto.ImageGuid` | `sml_doc_images.guid_code` | ต้องเป็น UUID ที่ parse ได้ |
 
 ## Table Relationships
 
