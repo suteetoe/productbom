@@ -12,7 +12,15 @@ public interface IErpProductionRepository
         BomProductionDto document,
         CancellationToken ct = default);
 
+    Task SaveProductDestructionDocumentAsync(
+        ProductDestructionDto document,
+        CancellationToken ct = default);
+
     Task DeleteProductionDocumentAsync(
+        string docNo,
+        CancellationToken ct = default);
+
+    Task DeleteProductDestructionDocumentAsync(
         string docNo,
         CancellationToken ct = default);
 }

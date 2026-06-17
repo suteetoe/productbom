@@ -7,7 +7,9 @@ namespace BomApp.Application.Services;
 
 public class ProductDestructionService(
     IProductDestructionRepository repository,
-    IErpItemRepository erpItemRepository) : IProductDestructionService
+    IErpItemRepository erpItemRepository,
+    IErpProductionRepository erpProductionRepository,
+    IErpStockRequestProcessor erpStockRequestProcessor) : IProductDestructionService
 {
     public async Task<Result<PagedResult<ProductDestructionDto>>> GetDocumentsPageAsync(
         ProductDestructionListQuery query,
@@ -45,12 +47,30 @@ public class ProductDestructionService(
         if (validation is not null)
             return Result<ProductDestructionDto>.Failure(validation);
 
+        var pictureValidation = ValidatePictures(command.Pictures);
+        if (pictureValidation is not null)
+            return Result<ProductDestructionDto>.Failure(pictureValidation);
+
         var existing = await repository.GetByDocNoAsync(command.DocNo.Trim(), ct);
         if (existing is not null)
             return Result<ProductDestructionDto>.Failure($"Document number already exists: {command.DocNo}");
 
-        var document = await repository.CreateAsync(command, ct);
-        return Result<ProductDestructionDto>.Success(await HydrateItemNamesAsync(document, ct));
+        try
+        {
+            var document = await repository.CreateAsync(command, ct);
+            var hydrated = await HydrateItemNamesAsync(document, ct);
+            await erpProductionRepository.SaveProductDestructionDocumentAsync(hydrated, ct);
+            await erpStockRequestProcessor.ProcessStockRequestAsync(GetStockProcessItemCodes(hydrated), ct);
+            return Result<ProductDestructionDto>.Success(hydrated);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return Result<ProductDestructionDto>.Failure($"Failed to save product destruction to ERP: {ex.Message}");
+        }
     }
 
     public async Task<Result<ProductDestructionDto>> UpdateAsync(
@@ -62,11 +82,30 @@ public class ProductDestructionService(
         if (validation is not null)
             return Result<ProductDestructionDto>.Failure(validation);
 
-        var document = await repository.UpdateAsync(docNo.Trim(), command, ct);
-        if (document is null)
-            return Result<ProductDestructionDto>.Failure($"Product destruction document not found: {docNo}");
+        var pictureValidation = ValidatePictures(command.Pictures);
+        if (pictureValidation is not null)
+            return Result<ProductDestructionDto>.Failure(pictureValidation);
 
-        return Result<ProductDestructionDto>.Success(await HydrateItemNamesAsync(document, ct));
+        try
+        {
+            var trimmedDocNo = docNo.Trim();
+            var document = await repository.UpdateAsync(trimmedDocNo, command, ct);
+            if (document is null)
+                return Result<ProductDestructionDto>.Failure($"Product destruction document not found: {docNo}");
+
+            var hydrated = await HydrateItemNamesAsync(document, ct);
+            await erpProductionRepository.SaveProductDestructionDocumentAsync(hydrated, ct);
+            await erpStockRequestProcessor.ProcessStockRequestAsync(GetStockProcessItemCodes(hydrated), ct);
+            return Result<ProductDestructionDto>.Success(hydrated);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return Result<ProductDestructionDto>.Failure($"Failed to save product destruction to ERP: {ex.Message}");
+        }
     }
 
     private static string? Validate(
@@ -95,6 +134,25 @@ public class ProductDestructionService(
 
         return null;
     }
+
+    private static string? ValidatePictures(
+        IReadOnlyList<CreateProductDestructionPictureCommand> pictures)
+    {
+        if (pictures.Any(p => p.ImageFile.Length == 0))
+            return "Every picture must have image data.";
+
+        if (pictures.Any(p => !Guid.TryParse(p.ImageGuid, out _)))
+            return "Every picture must have a valid image GUID.";
+
+        return null;
+    }
+
+    private static IReadOnlyList<string> GetStockProcessItemCodes(ProductDestructionDto document) =>
+        document.Details
+            .Select(d => d.ItemCode)
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
     private async Task<ProductDestructionDto> HydrateItemNamesAsync(
         ProductDestructionDto document,

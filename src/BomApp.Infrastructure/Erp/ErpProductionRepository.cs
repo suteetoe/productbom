@@ -91,6 +91,117 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
         await transaction.CommitAsync(ct);
     }
 
+    public async Task SaveProductDestructionDocumentAsync(
+        ProductDestructionDto document,
+        CancellationToken ct = default)
+    {
+        var docTime = DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture);
+
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            DELETE FROM sml_doc_images
+            WHERE image_id = {document.DocNo}
+            """, ct);
+
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            DELETE FROM ic_trans_detail
+            WHERE trans_type = {ProductionTransType}
+              AND trans_flag = {ProductionTransFlag}
+              AND doc_no = {document.DocNo}
+            """, ct);
+
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            DELETE FROM ic_trans
+            WHERE trans_type = {ProductionTransType}
+              AND trans_flag = {ProductionTransFlag}
+              AND doc_no = {document.DocNo}
+            """, ct);
+
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO ic_trans (
+                trans_type,
+                trans_flag,
+                doc_date,
+                doc_time,
+                doc_no
+            )
+            VALUES (
+                {ProductionTransType},
+                {ProductionTransFlag},
+                {document.DocDate},
+                {docTime},
+                {document.DocNo}
+            )
+            """, ct);
+
+        foreach (var detail in document.Details.OrderBy(d => d.LineNumber))
+        {
+            await context.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO ic_trans_detail (
+                    trans_type,
+                    trans_flag,
+                    doc_date,
+                    doc_time,
+                    doc_date_calc,
+                    doc_time_calc,
+                    calc_flag,
+                    doc_no,
+                    item_code,
+                    item_name,
+                    unit_code,
+                    qty,
+                    wh_code,
+                    shelf_code,
+                    stand_value,
+                    divide_value,
+                    line_number
+                )
+                VALUES (
+                    {ProductionTransType},
+                    {ProductionTransFlag},
+                    {document.DocDate},
+                    {docTime},
+                    {document.DocDate},
+                    {docTime},
+                    {CalculatedFlag},
+                    {document.DocNo},
+                    {detail.ItemCode},
+                    {detail.ItemName},
+                    {detail.UnitCode},
+                    {detail.Qty},
+                    {detail.WhCode},
+                    {detail.ShelfCode},
+                    {1m},
+                    {1m},
+                    {detail.LineNumber}
+                )
+                """, ct);
+        }
+
+        foreach (var picture in document.Pictures.OrderBy(p => p.LineNumber))
+        {
+            var guidCode = Guid.Parse(picture.ImageGuid);
+
+            await context.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO sml_doc_images (
+                    image_id,
+                    image_file,
+                    guid_code
+                )
+                VALUES (
+                    {document.DocNo},
+                    {picture.ImageFile},
+                    {guidCode}
+                )
+                """, ct);
+        }
+
+        await UpdateProductionDetailMasterDataAsync(document.DocNo, ct);
+
+        await transaction.CommitAsync(ct);
+    }
+
     private async Task UpdateProductionDetailMasterDataAsync(
         string docNo,
         CancellationToken ct)
@@ -137,6 +248,34 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
         CancellationToken ct = default)
     {
         await using var transaction = await context.Database.BeginTransactionAsync(ct);
+
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            DELETE FROM ic_trans_detail
+            WHERE trans_type = {ProductionTransType}
+              AND trans_flag = {ProductionTransFlag}
+              AND doc_no = {docNo}
+            """, ct);
+
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            DELETE FROM ic_trans
+            WHERE trans_type = {ProductionTransType}
+              AND trans_flag = {ProductionTransFlag}
+              AND doc_no = {docNo}
+            """, ct);
+
+        await transaction.CommitAsync(ct);
+    }
+
+    public async Task DeleteProductDestructionDocumentAsync(
+        string docNo,
+        CancellationToken ct = default)
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            DELETE FROM sml_doc_images
+            WHERE image_id = {docNo}
+            """, ct);
 
         await context.Database.ExecuteSqlInterpolatedAsync($"""
             DELETE FROM ic_trans_detail

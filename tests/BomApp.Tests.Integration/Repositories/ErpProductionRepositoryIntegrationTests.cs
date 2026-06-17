@@ -43,6 +43,14 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
             """);
 
         await DbContext.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS sml_doc_images (
+                image_id VARCHAR(50) NOT NULL,
+                image_file BYTEA NOT NULL,
+                guid_code UUID NOT NULL
+            )
+            """);
+
+        await DbContext.Database.ExecuteSqlRawAsync("""
             INSERT INTO ic_inventory (code, name_1, unit_cost, tax_type)
             VALUES ('MAT-A', 'ERP Material A', '', 7),
                    ('MAT-B', 'ERP Material B', '', 8)
@@ -139,6 +147,51 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
             .SingleAsync();
 
         detailName.Should().Be("Document Material Name");
+    }
+
+    [Fact]
+    public async Task SaveProductDestructionDocumentAsync_WritesIcTransIcTransDetailAndImages()
+    {
+        var repo = new ErpProductionRepository(DbContext);
+        var imageGuid = Guid.NewGuid();
+        var document = new ProductDestructionDto(
+            DocNo: "PD-20260616-00001",
+            DocDate: new DateOnly(2026, 6, 16),
+            WhCode: "WH-A",
+            ShelfCode: "SH-01",
+            Remark: "damaged",
+            Pictures:
+            [
+                new ProductDestructionPictureDto("PD-20260616-00001", 1, imageGuid.ToString("N"), [1, 2, 3])
+            ],
+            Details:
+            [
+                new ProductDestructionDetailDto("PD-20260616-00001", "MAT-A", "Material A", 2.5m, "KG", "WH-A", "SH-01", 1)
+            ]);
+
+        await repo.SaveProductDestructionDocumentAsync(document);
+
+        var headerCount = await DbContext.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS \"Value\" FROM ic_trans WHERE trans_type = 3 AND trans_flag = 56 AND doc_no = 'PD-20260616-00001'")
+            .SingleAsync();
+        var detailCount = await DbContext.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS \"Value\" FROM ic_trans_detail WHERE trans_type = 3 AND trans_flag = 56 AND doc_no = 'PD-20260616-00001'")
+            .SingleAsync();
+        var imageCount = await DbContext.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS \"Value\" FROM sml_doc_images WHERE image_id = 'PD-20260616-00001'")
+            .SingleAsync();
+        var imageGuidValue = await DbContext.Database
+            .SqlQueryRaw<Guid>("SELECT guid_code AS \"Value\" FROM sml_doc_images WHERE image_id = 'PD-20260616-00001'")
+            .SingleAsync();
+        var detailLocation = await DbContext.Database
+            .SqlQueryRaw<string>("SELECT wh_code || '/' || shelf_code AS \"Value\" FROM ic_trans_detail WHERE doc_no = 'PD-20260616-00001' AND line_number = 1")
+            .SingleAsync();
+
+        headerCount.Should().Be(1);
+        detailCount.Should().Be(1);
+        imageCount.Should().Be(1);
+        imageGuidValue.Should().Be(imageGuid);
+        detailLocation.Should().Be("WH-A/SH-01");
     }
 
     [Fact]
