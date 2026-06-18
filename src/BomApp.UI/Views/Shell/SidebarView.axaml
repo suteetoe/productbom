@@ -77,10 +77,6 @@
                            FontSize="{StaticResource FontSizeH2}"
                            FontWeight="Bold"
                            Foreground="{StaticResource AccentBlueBrush}"/>
-                <TextBlock Text="BOM Management"
-                           FontSize="{StaticResource FontSizeXS}"
-                           Foreground="{StaticResource TextMutedBrush}"
-                           TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
 

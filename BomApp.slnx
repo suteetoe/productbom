@@ -8,7 +8,10 @@
     <Project Path="src/BomApp.UI/BomApp.UI.csproj" />
   </Folder>
   <Folder Name="/installer/">
-    <Project Path="installer/BomApp.Installer/BomApp.Installer.wixproj" />
+    <Project Path="installer/BomApp.Installer/BomApp.Installer.wixproj" Id="0b36264a-2846-4d3e-8199-529c7fdd6ddc">
+      <Platform Project="x86" />
+      <Build />
+    </Project>
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/BomApp.Tests.Fakes/BomApp.Tests.Fakes.csproj" />
