@@ -53,13 +53,15 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
         await DbContext.Database.ExecuteSqlRawAsync("""
             INSERT INTO ic_inventory (code, name_1, unit_cost, tax_type)
             VALUES ('MAT-A', 'ERP Material A', '', 7),
-                   ('MAT-B', 'ERP Material B', '', 8)
+                   ('MAT-B', 'ERP Material B', '', 8),
+                   ('FG-001', 'ERP Finished Good', '', 9)
             """);
 
         await DbContext.Database.ExecuteSqlRawAsync("""
             INSERT INTO ic_unit_use (code, ic_code, name_1, stand_value, divide_value, ratio, line_number)
             VALUES ('KG', 'MAT-A', 'Kilogram', 1000, 1, 1, 1),
-                   ('PCS', 'MAT-B', 'Piece', 1, 12, 1, 2)
+                   ('PCS', 'MAT-B', 'Piece', 1, 12, 1, 2),
+                   ('PCS', 'FG-001', 'Piece', 1, 1, 1, 3)
             """);
     }
 
@@ -195,6 +197,85 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
     }
 
     [Fact]
+    public async Task SaveProductManufacturingDocumentAsync_WritesIssueAndReceiveDocuments()
+    {
+        await DbContext.Database.ExecuteSqlRawAsync("""
+            INSERT INTO ic_trans (trans_type, trans_flag, doc_date, doc_time, doc_no)
+            VALUES (3, 56, DATE '2026-06-17', '08:15', 'MP-20260617-00001'),
+                   (3, 60, DATE '2026-06-17', '08:15', 'MP-20260617-00001')
+            """);
+
+        await DbContext.Database.ExecuteSqlRawAsync("""
+            INSERT INTO ic_trans_detail (
+                trans_type,
+                trans_flag,
+                doc_date,
+                doc_time,
+                doc_date_calc,
+                doc_time_calc,
+                calc_flag,
+                doc_no,
+                item_code,
+                item_name,
+                unit_code,
+                qty,
+                wh_code,
+                shelf_code,
+                stand_value,
+                divide_value,
+                tax_type,
+                line_number
+            )
+            VALUES (3, 56, DATE '2026-06-17', '08:15', DATE '2026-06-17', '08:15', -1, 'MP-20260617-00001', 'OLD-MAT', 'Old Material', 'KG', 1, 'WH-OLD', 'SH-OLD', 1, 1, 0, 1),
+                   (3, 60, DATE '2026-06-17', '08:15', DATE '2026-06-17', '08:15', -1, 'MP-20260617-00001', 'OLD-FG', 'Old Finished Good', 'PCS', 1, 'WH-OLD', 'SH-OLD', 1, 1, 0, 1)
+            """);
+
+        var repo = new ErpProductionRepository(DbContext);
+        var document = new ProductManufacturingDto(
+            DocNo: "MP-20260617-00001",
+            DocDate: new DateOnly(2026, 6, 17),
+            WhCode: "WH-H",
+            ShelfCode: "SH-H",
+            Remark: "produce",
+            FinishGoods:
+            [
+                new ProductManufacturingFinishGoodDto("MP-20260617-00001", "FG-001", "Finished Good", 3m, "PCS", "WH-FG", "SH-FG", 1)
+            ],
+            Materials:
+            [
+                new ProductManufacturingMaterialDto("MP-20260617-00001", "MAT-A", "Material A", 6m, "KG", "WH-RM", "SH-RM", 1)
+            ]);
+
+        await repo.SaveProductManufacturingDocumentAsync(document);
+
+        var issueHeaderCount = await DbContext.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS \"Value\" FROM ic_trans WHERE trans_type = 3 AND trans_flag = 56 AND doc_no = 'MP-20260617-00001'")
+            .SingleAsync();
+        var receiveHeaderCount = await DbContext.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS \"Value\" FROM ic_trans WHERE trans_type = 3 AND trans_flag = 60 AND doc_no = 'MP-20260617-00001'")
+            .SingleAsync();
+        var issueDetail = await DbContext.Database
+            .SqlQueryRaw<string>("SELECT item_code || '/' || qty::text || '/' || wh_code || '/' || shelf_code AS \"Value\" FROM ic_trans_detail WHERE trans_type = 3 AND trans_flag = 56 AND doc_no = 'MP-20260617-00001' AND line_number = 1")
+            .SingleAsync();
+        var receiveDetail = await DbContext.Database
+            .SqlQueryRaw<string>("SELECT item_code || '/' || qty::text || '/' || wh_code || '/' || shelf_code AS \"Value\" FROM ic_trans_detail WHERE trans_type = 3 AND trans_flag = 60 AND doc_no = 'MP-20260617-00001' AND line_number = 1")
+            .SingleAsync();
+        var issueCalcFlag = await DbContext.Database
+            .SqlQueryRaw<short>("SELECT calc_flag AS \"Value\" FROM ic_trans_detail WHERE trans_type = 3 AND trans_flag = 56 AND doc_no = 'MP-20260617-00001' AND line_number = 1")
+            .SingleAsync();
+        var receiveMasterData = await DbContext.Database
+            .SqlQueryRaw<string>("SELECT item_name || '/' || stand_value::text || '/' || divide_value::text || '/' || tax_type::text AS \"Value\" FROM ic_trans_detail WHERE trans_type = 3 AND trans_flag = 60 AND doc_no = 'MP-20260617-00001' AND line_number = 1")
+            .SingleAsync();
+
+        issueHeaderCount.Should().Be(1);
+        receiveHeaderCount.Should().Be(1);
+        issueDetail.Should().Be("MAT-A/6.000000/WH-RM/SH-RM");
+        receiveDetail.Should().Be("FG-001/3.000000/WH-FG/SH-FG");
+        issueCalcFlag.Should().Be(-1);
+        receiveMasterData.Should().Be("ERP Finished Good/1.000000/1.000000/9");
+    }
+
+    [Fact]
     public async Task DeleteProductionDocumentAsync_RemovesIcTransAndIcTransDetailForProductionDocument()
     {
         await DbContext.Database.ExecuteSqlRawAsync("""
@@ -247,6 +328,61 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
         targetHeaderCount.Should().Be(0);
         targetDetailCount.Should().Be(0);
         untouchedCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task DeleteProductManufacturingDocumentAsync_RemovesIssueAndReceiveDocuments()
+    {
+        await DbContext.Database.ExecuteSqlRawAsync("""
+            INSERT INTO ic_trans (trans_type, trans_flag, doc_date, doc_time, doc_no)
+            VALUES (3, 56, DATE '2026-06-17', '09:30', 'MP-20260617-00001'),
+                   (3, 60, DATE '2026-06-17', '09:30', 'MP-20260617-00001'),
+                   (3, 56, DATE '2026-06-17', '09:30', 'MP-20260617-00002')
+            """);
+
+        await DbContext.Database.ExecuteSqlRawAsync("""
+            INSERT INTO ic_trans_detail (
+                trans_type,
+                trans_flag,
+                doc_date,
+                doc_time,
+                doc_date_calc,
+                doc_time_calc,
+                calc_flag,
+                doc_no,
+                item_code,
+                item_name,
+                unit_code,
+                qty,
+                wh_code,
+                shelf_code,
+                stand_value,
+                divide_value,
+                tax_type,
+                line_number
+            )
+            VALUES (3, 56, DATE '2026-06-17', '09:30', DATE '2026-06-17', '09:30', -1, 'MP-20260617-00001', 'MAT-A', 'Material A', 'KG', 6, 'WH-RM', 'SH-RM', 1, 1, 0, 1),
+                   (3, 60, DATE '2026-06-17', '09:30', DATE '2026-06-17', '09:30', -1, 'MP-20260617-00001', 'FG-001', 'Finished Good', 'PCS', 3, 'WH-FG', 'SH-FG', 1, 1, 0, 1),
+                   (3, 56, DATE '2026-06-17', '09:30', DATE '2026-06-17', '09:30', -1, 'MP-20260617-00002', 'MAT-B', 'Material B', 'PCS', 1, 'WH-B', 'SH-B', 1, 1, 0, 1)
+            """);
+
+        var repo = new ErpProductionRepository(DbContext);
+
+        await repo.DeleteProductManufacturingDocumentAsync("MP-20260617-00001");
+
+        var targetHeaderCount = await DbContext.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS \"Value\" FROM ic_trans WHERE trans_type = 3 AND trans_flag IN (56, 60) AND doc_no = 'MP-20260617-00001'")
+            .SingleAsync();
+        var targetDetailCount = await DbContext.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS \"Value\" FROM ic_trans_detail WHERE trans_type = 3 AND trans_flag IN (56, 60) AND doc_no = 'MP-20260617-00001'")
+            .SingleAsync();
+        var untouchedCount = await DbContext.Database
+            .SqlQueryRaw<int>("SELECT COUNT(*) AS \"Value\" FROM ic_trans WHERE doc_no = 'MP-20260617-00002'")
+            .SingleAsync();
+
+        targetHeaderCount.Should().Be(0);
+        targetDetailCount.Should().Be(0);
+        untouchedCount.Should().Be(1);
     }
 
     [Fact]

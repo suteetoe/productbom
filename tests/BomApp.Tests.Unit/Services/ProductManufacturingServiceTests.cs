@@ -37,7 +37,8 @@ public class ProductManufacturingServiceTests
             repository.Object,
             assignmentRepository.Object,
             bomRepository.Object,
-            erpItemRepository.Object);
+            erpItemRepository.Object,
+            Mock.Of<IErpProductionRepository>());
 
         var result = await service.CalculateAsync(new CalculateProductManufacturingRequest(
             new DateOnly(2026, 6, 17),
@@ -88,12 +89,14 @@ public class ProductManufacturingServiceTests
         erpItemRepository
             .Setup(r => r.GetItemByCodeAsync("RM-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ErpItemDto("RM-001", "Raw Material", "KG"));
+        var erpProductionRepository = new Mock<IErpProductionRepository>();
 
         var service = new ProductManufacturingService(
             repository.Object,
             Mock.Of<IBomAssignmentRepository>(),
             Mock.Of<IBomRepository>(),
-            erpItemRepository.Object);
+            erpItemRepository.Object,
+            erpProductionRepository.Object);
 
         var result = await service.CreateAsync(new CreateProductManufacturingCommand(
             saved.DocNo,
@@ -109,6 +112,64 @@ public class ProductManufacturingServiceTests
         captured!.FinishGoods.Should().ContainSingle(f => f.ItemCode == "FG-001");
         captured.Materials.Should().ContainSingle(m => m.ItemCode == "RM-001" && m.Qty == 6m);
         result.Value!.Materials.Should().OnlyContain(m => !string.IsNullOrWhiteSpace(m.ItemName));
+        erpProductionRepository.Verify(
+            r => r.SaveProductManufacturingDocumentAsync(
+                It.Is<ProductManufacturingDto>(document =>
+                    document.DocNo == saved.DocNo &&
+                    document.FinishGoods.Single().ItemName == "Finished Good" &&
+                    document.Materials.Single().ItemName == "Raw Material"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenDocumentIsDeleted_DeletesErpManufacturingDocument()
+    {
+        const string docNo = "MP-20260617-00001";
+        var repository = new Mock<IProductManufacturingRepository>();
+        repository
+            .Setup(r => r.DeleteAsync(docNo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var erpProductionRepository = new Mock<IErpProductionRepository>();
+
+        var service = new ProductManufacturingService(
+            repository.Object,
+            Mock.Of<IBomAssignmentRepository>(),
+            Mock.Of<IBomRepository>(),
+            Mock.Of<IErpItemRepository>(),
+            erpProductionRepository.Object);
+
+        var result = await service.DeleteAsync(docNo);
+
+        result.IsSuccess.Should().BeTrue();
+        erpProductionRepository.Verify(
+            r => r.DeleteProductManufacturingDocumentAsync(docNo, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenDocumentIsMissing_DoesNotDeleteErpDocument()
+    {
+        const string docNo = "MP-20260617-00001";
+        var repository = new Mock<IProductManufacturingRepository>();
+        repository
+            .Setup(r => r.DeleteAsync(docNo, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        var erpProductionRepository = new Mock<IErpProductionRepository>();
+
+        var service = new ProductManufacturingService(
+            repository.Object,
+            Mock.Of<IBomAssignmentRepository>(),
+            Mock.Of<IBomRepository>(),
+            Mock.Of<IErpItemRepository>(),
+            erpProductionRepository.Object);
+
+        var result = await service.DeleteAsync(docNo);
+
+        result.IsSuccess.Should().BeFalse();
+        erpProductionRepository.Verify(
+            r => r.DeleteProductManufacturingDocumentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     private static BomDto CreateBom(Guid bomId) =>

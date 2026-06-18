@@ -9,7 +9,8 @@ public class ProductManufacturingService(
     IProductManufacturingRepository repository,
     IBomAssignmentRepository bomAssignmentRepository,
     IBomRepository bomRepository,
-    IErpItemRepository erpItemRepository) : IProductManufacturingService
+    IErpItemRepository erpItemRepository,
+    IErpProductionRepository erpProductionRepository) : IProductManufacturingService
 {
     private const int MaxBomDepth = 10;
 
@@ -87,8 +88,21 @@ public class ProductManufacturingService(
         if (existing is not null)
             return Result<ProductManufacturingDto>.Failure($"Document number already exists: {command.DocNo}");
 
-        var document = await repository.CreateAsync(command, ct);
-        return Result<ProductManufacturingDto>.Success(await HydrateItemNamesAsync(document, ct));
+        try
+        {
+            var document = await repository.CreateAsync(command, ct);
+            var hydrated = await HydrateItemNamesAsync(document, ct);
+            await erpProductionRepository.SaveProductManufacturingDocumentAsync(hydrated, ct);
+            return Result<ProductManufacturingDto>.Success(hydrated);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return Result<ProductManufacturingDto>.Failure($"Failed to save product manufacturing to ERP: {ex.Message}");
+        }
     }
 
     public async Task<Result<ProductManufacturingDto>> UpdateAsync(
@@ -100,11 +114,24 @@ public class ProductManufacturingService(
         if (validation is not null)
             return Result<ProductManufacturingDto>.Failure(validation);
 
-        var document = await repository.UpdateAsync(docNo.Trim(), command, ct);
-        if (document is null)
-            return Result<ProductManufacturingDto>.Failure($"Product manufacturing document not found: {docNo}");
+        try
+        {
+            var document = await repository.UpdateAsync(docNo.Trim(), command, ct);
+            if (document is null)
+                return Result<ProductManufacturingDto>.Failure($"Product manufacturing document not found: {docNo}");
 
-        return Result<ProductManufacturingDto>.Success(await HydrateItemNamesAsync(document, ct));
+            var hydrated = await HydrateItemNamesAsync(document, ct);
+            await erpProductionRepository.SaveProductManufacturingDocumentAsync(hydrated, ct);
+            return Result<ProductManufacturingDto>.Success(hydrated);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return Result<ProductManufacturingDto>.Failure($"Failed to save product manufacturing to ERP: {ex.Message}");
+        }
     }
 
     public async Task<Result> DeleteAsync(
@@ -114,10 +141,24 @@ public class ProductManufacturingService(
         if (string.IsNullOrWhiteSpace(docNo))
             return Result.Failure("Document number is required.");
 
-        var deleted = await repository.DeleteAsync(docNo.Trim(), ct);
-        return deleted
-            ? Result.Success()
-            : Result.Failure($"Product manufacturing document not found: {docNo}");
+        var trimmedDocNo = docNo.Trim();
+        var deleted = await repository.DeleteAsync(trimmedDocNo, ct);
+        if (!deleted)
+            return Result.Failure($"Product manufacturing document not found: {docNo}");
+
+        try
+        {
+            await erpProductionRepository.DeleteProductManufacturingDocumentAsync(trimmedDocNo, ct);
+            return Result.Success();
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to delete product manufacturing from ERP: {ex.Message}");
+        }
     }
 
     private async Task<Result<IReadOnlyList<ProductManufacturingMaterialDto>>> CalculateMaterialsAsync(

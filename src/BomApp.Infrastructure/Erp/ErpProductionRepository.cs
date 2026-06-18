@@ -12,6 +12,7 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
 {
     private const short ProductionTransType = 3;
     private const short ProductionTransFlag = 56;
+    private const short ProductManufacturingReceiveTransFlag = 60;
     private const short CalculatedFlag = -1;
 
     public async Task SaveProductionDocumentAsync(
@@ -86,7 +87,7 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
                 """, ct);
         }
 
-        await UpdateProductionDetailMasterDataAsync(document.DocNo, ct);
+        await UpdateProductionDetailMasterDataAsync(document.DocNo, ProductionTransFlag, ct);
 
         await transaction.CommitAsync(ct);
     }
@@ -197,13 +198,148 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
                 """, ct);
         }
 
-        await UpdateProductionDetailMasterDataAsync(document.DocNo, ct);
+        await UpdateProductionDetailMasterDataAsync(document.DocNo, ProductionTransFlag, ct);
 
         await transaction.CommitAsync(ct);
     }
 
+    public async Task SaveProductManufacturingDocumentAsync(
+        ProductManufacturingDto document,
+        CancellationToken ct = default)
+    {
+        var docTime = DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture);
+
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+
+        await DeleteIcTransDocumentAsync(document.DocNo, ProductionTransFlag, ct);
+        await DeleteIcTransDocumentAsync(document.DocNo, ProductManufacturingReceiveTransFlag, ct);
+
+        await InsertIcTransHeaderAsync(document.DocNo, document.DocDate, docTime, ProductionTransFlag, ct);
+        foreach (var material in document.Materials.OrderBy(d => d.LineNumber))
+        {
+            await InsertIcTransDetailAsync(
+                document.DocNo,
+                document.DocDate,
+                docTime,
+                ProductionTransFlag,
+                material.ItemCode,
+                material.ItemName,
+                material.UnitCode,
+                material.Qty,
+                material.WhCode,
+                material.ShelfCode,
+                material.LineNumber,
+                ct);
+        }
+
+        await InsertIcTransHeaderAsync(document.DocNo, document.DocDate, docTime, ProductManufacturingReceiveTransFlag, ct);
+        foreach (var finishGood in document.FinishGoods.OrderBy(d => d.LineNumber))
+        {
+            await InsertIcTransDetailAsync(
+                document.DocNo,
+                document.DocDate,
+                docTime,
+                ProductManufacturingReceiveTransFlag,
+                finishGood.ItemCode,
+                finishGood.ItemName,
+                finishGood.UnitCode,
+                finishGood.Qty,
+                finishGood.WhCode,
+                finishGood.ShelfCode,
+                finishGood.LineNumber,
+                ct);
+        }
+
+        await UpdateProductionDetailMasterDataAsync(document.DocNo, ProductionTransFlag, ct);
+        await UpdateProductionDetailMasterDataAsync(document.DocNo, ProductManufacturingReceiveTransFlag, ct);
+
+        await transaction.CommitAsync(ct);
+    }
+
+    private async Task InsertIcTransHeaderAsync(
+        string docNo,
+        DateOnly docDate,
+        string docTime,
+        short transFlag,
+        CancellationToken ct)
+    {
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO ic_trans (
+                trans_type,
+                trans_flag,
+                doc_date,
+                doc_time,
+                doc_no
+            )
+            VALUES (
+                {ProductionTransType},
+                {transFlag},
+                {docDate},
+                {docTime},
+                {docNo}
+            )
+            """, ct);
+    }
+
+    private async Task InsertIcTransDetailAsync(
+        string docNo,
+        DateOnly docDate,
+        string docTime,
+        short transFlag,
+        string itemCode,
+        string itemName,
+        string unitCode,
+        decimal qty,
+        string whCode,
+        string shelfCode,
+        int lineNumber,
+        CancellationToken ct)
+    {
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO ic_trans_detail (
+                trans_type,
+                trans_flag,
+                doc_date,
+                doc_time,
+                doc_date_calc,
+                doc_time_calc,
+                calc_flag,
+                doc_no,
+                item_code,
+                item_name,
+                unit_code,
+                qty,
+                wh_code,
+                shelf_code,
+                stand_value,
+                divide_value,
+                line_number
+            )
+            VALUES (
+                {ProductionTransType},
+                {transFlag},
+                {docDate},
+                {docTime},
+                {docDate},
+                {docTime},
+                {CalculatedFlag},
+                {docNo},
+                {itemCode},
+                {itemName},
+                {unitCode},
+                {qty},
+                {whCode},
+                {shelfCode},
+                {1m},
+                {1m},
+                {lineNumber}
+            )
+            """, ct);
+    }
+
     private async Task UpdateProductionDetailMasterDataAsync(
         string docNo,
+        short transFlag,
         CancellationToken ct)
     {
         await context.Database.ExecuteSqlInterpolatedAsync($"""
@@ -238,7 +374,7 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
                     WHERE ic_inventory.code = ic_trans_detail.item_code
                 )
             WHERE trans_type = {ProductionTransType}
-              AND trans_flag = {ProductionTransFlag}
+              AND trans_flag = {transFlag}
               AND doc_no = {docNo}
             """, ct);
     }
@@ -262,6 +398,18 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
               AND trans_flag = {ProductionTransFlag}
               AND doc_no = {docNo}
             """, ct);
+
+        await transaction.CommitAsync(ct);
+    }
+
+    public async Task DeleteProductManufacturingDocumentAsync(
+        string docNo,
+        CancellationToken ct = default)
+    {
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+
+        await DeleteIcTransDocumentAsync(docNo, ProductionTransFlag, ct);
+        await DeleteIcTransDocumentAsync(docNo, ProductManufacturingReceiveTransFlag, ct);
 
         await transaction.CommitAsync(ct);
     }
@@ -292,5 +440,25 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
             """, ct);
 
         await transaction.CommitAsync(ct);
+    }
+
+    private async Task DeleteIcTransDocumentAsync(
+        string docNo,
+        short transFlag,
+        CancellationToken ct)
+    {
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            DELETE FROM ic_trans_detail
+            WHERE trans_type = {ProductionTransType}
+              AND trans_flag = {transFlag}
+              AND doc_no = {docNo}
+            """, ct);
+
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            DELETE FROM ic_trans
+            WHERE trans_type = {ProductionTransType}
+              AND trans_flag = {transFlag}
+              AND doc_no = {docNo}
+            """, ct);
     }
 }

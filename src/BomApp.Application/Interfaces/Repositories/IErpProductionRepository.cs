@@ -16,7 +16,15 @@ public interface IErpProductionRepository
         ProductDestructionDto document,
         CancellationToken ct = default);
 
+    Task SaveProductManufacturingDocumentAsync(
+        ProductManufacturingDto document,
+        CancellationToken ct = default);
+
     Task DeleteProductionDocumentAsync(
+        string docNo,
+        CancellationToken ct = default);
+
+    Task DeleteProductManufacturingDocumentAsync(
         string docNo,
         CancellationToken ct = default);
 
