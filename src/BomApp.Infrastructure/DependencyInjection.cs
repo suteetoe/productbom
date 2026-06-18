@@ -49,6 +49,7 @@ public static class DependencyInjection
         services.AddScoped<IProductionOrderRepository, ProductionOrderRepository>();
         services.AddScoped<IBomProductionRepository, BomProductionRepository>();
         services.AddScoped<IProductDestructionRepository, ProductDestructionRepository>();
+        services.AddScoped<IProductManufacturingRepository, ProductManufacturingRepository>();
         services.AddScoped<IBomDatabaseInitializer, BomDatabaseInitializer>();
 
         services.AddScoped<IAuthRepository, AuthRepository>();

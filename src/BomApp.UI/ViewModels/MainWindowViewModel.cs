@@ -61,6 +61,7 @@ public partial class MainWindowViewModel : ViewModelBase
             "BomListViewModel"          => "สูตรการผลิต",
             "BomAssignmentViewModel"    => "กำหนดสูตร",
             "ProductionListViewModel"   => "รายการผลิต",
+            "ProductManufacturingViewModel" => "ผลิตสินค้า",
             "ProductDestructionViewModel" => "เบิกของเสีย",
             "SalesCalculationViewModel" => "คำนวณการผลิต",
             _                           => string.Empty,

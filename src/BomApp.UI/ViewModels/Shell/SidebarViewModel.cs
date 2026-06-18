@@ -4,6 +4,7 @@ using BomApp.UI.Services;
 using BomApp.UI.ViewModels.Bom;
 using BomApp.UI.ViewModels.BomAssignment;
 using BomApp.UI.ViewModels.Production;
+using BomApp.UI.ViewModels.ProductManufacturing;
 using BomApp.UI.ViewModels.ProductDestruction;
 using BomApp.UI.ViewModels.SalesCalculation;
 
@@ -60,6 +61,7 @@ public partial class SidebarViewModel : ViewModelBase
             new() { Label = "สูตรการผลิต" },
             new() { Label = "กำหนดสูตร" },
             new() { Label = "รายการผลิต" },
+            new() { Label = "ผลิตสินค้า" },
             new() { Label = "เบิกของเสีย" },
             new() { Label = "คำนวณการผลิต" },
         };
@@ -93,6 +95,9 @@ public partial class SidebarViewModel : ViewModelBase
                 break;
             case "รายการผลิต":
                 _navigation.NavigateTo<ProductionListViewModel>();
+                break;
+            case "ผลิตสินค้า":
+                _navigation.NavigateTo<ProductManufacturingViewModel>();
                 break;
             case "เบิกของเสีย":
                 _navigation.NavigateTo<ProductDestructionViewModel>();

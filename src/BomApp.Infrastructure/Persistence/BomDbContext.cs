@@ -35,6 +35,15 @@ public class BomDbContext(DbContextOptions<BomDbContext> options) : DbContext(op
     /// <summary>Product destruction item lines</summary>
     public DbSet<ProductDestructionDetail> ProductDestructionDetails { get; set; }
 
+    /// <summary>Direct product manufacturing document headers</summary>
+    public DbSet<ProductManufacturing> ProductManufacturings { get; set; }
+
+    /// <summary>Direct product manufacturing material usage lines</summary>
+    public DbSet<ProductManufacturingMaterial> ProductManufacturingMaterials { get; set; }
+
+    /// <summary>Direct product manufacturing finished good lines</summary>
+    public DbSet<ProductManufacturingFinishGood> ProductManufacturingFinishGoods { get; set; }
+
     /// <summary>Audit logs</summary>
     public DbSet<AuditLog> AuditLogs { get; set; }
 

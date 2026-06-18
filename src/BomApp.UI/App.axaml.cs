@@ -10,6 +10,7 @@ using BomApp.UI.ViewModels;
 using BomApp.UI.ViewModels.Bom;
 using BomApp.UI.ViewModels.BomAssignment;
 using BomApp.UI.ViewModels.Production;
+using BomApp.UI.ViewModels.ProductManufacturing;
 using BomApp.UI.ViewModels.ProductDestruction;
 using BomApp.UI.ViewModels.SalesCalculation;
 using BomApp.UI.ViewModels.Shell;
@@ -136,6 +137,15 @@ public partial class App : Avalonia.Application
             var scope = scopeFactory.CreateScope();
             return new ProductDestructionViewModel(
                 scope.ServiceProvider.GetRequiredService<IProductDestructionService>(),
+                scope.ServiceProvider.GetRequiredService<IErpItemRepository>(),
+                dialogService);
+        });
+
+        nav.Register<ProductManufacturingViewModel>(() =>
+        {
+            var scope = scopeFactory.CreateScope();
+            return new ProductManufacturingViewModel(
+                scope.ServiceProvider.GetRequiredService<IProductManufacturingService>(),
                 scope.ServiceProvider.GetRequiredService<IErpItemRepository>(),
                 dialogService);
         });

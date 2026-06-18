@@ -1,0 +1,403 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:BomApp.UI.ViewModels.ProductManufacturing"
+             xmlns:contracts="using:BomApp.Shared.Contracts"
+             x:Class="BomApp.UI.Views.ProductManufacturing.ProductManufacturingView"
+             x:DataType="vm:ProductManufacturingViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,*"
+          Background="{StaticResource SurfaceSecondaryBrush}"
+          Loaded="OnLoaded">
+
+        <TextBlock Grid.Row="0"
+                   Text="ผลิตสินค้า"
+                   FontSize="{StaticResource FontSizeH2}"
+                   FontWeight="SemiBold"
+                   Foreground="{StaticResource TextPrimaryBrush}"
+                   Margin="{StaticResource PanelPadding}"/>
+
+        <Border Grid.Row="1"
+                Margin="16,0,16,16"
+                Padding="{StaticResource PanelPadding}"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusMD}">
+            <Grid ColumnDefinitions="Auto,220,12,Auto,160,12,Auto,160,*,Auto,12,Auto"
+                  VerticalAlignment="Top">
+                <TextBlock Grid.Column="0"
+                           Text="ค้นหา"
+                           FontSize="{StaticResource FontSizeBase}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+
+                <TextBox Grid.Column="1"
+                         Text="{Binding DocNoSearch, Mode=TwoWay}"
+                         PlaceholderText="เลขที่เอกสาร"
+                         Height="34"
+                         CornerRadius="{StaticResource RadiusMD}"
+                         FontSize="{StaticResource FontSizeBase}"/>
+
+                <TextBlock Grid.Column="3"
+                           Text="สินค้า"
+                           FontSize="{StaticResource FontSizeBase}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+
+                <TextBox Grid.Column="4"
+                         Text="{Binding ItemCodeSearch, Mode=TwoWay}"
+                         PlaceholderText="รหัสสินค้า"
+                         Height="34"
+                         CornerRadius="{StaticResource RadiusMD}"
+                         FontSize="{StaticResource FontSizeBase}"/>
+
+                <Button Grid.Column="6"
+                        Content="ค้นหา"
+                        Command="{Binding SearchCommand}"
+                        MinWidth="86"
+                        Height="34"
+                        HorizontalContentAlignment="Center"
+                        Background="{StaticResource AccentBlueBrush}"
+                        Foreground="White"
+                        CornerRadius="{StaticResource RadiusMD}"
+                        FontSize="{StaticResource FontSizeBase}"/>
+
+                <ComboBox Grid.Column="9"
+                          ItemsSource="{Binding PageSizeOptions}"
+                          SelectedItem="{Binding PageSize, Mode=TwoWay}"
+                          Height="34"
+                          CornerRadius="{StaticResource RadiusMD}"
+                          FontSize="{StaticResource FontSizeBase}"/>
+
+                <Button Grid.Column="11"
+                        Content="เพิ่มเอกสาร"
+                        Command="{Binding NewDocumentCommand}"
+                        MinWidth="112"
+                        Height="34"
+                        HorizontalContentAlignment="Center"
+                        Background="{StaticResource AccentGreenBrush}"
+                        Foreground="White"
+                        CornerRadius="{StaticResource RadiusMD}"
+                        FontSize="{StaticResource FontSizeBase}"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2"
+              ColumnDefinitions="0.85*,24,1.15*"
+              Margin="16,0,16,16">
+
+            <Border Grid.Column="0"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusMD}">
+                <Grid RowDefinitions="*,Auto">
+                    <DockPanel Grid.Row="0" LastChildFill="True">
+                        <Border DockPanel.Dock="Top"
+                                Background="{StaticResource SurfaceSecondaryBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="0,0,0,1"
+                                Padding="8,6">
+                            <Grid ColumnDefinitions="118,*,90,90,70" ColumnSpacing="8">
+                                <TextBlock Grid.Column="0" Text="วันที่" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="1" Text="เลขที่เอกสาร" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="2" Text="คลัง" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Grid.Column="3" Text="ที่เก็บ" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </Grid>
+                        </Border>
+
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding Documents}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="contracts:ProductManufacturingDto">
+                                        <Border BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="0,0,0,1"
+                                                MinHeight="{StaticResource DataGridRowHeight}">
+                                            <Grid ColumnDefinitions="*,70">
+                                                <Button Grid.Column="0"
+                                                        Command="{Binding ((vm:ProductManufacturingViewModel)DataContext).SelectDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Padding="8,5"
+                                                        HorizontalContentAlignment="Stretch">
+                                                    <Grid ColumnDefinitions="118,*,90,90" ColumnSpacing="8">
+                                                        <TextBlock Grid.Column="0" Text="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding DocNo}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding WhCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="3" Text="{Binding ShelfCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                </Button>
+                                                <Button Grid.Column="1"
+                                                        Content="ลบ"
+                                                        Command="{Binding ((vm:ProductManufacturingViewModel)DataContext).DeleteDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Margin="4"
+                                                        Padding="10,3"
+                                                        CornerRadius="{StaticResource RadiusSM}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+
+                    <Border Grid.Row="1"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="0,1,0,0"
+                            Padding="{StaticResource SpaceSM}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding PageSummary}"
+                                       FontSize="{StaticResource FontSizeSM}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                <Button Content="ก่อนหน้า"
+                                        Command="{Binding PreviousPageCommand}"
+                                        IsEnabled="{Binding CanGoPrevious}"
+                                        FontSize="{StaticResource FontSizeSM}"
+                                        CornerRadius="{StaticResource RadiusSM}"
+                                        Padding="10,4"/>
+                                <Button Content="ถัดไป"
+                                        Command="{Binding NextPageCommand}"
+                                        IsEnabled="{Binding CanGoNext}"
+                                        FontSize="{StaticResource FontSizeSM}"
+                                        CornerRadius="{StaticResource RadiusSM}"
+                                        Padding="10,4"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource RadiusMD}"
+                    Padding="{StaticResource PanelPadding}">
+                <Grid RowDefinitions="Auto,12,Auto,12,*,12,*">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,8,Auto,8,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding EditorTitle}"
+                                   FontSize="{StaticResource FontSizeLG}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center"/>
+                        <Button Grid.Column="1"
+                                Content="คำนวณ"
+                                Command="{Binding CalculateCommand}"
+                                Padding="14,6"
+                                Background="{StaticResource AccentGreenBrush}"
+                                Foreground="White"
+                                CornerRadius="{StaticResource RadiusSM}"/>
+                        <Button Grid.Column="3"
+                                Content="ยกเลิก"
+                                Command="{Binding CancelEditCommand}"
+                                Padding="14,6"
+                                CornerRadius="{StaticResource RadiusSM}"/>
+                        <Button Grid.Column="5"
+                                Content="บันทึก"
+                                Command="{Binding SaveCommand}"
+                                Padding="16,6"
+                                Background="{StaticResource AccentBlueBrush}"
+                                Foreground="White"
+                                CornerRadius="{StaticResource RadiusSM}"/>
+                    </Grid>
+
+                    <Border Grid.Row="2"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusSM}"
+                            Padding="{StaticResource SpaceSM}">
+                        <Grid RowDefinitions="Auto,Auto,Auto"
+                              ColumnDefinitions="*,*"
+                              RowSpacing="10"
+                              ColumnSpacing="12">
+                            <TextBlock Grid.Row="0" Grid.ColumnSpan="2"
+                                       Text="ส่วนหัวเอกสาร"
+                                       FontSize="{StaticResource FontSizeBase}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                            <StackPanel Grid.Row="1" Grid.Column="0" Spacing="4">
+                                <TextBlock Text="วันที่เอกสาร" FontSize="{StaticResource FontSizeSM}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <CalendarDatePicker SelectedDate="{Binding CalendarDocDate, Mode=TwoWay}" CornerRadius="{StaticResource RadiusMD}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
+                                <TextBlock Text="เลขที่เอกสาร" FontSize="{StaticResource FontSizeSM}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBox Text="{Binding DocNo, Mode=TwoWay}"
+                                         IsEnabled="{Binding IsDocNoEditable}"
+                                         CornerRadius="{StaticResource RadiusMD}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="2" Grid.Column="0" Spacing="4">
+                                <TextBlock Text="คลัง / ที่เก็บ" FontSize="{StaticResource FontSizeSM}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <Grid ColumnDefinitions="*,8,*">
+                                    <TextBox Grid.Column="0" Text="{Binding WhCode, Mode=TwoWay}" PlaceholderText="warehouse" CornerRadius="{StaticResource RadiusMD}"/>
+                                    <TextBox Grid.Column="2" Text="{Binding ShelfCode, Mode=TwoWay}" PlaceholderText="location" CornerRadius="{StaticResource RadiusMD}"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="2" Grid.Column="1" Spacing="4">
+                                <TextBlock Text="หมายเหตุ" FontSize="{StaticResource FontSizeSM}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBox Text="{Binding Remark, Mode=TwoWay}" CornerRadius="{StaticResource RadiusMD}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="4"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusSM}"
+                            Padding="{StaticResource SpaceSM}">
+                        <Grid RowDefinitions="Auto,*">
+                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                <TextBlock Text="สินค้าที่ต้องการผลิต"
+                                           FontSize="{StaticResource FontSizeBase}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           VerticalAlignment="Center"/>
+                                <Button Grid.Column="1"
+                                        Content="เพิ่มสินค้า"
+                                        Command="{Binding AddFinishGoodCommand}"
+                                        Padding="12,4"
+                                        CornerRadius="{StaticResource RadiusSM}"/>
+                            </Grid>
+
+                            <DockPanel Grid.Row="1" Margin="0,8,0,0" LastChildFill="True">
+                                <Border DockPanel.Dock="Top"
+                                        Background="{StaticResource SurfaceSecondaryBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="8,6">
+                                    <Grid ColumnDefinitions="110,*,90,90,90,90,Auto" ColumnSpacing="8">
+                                        <TextBlock Grid.Column="0" Text="รหัสสินค้า" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="1" Text="ชื่อสินค้า" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="2" Text="จำนวน" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="3" Text="หน่วย" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="4" Text="คลัง" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="5" Text="ที่เก็บ" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    </Grid>
+                                </Border>
+
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding FinishGoods}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ProductManufacturingFinishGoodEditModel">
+                                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="8,5" MinHeight="{StaticResource DataGridRowHeight}">
+                                                    <Grid ColumnDefinitions="110,*,90,90,90,90,Auto" ColumnSpacing="8">
+                                                        <TextBlock Grid.Column="0" Text="{Binding ItemCode}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding ItemName}" FontSize="{StaticResource FontSizeSM}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                        <NumericUpDown Grid.Column="2" Value="{Binding Qty, Mode=TwoWay}" Minimum="0" FormatString="0.######" FontSize="{StaticResource FontSizeSM}" CornerRadius="{StaticResource RadiusSM}"/>
+                                                        <TextBox Grid.Column="3" Text="{Binding UnitCode, Mode=TwoWay}" FontSize="{StaticResource FontSizeSM}" CornerRadius="{StaticResource RadiusSM}"/>
+                                                        <TextBox Grid.Column="4" Text="{Binding WhCode, Mode=TwoWay}" FontSize="{StaticResource FontSizeSM}" CornerRadius="{StaticResource RadiusSM}"/>
+                                                        <TextBox Grid.Column="5" Text="{Binding ShelfCode, Mode=TwoWay}" FontSize="{StaticResource FontSizeSM}" CornerRadius="{StaticResource RadiusSM}"/>
+                                                        <Button Grid.Column="6"
+                                                                Content="ลบ"
+                                                                Command="{Binding ((vm:ProductManufacturingViewModel)DataContext).RemoveFinishGoodCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                Padding="10,3"
+                                                                CornerRadius="{StaticResource RadiusSM}"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="6"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{StaticResource RadiusSM}"
+                            Padding="{StaticResource SpaceSM}">
+                        <Grid RowDefinitions="Auto,*">
+                            <TextBlock Grid.Row="0"
+                                       Text="วัตถุดิบที่ต้องใช้"
+                                       FontSize="{StaticResource FontSizeBase}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                            <DockPanel Grid.Row="1" Margin="0,8,0,0" LastChildFill="True">
+                                <Border DockPanel.Dock="Top"
+                                        Background="{StaticResource SurfaceSecondaryBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="8,6">
+                                    <Grid ColumnDefinitions="110,*,90,90,90,90" ColumnSpacing="8">
+                                        <TextBlock Grid.Column="0" Text="รหัสสินค้า" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="1" Text="ชื่อสินค้า" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="2" Text="จำนวน" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="3" Text="หน่วย" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="4" Text="คลัง" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="5" Text="ที่เก็บ" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    </Grid>
+                                </Border>
+
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding Materials}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ProductManufacturingMaterialEditModel">
+                                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="8,5" MinHeight="{StaticResource DataGridRowHeight}">
+                                                    <Grid ColumnDefinitions="110,*,90,90,90,90" ColumnSpacing="8">
+                                                        <TextBlock Grid.Column="0" Text="{Binding ItemCode}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding ItemName}" FontSize="{StaticResource FontSizeSM}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding Qty, StringFormat='{}{0:N6}'}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="3" Text="{Binding UnitCode}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="4" Text="{Binding WhCode}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="5" Text="{Binding ShelfCode}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                IsVisible="{Binding IsLoading}"
+                Background="#B3FFFFFF">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                <ProgressBar IsIndeterminate="True"
+                             Width="160"
+                             Height="4"
+                             Foreground="{StaticResource AccentBlueBrush}"/>
+                <TextBlock Text="กำลังโหลด..."
+                           FontSize="{StaticResource FontSizeSM}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource DangerBrush}"
+                BorderThickness="1"
+                CornerRadius="{StaticResource RadiusSM}"
+                Padding="{StaticResource SpaceSM}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,50,0,0"
+                IsVisible="{Binding HasError}">
+            <TextBlock Text="{Binding ErrorMessage}"
+                       FontSize="{StaticResource FontSizeSM}"
+                       Foreground="{StaticResource DangerBrush}"
+                       TextWrapping="Wrap"/>
+        </Border>
+    </Grid>
+</UserControl>

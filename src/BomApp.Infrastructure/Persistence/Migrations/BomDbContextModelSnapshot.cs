@@ -435,6 +435,144 @@ namespace BomApp.Infrastructure.Persistence.Migrations
                     b.ToTable("bom_production_orders", "public");
                 });
 
+            modelBuilder.Entity("BomApp.Domain.Entities.ProductManufacturing", b =>
+                {
+                    b.Property<string>("DocNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("doc_no");
+
+                    b.Property<DateOnly>("DocDate")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("doc_date");
+
+                    b.Property<string>("Remark")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("remark");
+
+                    b.Property<string>("ShelfCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("shelf_code");
+
+                    b.Property<string>("WhCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("wh_code");
+
+                    b.HasKey("DocNo");
+
+                    b.HasIndex("DocDate")
+                        .HasDatabaseName("idx_bom_material_process_doc_date");
+
+                    b.ToTable("bom_material_process", "public");
+                });
+
+            modelBuilder.Entity("BomApp.Domain.Entities.ProductManufacturingFinishGood", b =>
+                {
+                    b.Property<string>("DocNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("doc_no");
+
+                    b.Property<int>("LineNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("line_number");
+
+                    b.Property<string>("ItemCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("item_code");
+
+                    b.Property<decimal>("Qty")
+                        .HasColumnType("numeric")
+                        .HasColumnName("qty");
+
+                    b.Property<string>("ShelfCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("shelf_code");
+
+                    b.Property<string>("UnitCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("unit_code");
+
+                    b.Property<string>("WhCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("wh_code");
+
+                    b.HasKey("DocNo", "LineNumber");
+
+                    b.HasIndex("DocNo")
+                        .HasDatabaseName("idx_bom_material_process_finish_good_doc_no");
+
+                    b.HasIndex("ItemCode")
+                        .HasDatabaseName("idx_bom_material_process_finish_good_item_code");
+
+                    b.ToTable("bom_material_process_finish_good", "public");
+                });
+
+            modelBuilder.Entity("BomApp.Domain.Entities.ProductManufacturingMaterial", b =>
+                {
+                    b.Property<string>("DocNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("doc_no");
+
+                    b.Property<int>("LineNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("line_number");
+
+                    b.Property<string>("ItemCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("item_code");
+
+                    b.Property<decimal>("Qty")
+                        .HasColumnType("numeric")
+                        .HasColumnName("qty");
+
+                    b.Property<string>("ShelfCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("shelf_code");
+
+                    b.Property<string>("UnitCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("unit_code");
+
+                    b.Property<string>("WhCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("wh_code");
+
+                    b.HasKey("DocNo", "LineNumber");
+
+                    b.HasIndex("DocNo")
+                        .HasDatabaseName("idx_bom_material_process_use_doc_no");
+
+                    b.HasIndex("ItemCode")
+                        .HasDatabaseName("idx_bom_material_process_use_item_code");
+
+                    b.ToTable("bom_material_process_use", "public");
+                });
+
             modelBuilder.Entity("BomApp.Domain.Entities.BomAssignment", b =>
                 {
                     b.HasOne("BomApp.Domain.Entities.Bom", "Bom")
@@ -488,6 +626,30 @@ namespace BomApp.Infrastructure.Persistence.Migrations
                     b.Navigation("Production");
                 });
 
+            modelBuilder.Entity("BomApp.Domain.Entities.ProductManufacturingFinishGood", b =>
+                {
+                    b.HasOne("BomApp.Domain.Entities.ProductManufacturing", "ProductManufacturing")
+                        .WithMany("FinishGoods")
+                        .HasForeignKey("DocNo")
+                        .HasPrincipalKey("DocNo")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductManufacturing");
+                });
+
+            modelBuilder.Entity("BomApp.Domain.Entities.ProductManufacturingMaterial", b =>
+                {
+                    b.HasOne("BomApp.Domain.Entities.ProductManufacturing", "ProductManufacturing")
+                        .WithMany("Materials")
+                        .HasForeignKey("DocNo")
+                        .HasPrincipalKey("DocNo")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductManufacturing");
+                });
+
             modelBuilder.Entity("BomApp.Domain.Entities.Bom", b =>
                 {
                     b.Navigation("Lines");
@@ -498,6 +660,13 @@ namespace BomApp.Infrastructure.Persistence.Migrations
                     b.Navigation("Details");
 
                     b.Navigation("Orders");
+                });
+
+            modelBuilder.Entity("BomApp.Domain.Entities.ProductManufacturing", b =>
+                {
+                    b.Navigation("FinishGoods");
+
+                    b.Navigation("Materials");
                 });
 #pragma warning restore 612, 618
         }
