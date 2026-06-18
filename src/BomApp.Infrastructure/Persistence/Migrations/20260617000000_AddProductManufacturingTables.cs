@@ -22,7 +22,8 @@ namespace BomApp.Infrastructure.Persistence.Migrations
                     doc_date varchar(10) NOT NULL,
                     wh_code varchar(50) NOT NULL,
                     shelf_code varchar(50) NOT NULL,
-                    remark varchar(255) NOT NULL DEFAULT ''
+                    remark varchar(255) NOT NULL DEFAULT '',
+                    total_cost numeric NOT NULL DEFAULT 0
                 );
 
                 CREATE TABLE IF NOT EXISTS public.bom_material_process_use (
@@ -32,6 +33,8 @@ namespace BomApp.Infrastructure.Persistence.Migrations
                     unit_code varchar(50) NOT NULL,
                     wh_code varchar(50) NOT NULL,
                     shelf_code varchar(50) NOT NULL,
+                    cost_per_unit numeric NOT NULL DEFAULT 0,
+                    total_cost numeric NOT NULL DEFAULT 0,
                     line_number integer NOT NULL,
                     CONSTRAINT pk_bom_material_process_use PRIMARY KEY (doc_no, line_number),
                     CONSTRAINT ck_bom_material_process_use_qty_positive CHECK (qty > 0)
@@ -44,6 +47,8 @@ namespace BomApp.Infrastructure.Persistence.Migrations
                     unit_code varchar(50) NOT NULL,
                     wh_code varchar(50) NOT NULL,
                     shelf_code varchar(50) NOT NULL,
+                    cost_per_unit numeric NOT NULL DEFAULT 0,
+                    total_cost numeric NOT NULL DEFAULT 0,
                     line_number integer NOT NULL,
                     CONSTRAINT pk_bom_material_process_finish_good PRIMARY KEY (doc_no, line_number),
                     CONSTRAINT ck_bom_material_process_finish_good_qty_positive CHECK (qty > 0)

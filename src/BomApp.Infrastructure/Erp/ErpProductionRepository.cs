@@ -14,6 +14,7 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
     private const short ProductionTransFlag = 56;
     private const short ProductManufacturingReceiveTransFlag = 60;
     private const short CalculatedFlag = -1;
+    private const short FinishedGoodsCalcFlag = 1;
 
     public async Task SaveProductionDocumentAsync(
         BomProductionDto document,
@@ -229,10 +230,20 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
                 material.WhCode,
                 material.ShelfCode,
                 material.LineNumber,
+                material.CostPerUnit,
+                material.TotalCost,
+                CalculatedFlag,
                 ct);
         }
 
-        await InsertIcTransHeaderAsync(document.DocNo, document.DocDate, docTime, ProductManufacturingReceiveTransFlag, ct);
+        var finishGoodTotalAmount = document.FinishGoods.Sum(d => d.TotalCost);
+        await InsertIcTransHeaderAsync(
+            document.DocNo,
+            document.DocDate,
+            docTime,
+            ProductManufacturingReceiveTransFlag,
+            finishGoodTotalAmount,
+            ct);
         foreach (var finishGood in document.FinishGoods.OrderBy(d => d.LineNumber))
         {
             await InsertIcTransDetailAsync(
@@ -247,6 +258,9 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
                 finishGood.WhCode,
                 finishGood.ShelfCode,
                 finishGood.LineNumber,
+                finishGood.CostPerUnit,
+                finishGood.TotalCost,
+                FinishedGoodsCalcFlag,
                 ct);
         }
 
@@ -261,6 +275,7 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
         DateOnly docDate,
         string docTime,
         short transFlag,
+        decimal totalAmount,
         CancellationToken ct)
     {
         await context.Database.ExecuteSqlInterpolatedAsync($"""
@@ -269,17 +284,27 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
                 trans_flag,
                 doc_date,
                 doc_time,
-                doc_no
+                doc_no,
+                total_amount
             )
             VALUES (
                 {ProductionTransType},
                 {transFlag},
                 {docDate},
                 {docTime},
-                {docNo}
+                {docNo},
+                {totalAmount}
             )
             """, ct);
     }
+
+    private Task InsertIcTransHeaderAsync(
+        string docNo,
+        DateOnly docDate,
+        string docTime,
+        short transFlag,
+        CancellationToken ct) =>
+        InsertIcTransHeaderAsync(docNo, docDate, docTime, transFlag, 0m, ct);
 
     private async Task InsertIcTransDetailAsync(
         string docNo,
@@ -293,6 +318,9 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
         string whCode,
         string shelfCode,
         int lineNumber,
+        decimal costPerUnit,
+        decimal totalCost,
+        short calcFlag,
         CancellationToken ct)
     {
         await context.Database.ExecuteSqlInterpolatedAsync($"""
@@ -311,6 +339,10 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
                 qty,
                 wh_code,
                 shelf_code,
+                price,
+                sum_of_cost,
+                sum_amount,
+                sum_amount_exclude_vat,
                 stand_value,
                 divide_value,
                 line_number
@@ -322,7 +354,7 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
                 {docTime},
                 {docDate},
                 {docTime},
-                {CalculatedFlag},
+                {calcFlag},
                 {docNo},
                 {itemCode},
                 {itemName},
@@ -330,6 +362,10 @@ public class ErpProductionRepository(ErpDbContext context) : IErpProductionRepos
                 {qty},
                 {whCode},
                 {shelfCode},
+                {costPerUnit},
+                {totalCost},
+                {totalCost},
+                {totalCost},
                 {1m},
                 {1m},
                 {lineNumber}

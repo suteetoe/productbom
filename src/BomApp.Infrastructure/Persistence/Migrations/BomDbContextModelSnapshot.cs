@@ -459,6 +459,10 @@ namespace BomApp.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("shelf_code");
 
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("numeric")
+                        .HasColumnName("total_cost");
+
                     b.Property<string>("WhCode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -480,6 +484,10 @@ namespace BomApp.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("doc_no");
 
+                    b.Property<decimal>("CostPerUnit")
+                        .HasColumnType("numeric")
+                        .HasColumnName("cost_per_unit");
+
                     b.Property<int>("LineNumber")
                         .HasColumnType("integer")
                         .HasColumnName("line_number");
@@ -499,6 +507,10 @@ namespace BomApp.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("shelf_code");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("numeric")
+                        .HasColumnName("total_cost");
 
                     b.Property<string>("UnitCode")
                         .IsRequired()
@@ -530,6 +542,10 @@ namespace BomApp.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("doc_no");
 
+                    b.Property<decimal>("CostPerUnit")
+                        .HasColumnType("numeric")
+                        .HasColumnName("cost_per_unit");
+
                     b.Property<int>("LineNumber")
                         .HasColumnType("integer")
                         .HasColumnName("line_number");
@@ -549,6 +565,10 @@ namespace BomApp.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("shelf_code");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("numeric")
+                        .HasColumnName("total_cost");
 
                     b.Property<string>("UnitCode")
                         .IsRequired()

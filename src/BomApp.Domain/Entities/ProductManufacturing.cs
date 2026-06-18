@@ -16,6 +16,8 @@ public class ProductManufacturing
 
     public string Remark { get; set; } = string.Empty;
 
+    public decimal TotalCost { get; set; }
+
     public ICollection<ProductManufacturingMaterial> Materials { get; set; } = new List<ProductManufacturingMaterial>();
 
     public ICollection<ProductManufacturingFinishGood> FinishGoods { get; set; } = new List<ProductManufacturingFinishGood>();

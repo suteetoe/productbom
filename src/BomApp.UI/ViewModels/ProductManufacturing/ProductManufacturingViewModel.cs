@@ -230,7 +230,8 @@ public partial class ProductManufacturingViewModel : ViewModelBase
             UnitCode = string.IsNullOrWhiteSpace(item.UnitCost) ? units.FirstOrDefault()?.Code ?? string.Empty : item.UnitCost,
             WhCode = WhCode,
             ShelfCode = ShelfCode,
-            AvailableUnits = units.ToList()
+            AvailableUnits = units.ToList(),
+            QuantityChanged = RecalculateFinishGoodCosts
         });
         HasCalculatedMaterials = false;
     }
@@ -294,6 +295,8 @@ public partial class ProductManufacturingViewModel : ViewModelBase
                     d.UnitCode,
                     string.IsNullOrWhiteSpace(d.WhCode) ? WhCode : d.WhCode,
                     string.IsNullOrWhiteSpace(d.ShelfCode) ? ShelfCode : d.ShelfCode,
+                    d.CostPerUnit,
+                    d.TotalCost,
                     d.LineNumber))
                 .ToList();
             var materials = Materials
@@ -305,6 +308,8 @@ public partial class ProductManufacturingViewModel : ViewModelBase
                     d.UnitCode,
                     d.WhCode,
                     d.ShelfCode,
+                    d.CostPerUnit,
+                    d.TotalCost,
                     d.LineNumber))
                 .ToList();
 
@@ -397,6 +402,8 @@ public partial class ProductManufacturingViewModel : ViewModelBase
                     d.UnitCode,
                     string.IsNullOrWhiteSpace(d.WhCode) ? WhCode : d.WhCode,
                     string.IsNullOrWhiteSpace(d.ShelfCode) ? ShelfCode : d.ShelfCode,
+                    d.CostPerUnit,
+                    d.TotalCost,
                     d.LineNumber))
                 .ToList(),
             dryRun);
@@ -427,14 +434,24 @@ public partial class ProductManufacturingViewModel : ViewModelBase
                 Qty = finishGood.Qty,
                 UnitCode = finishGood.UnitCode,
                 WhCode = finishGood.WhCode,
-                ShelfCode = finishGood.ShelfCode
+                ShelfCode = finishGood.ShelfCode,
+                CostPerUnit = finishGood.CostPerUnit,
+                TotalCost = finishGood.TotalCost,
+                QuantityChanged = RecalculateFinishGoodCosts
             });
         }
+
+        var materialCosts = Materials
+            .Where(d => !string.IsNullOrWhiteSpace(d.ItemCode))
+            .GroupBy(
+                d => GetMaterialCostKey(d.ItemCode, d.UnitCode, d.WhCode, d.ShelfCode),
+                StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Last().CostPerUnit, StringComparer.OrdinalIgnoreCase);
 
         Materials.Clear();
         foreach (var material in document.Materials.OrderBy(d => d.LineNumber))
         {
-            Materials.Add(new ProductManufacturingMaterialEditModel
+            var item = new ProductManufacturingMaterialEditModel
             {
                 LineNumber = material.LineNumber,
                 ItemCode = material.ItemCode,
@@ -442,9 +459,18 @@ public partial class ProductManufacturingViewModel : ViewModelBase
                 Qty = material.Qty,
                 UnitCode = material.UnitCode,
                 WhCode = material.WhCode,
-                ShelfCode = material.ShelfCode
-            });
+                ShelfCode = material.ShelfCode,
+                CostPerUnit = materialCosts.TryGetValue(
+                    GetMaterialCostKey(material.ItemCode, material.UnitCode, material.WhCode, material.ShelfCode),
+                    out var costPerUnit)
+                    ? costPerUnit
+                    : material.CostPerUnit
+            };
+            item.CostChanged = RecalculateFinishGoodCosts;
+            Materials.Add(item);
         }
+
+        RecalculateFinishGoodCosts();
     }
 
     private void NormalizeLineNumbers()
@@ -457,6 +483,22 @@ public partial class ProductManufacturingViewModel : ViewModelBase
     }
 
     private static string GenerateDocNo() => $"MP-{DateTime.Now:yyyyMMdd-HHmmss}";
+
+    private void RecalculateFinishGoodCosts()
+    {
+        var materialTotalCost = Materials.Sum(d => d.TotalCost);
+        var totalFinishGoodQty = FinishGoods.Sum(d => d.Qty);
+        var costPerUnit = totalFinishGoodQty <= 0 ? 0m : materialTotalCost / totalFinishGoodQty;
+
+        foreach (var finishGood in FinishGoods)
+        {
+            finishGood.CostPerUnit = costPerUnit;
+            finishGood.TotalCost = finishGood.Qty * costPerUnit;
+        }
+    }
+
+    private static string GetMaterialCostKey(string itemCode, string unitCode, string whCode, string shelfCode) =>
+        $"{itemCode.Trim()}|{unitCode.Trim()}|{whCode.Trim()}|{shelfCode.Trim()}";
 }
 
 public partial class ProductManufacturingFinishGoodEditModel : ObservableObject
@@ -468,8 +510,14 @@ public partial class ProductManufacturingFinishGoodEditModel : ObservableObject
     [ObservableProperty] private string unitCode = string.Empty;
     [ObservableProperty] private string whCode = string.Empty;
     [ObservableProperty] private string shelfCode = string.Empty;
+    [ObservableProperty] private decimal costPerUnit;
+    [ObservableProperty] private decimal totalCost;
 
     public List<ErpUnitDto> AvailableUnits { get; set; } = [];
+
+    public Action? QuantityChanged { get; set; }
+
+    partial void OnQtyChanged(decimal value) => QuantityChanged?.Invoke();
 }
 
 public partial class ProductManufacturingMaterialEditModel : ObservableObject
@@ -481,4 +529,21 @@ public partial class ProductManufacturingMaterialEditModel : ObservableObject
     [ObservableProperty] private string unitCode = string.Empty;
     [ObservableProperty] private string whCode = string.Empty;
     [ObservableProperty] private string shelfCode = string.Empty;
+    [ObservableProperty] private decimal costPerUnit;
+
+    public decimal TotalCost => Qty * CostPerUnit;
+
+    public Action? CostChanged { get; set; }
+
+    partial void OnQtyChanged(decimal value)
+    {
+        OnPropertyChanged(nameof(TotalCost));
+        CostChanged?.Invoke();
+    }
+
+    partial void OnCostPerUnitChanged(decimal value)
+    {
+        OnPropertyChanged(nameof(TotalCost));
+        CostChanged?.Invoke();
+    }
 }

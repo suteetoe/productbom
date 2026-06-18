@@ -100,7 +100,8 @@
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="0,0,0,1"
                                 Padding="8,6">
-                            <Grid ColumnDefinitions="118,*,90,90,70" ColumnSpacing="8">
+                            <Grid ColumnDefinitions="118,*,90,90,110,70" ColumnSpacing="8">
+                                <TextBlock Grid.Column="4" Text="Total Cost" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" TextAlignment="Right"/>
                                 <TextBlock Grid.Column="0" Text="วันที่" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 <TextBlock Grid.Column="1" Text="เลขที่เอกสาร" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                 <TextBlock Grid.Column="2" Text="คลัง" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
@@ -124,11 +125,12 @@
                                                         BorderThickness="0"
                                                         Padding="8,5"
                                                         HorizontalContentAlignment="Stretch">
-                                                    <Grid ColumnDefinitions="118,*,90,90" ColumnSpacing="8">
+                                                    <Grid ColumnDefinitions="118,*,90,90,110" ColumnSpacing="8">
                                                         <TextBlock Grid.Column="0" Text="{Binding DocDate, StringFormat='{}{0:dd/MM/yyyy}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                                                         <TextBlock Grid.Column="1" Text="{Binding DocNo}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                                                         <TextBlock Grid.Column="2" Text="{Binding WhCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                                                         <TextBlock Grid.Column="3" Text="{Binding ShelfCode}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="4" Text="{Binding TotalCost, StringFormat='{}{0:N2}'}" FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" TextAlignment="Right"/>
                                                     </Grid>
                                                 </Button>
                                                 <Button Grid.Column="1"
@@ -278,7 +280,9 @@
                                         BorderBrush="{StaticResource BorderBrush}"
                                         BorderThickness="0,0,0,1"
                                         Padding="8,6">
-                                    <Grid ColumnDefinitions="110,*,90,90,90,90,Auto" ColumnSpacing="8">
+                                    <Grid ColumnDefinitions="110,*,90,90,90,90,100,110,Auto" ColumnSpacing="8">
+                                        <TextBlock Grid.Column="6" Text="Cost/Unit" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="7" Text="Total Cost" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                         <TextBlock Grid.Column="0" Text="รหัสสินค้า" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                         <TextBlock Grid.Column="1" Text="ชื่อสินค้า" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                         <TextBlock Grid.Column="2" Text="จำนวน" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
@@ -293,14 +297,16 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:ProductManufacturingFinishGoodEditModel">
                                                 <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="8,5" MinHeight="{StaticResource DataGridRowHeight}">
-                                                    <Grid ColumnDefinitions="110,*,90,90,90,90,Auto" ColumnSpacing="8">
+                                                    <Grid ColumnDefinitions="110,*,90,90,90,90,100,110,Auto" ColumnSpacing="8">
                                                         <TextBlock Grid.Column="0" Text="{Binding ItemCode}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center"/>
                                                         <TextBlock Grid.Column="1" Text="{Binding ItemName}" FontSize="{StaticResource FontSizeSM}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                                                         <NumericUpDown Grid.Column="2" Value="{Binding Qty, Mode=TwoWay}" Minimum="0" FormatString="0.######" FontSize="{StaticResource FontSizeSM}" CornerRadius="{StaticResource RadiusSM}"/>
                                                         <TextBox Grid.Column="3" Text="{Binding UnitCode, Mode=TwoWay}" FontSize="{StaticResource FontSizeSM}" CornerRadius="{StaticResource RadiusSM}"/>
                                                         <TextBox Grid.Column="4" Text="{Binding WhCode, Mode=TwoWay}" FontSize="{StaticResource FontSizeSM}" CornerRadius="{StaticResource RadiusSM}"/>
                                                         <TextBox Grid.Column="5" Text="{Binding ShelfCode, Mode=TwoWay}" FontSize="{StaticResource FontSizeSM}" CornerRadius="{StaticResource RadiusSM}"/>
-                                                        <Button Grid.Column="6"
+                                                        <TextBlock Grid.Column="6" Text="{Binding CostPerUnit, StringFormat='{}{0:N2}'}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center" TextAlignment="Right"/>
+                                                        <TextBlock Grid.Column="7" Text="{Binding TotalCost, StringFormat='{}{0:N2}'}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center" TextAlignment="Right"/>
+                                                        <Button Grid.Column="8"
                                                                 Content="ลบ"
                                                                 Command="{Binding ((vm:ProductManufacturingViewModel)DataContext).RemoveFinishGoodCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                 CommandParameter="{Binding}"
@@ -334,7 +340,9 @@
                                         BorderBrush="{StaticResource BorderBrush}"
                                         BorderThickness="0,0,0,1"
                                         Padding="8,6">
-                                    <Grid ColumnDefinitions="110,*,90,90,90,90" ColumnSpacing="8">
+                                    <Grid ColumnDefinitions="110,*,90,90,90,90,100,110" ColumnSpacing="8">
+                                        <TextBlock Grid.Column="6" Text="Cost/Unit" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="7" Text="Total Cost" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                         <TextBlock Grid.Column="0" Text="รหัสสินค้า" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                         <TextBlock Grid.Column="1" Text="ชื่อสินค้า" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                         <TextBlock Grid.Column="2" Text="จำนวน" FontSize="{StaticResource FontSizeSM}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
@@ -349,13 +357,15 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:ProductManufacturingMaterialEditModel">
                                                 <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="8,5" MinHeight="{StaticResource DataGridRowHeight}">
-                                                    <Grid ColumnDefinitions="110,*,90,90,90,90" ColumnSpacing="8">
+                                                    <Grid ColumnDefinitions="110,*,90,90,90,90,100,110" ColumnSpacing="8">
                                                         <TextBlock Grid.Column="0" Text="{Binding ItemCode}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center"/>
                                                         <TextBlock Grid.Column="1" Text="{Binding ItemName}" FontSize="{StaticResource FontSizeSM}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                                                         <TextBlock Grid.Column="2" Text="{Binding Qty, StringFormat='{}{0:N6}'}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center"/>
                                                         <TextBlock Grid.Column="3" Text="{Binding UnitCode}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center"/>
                                                         <TextBlock Grid.Column="4" Text="{Binding WhCode}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center"/>
                                                         <TextBlock Grid.Column="5" Text="{Binding ShelfCode}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center"/>
+                                                        <NumericUpDown Grid.Column="6" Value="{Binding CostPerUnit, Mode=TwoWay}" Minimum="0" FormatString="0.######" FontSize="{StaticResource FontSizeSM}" CornerRadius="{StaticResource RadiusSM}"/>
+                                                        <TextBlock Grid.Column="7" Text="{Binding TotalCost, StringFormat='{}{0:N2}'}" FontSize="{StaticResource FontSizeSM}" VerticalAlignment="Center" TextAlignment="Right"/>
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>

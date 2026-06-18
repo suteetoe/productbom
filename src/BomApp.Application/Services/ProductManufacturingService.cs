@@ -10,7 +10,8 @@ public class ProductManufacturingService(
     IBomAssignmentRepository bomAssignmentRepository,
     IBomRepository bomRepository,
     IErpItemRepository erpItemRepository,
-    IErpProductionRepository erpProductionRepository) : IProductManufacturingService
+    IErpProductionRepository erpProductionRepository,
+    IErpStockRequestProcessor erpStockRequestProcessor) : IProductManufacturingService
 {
     private const int MaxBomDepth = 10;
 
@@ -70,6 +71,7 @@ public class ProductManufacturingService(
             request.WhCode.Trim(),
             request.ShelfCode.Trim(),
             request.Remark.Trim(),
+            finishGoods.Sum(d => d.TotalCost),
             finishGoods,
             materialResult.Value!);
 
@@ -93,6 +95,7 @@ public class ProductManufacturingService(
             var document = await repository.CreateAsync(command, ct);
             var hydrated = await HydrateItemNamesAsync(document, ct);
             await erpProductionRepository.SaveProductManufacturingDocumentAsync(hydrated, ct);
+            await ProcessErpStockAsync(hydrated, ct);
             return Result<ProductManufacturingDto>.Success(hydrated);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -122,6 +125,7 @@ public class ProductManufacturingService(
 
             var hydrated = await HydrateItemNamesAsync(document, ct);
             await erpProductionRepository.SaveProductManufacturingDocumentAsync(hydrated, ct);
+            await ProcessErpStockAsync(hydrated, ct);
             return Result<ProductManufacturingDto>.Success(hydrated);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -215,6 +219,8 @@ public class ProductManufacturingService(
                 kv.Key.Unit,
                 kv.Key.WhCode,
                 kv.Key.ShelfCode,
+                0m,
+                0m,
                 lineNumber++))
             .ToList();
 
@@ -301,6 +307,8 @@ public class ProductManufacturingService(
                 finishGood.UnitCode.Trim(),
                 finishGood.WhCode.Trim(),
                 finishGood.ShelfCode.Trim(),
+                finishGood.CostPerUnit,
+                finishGood.TotalCost,
                 finishGood.LineNumber));
         }
 
@@ -372,6 +380,12 @@ public class ProductManufacturingService(
         if (materials.Any(d => d.Qty <= 0))
             return "Every material line quantity must be greater than zero.";
 
+        if (materials.Any(d => d.CostPerUnit < 0 || d.TotalCost < 0))
+            return "Material costs cannot be negative.";
+
+        if (finishGoods.Any(d => d.CostPerUnit < 0 || d.TotalCost < 0))
+            return "Finished good costs cannot be negative.";
+
         return null;
     }
 
@@ -408,4 +422,14 @@ public class ProductManufacturingService(
 
     private static string PreferName(string currentName, string candidateName)
         => string.IsNullOrWhiteSpace(currentName) ? candidateName : currentName;
+
+    private async Task ProcessErpStockAsync(ProductManufacturingDto document, CancellationToken ct)
+    {
+        var itemCodes = document.Materials
+            .Select(d => d.ItemCode)
+            .Concat(document.FinishGoods.Select(d => d.ItemCode))
+            .ToList();
+
+        await erpStockRequestProcessor.ProcessStockRequestAsync(itemCodes, ct);
+    }
 }

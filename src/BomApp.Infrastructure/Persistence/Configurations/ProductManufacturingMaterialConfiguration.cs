@@ -42,6 +42,16 @@ public class ProductManufacturingMaterialConfiguration : IEntityTypeConfiguratio
             .HasMaxLength(50)
             .IsRequired();
 
+        builder.Property(d => d.CostPerUnit)
+            .HasColumnName("cost_per_unit")
+            .HasColumnType("numeric")
+            .IsRequired();
+
+        builder.Property(d => d.TotalCost)
+            .HasColumnName("total_cost")
+            .HasColumnType("numeric")
+            .IsRequired();
+
         builder.Property(d => d.LineNumber)
             .HasColumnName("line_number")
             .IsRequired();

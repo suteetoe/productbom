@@ -18,6 +18,10 @@ public class ProductManufacturingMaterial
 
     public string ShelfCode { get; set; } = string.Empty;
 
+    public decimal CostPerUnit { get; set; }
+
+    public decimal TotalCost { get; set; }
+
     public int LineNumber { get; set; }
 
     public ProductManufacturing? ProductManufacturing { get; set; }

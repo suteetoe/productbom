@@ -38,7 +38,8 @@ public class ProductManufacturingServiceTests
             assignmentRepository.Object,
             bomRepository.Object,
             erpItemRepository.Object,
-            Mock.Of<IErpProductionRepository>());
+            Mock.Of<IErpProductionRepository>(),
+            Mock.Of<IErpStockRequestProcessor>());
 
         var result = await service.CalculateAsync(new CalculateProductManufacturingRequest(
             new DateOnly(2026, 6, 17),
@@ -46,7 +47,7 @@ public class ProductManufacturingServiceTests
             "WH01",
             "A01",
             "make to stock",
-            [new CreateProductManufacturingFinishGoodCommand("FG-001", 3m, "PCS", "WH-FG", "S-FG", 1)],
+            [new CreateProductManufacturingFinishGoodCommand("FG-001", 3m, "PCS", "WH-FG", "S-FG", 0m, 0m, 1)],
             DryRun: true));
 
         result.IsSuccess.Should().BeTrue();
@@ -70,8 +71,9 @@ public class ProductManufacturingServiceTests
             "WH01",
             "A01",
             "make to stock",
-            [new ProductManufacturingFinishGoodDto("MP-20260617-00001", "FG-001", string.Empty, 3m, "PCS", "WH-FG", "S-FG", 1)],
-            [new ProductManufacturingMaterialDto("MP-20260617-00001", "RM-001", string.Empty, 6m, "KG", "WH01", "A01", 1)]);
+            36m,
+            [new ProductManufacturingFinishGoodDto("MP-20260617-00001", "FG-001", string.Empty, 3m, "PCS", "WH-FG", "S-FG", 12m, 36m, 1)],
+            [new ProductManufacturingMaterialDto("MP-20260617-00001", "RM-001", string.Empty, 6m, "KG", "WH01", "A01", 6m, 36m, 1)]);
 
         var repository = new Mock<IProductManufacturingRepository>();
         repository
@@ -90,13 +92,15 @@ public class ProductManufacturingServiceTests
             .Setup(r => r.GetItemByCodeAsync("RM-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ErpItemDto("RM-001", "Raw Material", "KG"));
         var erpProductionRepository = new Mock<IErpProductionRepository>();
+        var stockRequestProcessor = new Mock<IErpStockRequestProcessor>();
 
         var service = new ProductManufacturingService(
             repository.Object,
             Mock.Of<IBomAssignmentRepository>(),
             Mock.Of<IBomRepository>(),
             erpItemRepository.Object,
-            erpProductionRepository.Object);
+            erpProductionRepository.Object,
+            stockRequestProcessor.Object);
 
         var result = await service.CreateAsync(new CreateProductManufacturingCommand(
             saved.DocNo,
@@ -104,20 +108,30 @@ public class ProductManufacturingServiceTests
             saved.WhCode,
             saved.ShelfCode,
             saved.Remark,
-            [new CreateProductManufacturingFinishGoodCommand("FG-001", 3m, "PCS", "WH-FG", "S-FG", 1)],
-            [new CreateProductManufacturingMaterialCommand("RM-001", "Raw Material", 6m, "KG", "WH01", "A01", 1)]));
+            [new CreateProductManufacturingFinishGoodCommand("FG-001", 3m, "PCS", "WH-FG", "S-FG", 12m, 36m, 1)],
+            [new CreateProductManufacturingMaterialCommand("RM-001", "Raw Material", 6m, "KG", "WH01", "A01", 6m, 36m, 1)]));
 
         result.IsSuccess.Should().BeTrue();
         captured.Should().NotBeNull();
         captured!.FinishGoods.Should().ContainSingle(f => f.ItemCode == "FG-001");
-        captured.Materials.Should().ContainSingle(m => m.ItemCode == "RM-001" && m.Qty == 6m);
+        captured.Materials.Should().ContainSingle(m => m.ItemCode == "RM-001" && m.Qty == 6m && m.CostPerUnit == 6m && m.TotalCost == 36m);
         result.Value!.Materials.Should().OnlyContain(m => !string.IsNullOrWhiteSpace(m.ItemName));
         erpProductionRepository.Verify(
             r => r.SaveProductManufacturingDocumentAsync(
                 It.Is<ProductManufacturingDto>(document =>
                     document.DocNo == saved.DocNo &&
+                    document.TotalCost == 36m &&
                     document.FinishGoods.Single().ItemName == "Finished Good" &&
+                    document.FinishGoods.Single().CostPerUnit == 12m &&
+                    document.FinishGoods.Single().TotalCost == 36m &&
                     document.Materials.Single().ItemName == "Raw Material"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        stockRequestProcessor.Verify(
+            r => r.ProcessStockRequestAsync(
+                It.Is<IReadOnlyList<string>>(codes =>
+                    codes.Contains("FG-001") &&
+                    codes.Contains("RM-001")),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -137,7 +151,8 @@ public class ProductManufacturingServiceTests
             Mock.Of<IBomAssignmentRepository>(),
             Mock.Of<IBomRepository>(),
             Mock.Of<IErpItemRepository>(),
-            erpProductionRepository.Object);
+            erpProductionRepository.Object,
+            Mock.Of<IErpStockRequestProcessor>());
 
         var result = await service.DeleteAsync(docNo);
 
@@ -162,7 +177,8 @@ public class ProductManufacturingServiceTests
             Mock.Of<IBomAssignmentRepository>(),
             Mock.Of<IBomRepository>(),
             Mock.Of<IErpItemRepository>(),
-            erpProductionRepository.Object);
+            erpProductionRepository.Object,
+            Mock.Of<IErpStockRequestProcessor>());
 
         var result = await service.DeleteAsync(docNo);
 

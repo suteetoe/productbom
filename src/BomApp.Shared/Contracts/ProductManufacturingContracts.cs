@@ -6,6 +6,7 @@ public record ProductManufacturingDto(
     string WhCode,
     string ShelfCode,
     string Remark,
+    decimal TotalCost,
     IReadOnlyList<ProductManufacturingFinishGoodDto> FinishGoods,
     IReadOnlyList<ProductManufacturingMaterialDto> Materials
 );
@@ -27,6 +28,8 @@ public record ProductManufacturingFinishGoodDto(
     string UnitCode,
     string WhCode,
     string ShelfCode,
+    decimal CostPerUnit,
+    decimal TotalCost,
     int LineNumber
 );
 
@@ -38,6 +41,8 @@ public record ProductManufacturingMaterialDto(
     string UnitCode,
     string WhCode,
     string ShelfCode,
+    decimal CostPerUnit,
+    decimal TotalCost,
     int LineNumber
 );
 
@@ -76,6 +81,8 @@ public record CreateProductManufacturingFinishGoodCommand(
     string UnitCode,
     string WhCode,
     string ShelfCode,
+    decimal CostPerUnit,
+    decimal TotalCost,
     int LineNumber
 );
 
@@ -86,5 +93,7 @@ public record CreateProductManufacturingMaterialCommand(
     string UnitCode,
     string WhCode,
     string ShelfCode,
+    decimal CostPerUnit,
+    decimal TotalCost,
     int LineNumber
 );

@@ -63,6 +63,7 @@ public class ProductManufacturingRepository(BomDbContext context) : IProductManu
             WhCode = command.WhCode.Trim(),
             ShelfCode = command.ShelfCode.Trim(),
             Remark = command.Remark.Trim(),
+            TotalCost = command.FinishGoods.Sum(d => d.TotalCost),
             FinishGoods = command.FinishGoods
                 .OrderBy(d => d.LineNumber)
                 .Select(d => new ProductManufacturingFinishGood
@@ -73,6 +74,8 @@ public class ProductManufacturingRepository(BomDbContext context) : IProductManu
                     UnitCode = d.UnitCode.Trim(),
                     WhCode = d.WhCode.Trim(),
                     ShelfCode = d.ShelfCode.Trim(),
+                    CostPerUnit = d.CostPerUnit,
+                    TotalCost = d.TotalCost,
                     LineNumber = d.LineNumber
                 })
                 .ToList(),
@@ -86,6 +89,8 @@ public class ProductManufacturingRepository(BomDbContext context) : IProductManu
                     UnitCode = d.UnitCode.Trim(),
                     WhCode = d.WhCode.Trim(),
                     ShelfCode = d.ShelfCode.Trim(),
+                    CostPerUnit = d.CostPerUnit,
+                    TotalCost = d.TotalCost,
                     LineNumber = d.LineNumber
                 })
                 .ToList()
@@ -113,6 +118,7 @@ public class ProductManufacturingRepository(BomDbContext context) : IProductManu
         document.WhCode = command.WhCode.Trim();
         document.ShelfCode = command.ShelfCode.Trim();
         document.Remark = command.Remark.Trim();
+        document.TotalCost = command.FinishGoods.Sum(d => d.TotalCost);
 
         context.ProductManufacturingFinishGoods.RemoveRange(document.FinishGoods);
         context.ProductManufacturingMaterials.RemoveRange(document.Materials);
@@ -127,6 +133,8 @@ public class ProductManufacturingRepository(BomDbContext context) : IProductManu
                 UnitCode = d.UnitCode.Trim(),
                 WhCode = d.WhCode.Trim(),
                 ShelfCode = d.ShelfCode.Trim(),
+                CostPerUnit = d.CostPerUnit,
+                TotalCost = d.TotalCost,
                 LineNumber = d.LineNumber
             })
             .ToList();
@@ -141,6 +149,8 @@ public class ProductManufacturingRepository(BomDbContext context) : IProductManu
                 UnitCode = d.UnitCode.Trim(),
                 WhCode = d.WhCode.Trim(),
                 ShelfCode = d.ShelfCode.Trim(),
+                CostPerUnit = d.CostPerUnit,
+                TotalCost = d.TotalCost,
                 LineNumber = d.LineNumber
             })
             .ToList();
@@ -197,6 +207,7 @@ public class ProductManufacturingRepository(BomDbContext context) : IProductManu
             document.WhCode,
             document.ShelfCode,
             document.Remark,
+            document.TotalCost,
             document.FinishGoods
                 .OrderBy(d => d.LineNumber)
                 .Select(d => new ProductManufacturingFinishGoodDto(
@@ -207,6 +218,8 @@ public class ProductManufacturingRepository(BomDbContext context) : IProductManu
                     d.UnitCode,
                     d.WhCode,
                     d.ShelfCode,
+                    d.CostPerUnit,
+                    d.TotalCost,
                     d.LineNumber))
                 .ToList(),
             document.Materials
@@ -219,6 +232,8 @@ public class ProductManufacturingRepository(BomDbContext context) : IProductManu
                     d.UnitCode,
                     d.WhCode,
                     d.ShelfCode,
+                    d.CostPerUnit,
+                    d.TotalCost,
                     d.LineNumber))
                 .ToList());
 }

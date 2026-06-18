@@ -15,7 +15,8 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
                 trans_flag SMALLINT NOT NULL,
                 doc_date DATE NOT NULL,
                 doc_time VARCHAR(5) NOT NULL,
-                doc_no VARCHAR(30) NOT NULL
+                doc_no VARCHAR(30) NOT NULL,
+                total_amount NUMERIC(18,6) NOT NULL DEFAULT 0
             )
             """);
 
@@ -35,6 +36,10 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
                 qty NUMERIC(18,6) NOT NULL,
                 wh_code VARCHAR(50) NOT NULL,
                 shelf_code VARCHAR(50) NOT NULL,
+                price NUMERIC(18,6) NOT NULL DEFAULT 0,
+                sum_of_cost NUMERIC(18,6) NOT NULL DEFAULT 0,
+                sum_amount NUMERIC(18,6) NOT NULL DEFAULT 0,
+                sum_amount_exclude_vat NUMERIC(18,6) NOT NULL DEFAULT 0,
                 stand_value NUMERIC(18,6) NOT NULL,
                 divide_value NUMERIC(18,6) NOT NULL,
                 tax_type SMALLINT NOT NULL DEFAULT 0,
@@ -237,13 +242,14 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
             WhCode: "WH-H",
             ShelfCode: "SH-H",
             Remark: "produce",
+            TotalCost: 36m,
             FinishGoods:
             [
-                new ProductManufacturingFinishGoodDto("MP-20260617-00001", "FG-001", "Finished Good", 3m, "PCS", "WH-FG", "SH-FG", 1)
+                new ProductManufacturingFinishGoodDto("MP-20260617-00001", "FG-001", "Finished Good", 3m, "PCS", "WH-FG", "SH-FG", 12m, 36m, 1)
             ],
             Materials:
             [
-                new ProductManufacturingMaterialDto("MP-20260617-00001", "MAT-A", "Material A", 6m, "KG", "WH-RM", "SH-RM", 1)
+                new ProductManufacturingMaterialDto("MP-20260617-00001", "MAT-A", "Material A", 6m, "KG", "WH-RM", "SH-RM", 6m, 36m, 1)
             ]);
 
         await repo.SaveProductManufacturingDocumentAsync(document);
@@ -263,8 +269,17 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
         var issueCalcFlag = await DbContext.Database
             .SqlQueryRaw<short>("SELECT calc_flag AS \"Value\" FROM ic_trans_detail WHERE trans_type = 3 AND trans_flag = 56 AND doc_no = 'MP-20260617-00001' AND line_number = 1")
             .SingleAsync();
+        var receiveCalcFlag = await DbContext.Database
+            .SqlQueryRaw<short>("SELECT calc_flag AS \"Value\" FROM ic_trans_detail WHERE trans_type = 3 AND trans_flag = 60 AND doc_no = 'MP-20260617-00001' AND line_number = 1")
+            .SingleAsync();
         var receiveMasterData = await DbContext.Database
             .SqlQueryRaw<string>("SELECT item_name || '/' || stand_value::text || '/' || divide_value::text || '/' || tax_type::text AS \"Value\" FROM ic_trans_detail WHERE trans_type = 3 AND trans_flag = 60 AND doc_no = 'MP-20260617-00001' AND line_number = 1")
+            .SingleAsync();
+        var receiveCost = await DbContext.Database
+            .SqlQueryRaw<string>("SELECT price::text || '/' || sum_of_cost::text || '/' || sum_amount::text || '/' || sum_amount_exclude_vat::text AS \"Value\" FROM ic_trans_detail WHERE trans_type = 3 AND trans_flag = 60 AND doc_no = 'MP-20260617-00001' AND line_number = 1")
+            .SingleAsync();
+        var receiveHeaderTotalAmount = await DbContext.Database
+            .SqlQueryRaw<decimal>("SELECT total_amount AS \"Value\" FROM ic_trans WHERE trans_type = 3 AND trans_flag = 60 AND doc_no = 'MP-20260617-00001'")
             .SingleAsync();
 
         issueHeaderCount.Should().Be(1);
@@ -272,7 +287,10 @@ public class ErpProductionRepositoryIntegrationTests : ErpDbIntegrationTestBase
         issueDetail.Should().Be("MAT-A/6.000000/WH-RM/SH-RM");
         receiveDetail.Should().Be("FG-001/3.000000/WH-FG/SH-FG");
         issueCalcFlag.Should().Be(-1);
+        receiveCalcFlag.Should().Be(1);
         receiveMasterData.Should().Be("ERP Finished Good/1.000000/1.000000/9");
+        receiveCost.Should().Be("12.000000/36.000000/36.000000/36.000000");
+        receiveHeaderTotalAmount.Should().Be(36m);
     }
 
     [Fact]

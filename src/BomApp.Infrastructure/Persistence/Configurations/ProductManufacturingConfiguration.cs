@@ -40,6 +40,11 @@ public class ProductManufacturingConfiguration : IEntityTypeConfiguration<Produc
             .HasMaxLength(255)
             .IsRequired();
 
+        builder.Property(d => d.TotalCost)
+            .HasColumnName("total_cost")
+            .HasColumnType("numeric")
+            .IsRequired();
+
         builder.HasIndex(d => d.DocDate)
             .HasDatabaseName("idx_bom_material_process_doc_date");
 
