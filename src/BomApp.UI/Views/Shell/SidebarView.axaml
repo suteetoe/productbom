@@ -6,7 +6,7 @@
              mc:Ignorable="d"
              x:Class="BomApp.UI.Views.Shell.SidebarView"
              x:DataType="vm:SidebarViewModel"
-             Background="{StaticResource SurfaceSecondaryBrush}">
+             Background="#EFF4FF">
 
     <!--
         Sidebar navigation styles.
