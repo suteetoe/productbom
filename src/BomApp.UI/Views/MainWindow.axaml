@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         x:Class="BomApp.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="avares://BomApp.UI/Assets/icons8-product-documents-48.ico"
         Title="Smart BOM"
         Width="1200"
         Height="750"

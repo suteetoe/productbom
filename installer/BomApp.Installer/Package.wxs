@@ -7,6 +7,7 @@
     Scope="perMachine">
 
     <SummaryInformation Description="Smart BOM installer" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Smart BOM is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
     <Icon Id="AppIcon.ico" SourceFile="$(var.RepoRoot)src\BomApp.UI\Assets\avalonia-logo.ico" />

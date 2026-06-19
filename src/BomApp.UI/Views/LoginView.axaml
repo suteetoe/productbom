@@ -6,6 +6,7 @@
         mc:Ignorable="d"
         x:Class="BomApp.UI.Views.LoginView"
         x:DataType="vm:LoginViewModel"
+        Icon="avares://BomApp.UI/Assets/icons8-product-documents-48.ico"
         Title="Smart BOM — เข้าสู่ระบบ"
         Width="420"
         Height="480"
